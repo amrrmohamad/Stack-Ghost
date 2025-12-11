@@ -1,0 +1,1 @@
+router.get('/users', async (req, res));
