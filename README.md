@@ -26,10 +26,10 @@ Built with **Node.js** and a simple frontend using **HTML / CSS / JavaScript** (
 ```
 Stack-Ghost/
 │
-├── server.js            
+├── server.js
 ├── package.json
 │
-├── public/              
+├── public/
 │   ├── index.html
 │   ├── login.html
 │   ├── register.html
