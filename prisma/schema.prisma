@@ -9,7 +9,7 @@ datasource db {
 
 model Users {
   user_id           Int       @id @default(autoincrement())
-  username          String    @db.VarChar
+  username          String    @unique @db.VarChar
   email             String    @unique @db.VarChar
   password_hash     String    @db.VarChar
   bio               String?
@@ -40,11 +40,9 @@ model Users {
 
 model Questions {
   question_id   Int       @id @default(autoincrement())
-  
   user_id       Int
-  title         String    @db.VarChar
+  title         String    @unique @db.VarChar
   body          String
-  
   views_count   Int       @default(0)
   is_closed     Boolean   @default(false)
   closed_by     Int?

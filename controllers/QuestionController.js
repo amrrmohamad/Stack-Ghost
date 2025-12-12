@@ -52,7 +52,15 @@ class QuestionController {
                 data: newQuestion
             });
         } catch (error) {
-            console.log(error);
+            console.error(error);
+
+            if (error.code === 'P2002' && error.meta?.target?.includes('title')) {
+                return res.status(409).json({
+                    success: false,
+                    message: "A question with this title already exists. Please choose a different title."
+                });
+            }
+
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -66,7 +74,7 @@ class QuestionController {
         try {
             const questions = await prisma.questions.findMany({
                 include: {
-                    Author: { 
+                    Author: {
                         select: {
                             username: true,
                             reputation: true
