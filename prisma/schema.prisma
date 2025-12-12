@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Answers {
@@ -179,7 +179,7 @@ model User_Badges {
 }
 
 model Users {
-  user_id                                           Int             @id
+  user_id                                           Int             @id          @default(autoincrement())
   username                                          String?         @db.VarChar
   email                                             String?         @db.VarChar
   password_hash                                     String?         @db.VarChar
