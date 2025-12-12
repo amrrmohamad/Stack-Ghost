@@ -8,16 +8,20 @@
 import 'dotenv/config';
 import express from 'express';
 import userRoutes from './routes/userRoutes.js';
+import questionRoutes from './routes/questionRoutes.js'
+
+const PORT = 3000;
 
 const app = express();
 
-// عشان نفهم الـ JSON اللي جاي في الـ POST Request
 app.use(express.json());
 
-// شغل الراوتات
+
 app.use('/api', userRoutes); 
 
-const PORT = 3000;
+app.use('/api', questionRoutes);
+
+
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

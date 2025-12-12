@@ -1,6 +1,6 @@
 /**
  * @file userRoutes.js
- * @description Routes responsible for handling User CRUD operations.
+ * @description userRoutes responsible for handling User CRUD operations.
  * @author M-Ahmd <ma0950082@gmail.com>
  * @version 1.0.0
  * @date 2025-12-11
