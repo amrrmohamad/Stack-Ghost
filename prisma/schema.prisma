@@ -86,6 +86,8 @@ model Tags {
   description   String?
   Follow_Tags   Follow_Tags[]
   Question_Tags Question_Tags[]
+
+  @@index([tag_name], map: "tag_index")
 }
 
 model Comments {
