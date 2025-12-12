@@ -7,6 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Users {
+  user_id           Int       @id @default(autoincrement())
+  username          String    @db.VarChar
+  email             String    @unique @db.VarChar
+  password_hash     String    @db.VarChar
+  bio               String?
+  profile_image     String?   @db.VarChar
+  reputation        Int?      @default(0)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  last_login        DateTime? @db.Timestamp(6)
+  role_id           Int?
+
+  Roles             Roles?     @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  
+  Answers           Answers[]
+  Comments          Comments[]
+  Drafts            Drafts[]
+  Edit_History      Edit_History[]
+  User_Badges       User_Badges[]
+  Notifications     Notifications[]
+  Reports           Reports[]
+  Votes             Votes[]
+  Follow_Tags       Follow_Tags[]
+
+  Following         Follow_Users[]  @relation("Follow_Users_user_idToUsers")
+  Followers         Follow_Users[]  @relation("Follow_Users_followed_user_idToUsers")
+
+  AuthoredQuestions Questions[]     @relation("Questions_user_idToUsers")
+  ClosedQuestions   Questions[]     @relation("Questions_closed_byToUsers")
+}
+
+model Questions {
+  question_id   Int       @id @default(autoincrement())
+  
+  user_id       Int
+  title         String    @db.VarChar
+  body          String
+  
+  views_count   Int       @default(0)
+  is_closed     Boolean   @default(false)
+  closed_by     Int?
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime? @updatedAt @db.Timestamp(6)
+
+  Answers       Answers[]
+  Comments      Comments[]
+  Edit_History  Edit_History[]
+  Question_Tags Question_Tags[]
+  Reports       Reports[]
+  Votes         Votes[]
+
+  Author        Users     @relation("Questions_user_idToUsers", fields: [user_id], references: [user_id], onDelete: Cascade)
+  ClosedByUser  Users?    @relation("Questions_closed_byToUsers", fields: [closed_by], references: [user_id], onDelete: SetNull)
+}
+
 model Answers {
   answer_id    Int       @id @default(autoincrement())
   
@@ -27,23 +82,20 @@ model Answers {
   Votes        Votes[]
 }
 
-model Badges {
-  badge_id    Int           @id
-  badge_name  String?       @db.VarChar
-  badge_type  String?       @db.VarChar
-  description String?
-  User_Badges User_Badges[]
+model Tags {
+  tag_id        Int           @id @default(autoincrement())
+  tag_name      String        @unique @db.VarChar
+  description   String?
+  Follow_Tags   Follow_Tags[]
+  Question_Tags Question_Tags[]
 }
 
 model Comments {
-  comment_id  Int       @id @default(autoincrement())
-  
+  comment_id  Int       @id @default(autoincrement()) 
   user_id     Int
   body        String
-  
   question_id Int?
   answer_id   Int?
-  
   created_at  DateTime  @default(now()) @db.Timestamp(6)
 
   Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade)
@@ -51,8 +103,55 @@ model Comments {
   Users       Users      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
+model Question_Tags {
+  question_id Int
+  tag_id      Int
+  Questions   Questions @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  Tags        Tags      @relation(fields: [tag_id], references: [tag_id], onDelete: Cascade)
+
+  @@id([question_id, tag_id])
+}
+
+model Follow_Users {
+  user_id          Int
+  followed_user_id Int
+  created_at       DateTime? @db.Timestamp(6)
+  
+  Follower         Users     @relation("Follow_Users_user_idToUsers", fields: [user_id], references: [user_id], onDelete: Cascade)
+  Followed         Users     @relation("Follow_Users_followed_user_idToUsers", fields: [followed_user_id], references: [user_id], onDelete: Cascade)
+
+  @@id([user_id, followed_user_id])
+}
+
+model Votes {
+  vote_id     Int       @id @default(autoincrement())
+  user_id     Int?
+  question_id Int?
+  answer_id   Int?
+  vote_type   String?   @db.VarChar
+  created_at  DateTime? @db.Timestamp(6)
+  
+  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade)
+  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model Reports {
+  report_id   Int       @id @default(autoincrement())
+  user_id     Int?
+  reason      String?
+  status      String?   @db.VarChar(50)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  question_id Int?
+  answer_id   Int?
+  
+  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
+  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
+  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
 model Drafts {
-  draft_id   Int       @id
+  draft_id   Int       @id @default(autoincrement())
   user_id    Int?
   draft_type String?   @db.VarChar
   title      String?   @db.VarChar
@@ -62,13 +161,13 @@ model Drafts {
 }
 
 model Edit_History {
-  edit_id     Int        @id
+  edit_id     Int       @id @default(autoincrement())
   user_id     Int?
   question_id Int?
   answer_id   Int?
   old_body    String?
   new_body    String?
-  created_at  DateTime?  @db.Timestamp(6)
+  created_at  DateTime? @db.Timestamp(6)
   Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
   Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
   Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -84,19 +183,8 @@ model Follow_Tags {
   @@id([user_id, tag_id])
 }
 
-model Follow_Users {
-  user_id                                    Int
-  followed_user_id                           Int
-  created_at                                 DateTime? @db.Timestamp(6)
-  Users_Follow_Users_followed_user_idToUsers Users     @relation("Follow_Users_followed_user_idToUsers", fields: [followed_user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  Users_Follow_Users_user_idToUsers          Users     @relation("Follow_Users_user_idToUsers", fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([user_id, followed_user_id])
-  @@unique([user_id, followed_user_id], map: "Follow_Users_user_id_followed_user_id_idx")
-}
-
 model Notifications {
-  notification_id Int       @id
+  notification_id Int       @id @default(autoincrement())
   user_id         Int?
   content         String?
   is_read         Boolean?
@@ -104,53 +192,34 @@ model Notifications {
   Users           Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model Badges {
+  badge_id    Int           @id @default(autoincrement())
+  badge_name  String?       @db.VarChar
+  badge_type  String?       @db.VarChar
+  description String?
+  User_Badges User_Badges[]
+}
+
+model User_Badges {
+  user_badge_id Int       @id @default(autoincrement())
+  user_id       Int?
+  badge_id      Int?
+  granted_at    DateTime? @db.Timestamp(6)
+  Badges        Badges?   @relation(fields: [badge_id], references: [badge_id], onDelete: NoAction, onUpdate: NoAction)
+  Users         Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Roles {
+  role_id          Int                @id @default(autoincrement())
+  role_name        String?            @db.VarChar
+  Role_Permissions Role_Permissions[]
+  Users            Users[]
+}
+
 model Permissions {
-  permission_id    Int                @id
+  permission_id    Int                @id @default(autoincrement())
   permission_name  String?            @db.VarChar
   Role_Permissions Role_Permissions[]
-}
-
-model Question_Tags {
-  question_id Int
-  tag_id      Int
-  Questions   Questions @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Tags        Tags      @relation(fields: [tag_id], references: [tag_id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@id([question_id, tag_id])
-}
-
-model Questions {
-  question_id                          Int             @id @default(autoincrement())
-  user_id                              Int
-  title                                String          @db.VarChar
-  body                                 String
-  views_count                          Int             @default(0)
-  is_closed                            Boolean         @default(false)
-  closed_by                            Int?
-  created_at                           DateTime        @default(now()) @db.Timestamp(6)
-  updated_at                           DateTime?       @updatedAt @db.Timestamp(6)
-  Answers                              Answers[]
-  Comments                             Comments[]
-  Edit_History                         Edit_History[]
-  Question_Tags                        Question_Tags[]
-  Users_Questions_closed_byToUsers     Users?          @relation("Questions_closed_byToUsers", fields: [closed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  Users_Questions_user_idToUsers       Users           @relation("Questions_user_idToUsers", fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  Reports                              Reports[]
-  Votes                                Votes[]
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model Reports {
-  report_id   Int        @id @default(autoincrement())
-  user_id     Int?
-  reason      String?
-  status      String?    @db.VarChar(50)
-  created_at  DateTime?  @default(now()) @db.Timestamp(6)
-  question_id Int?
-  answer_id   Int?
-  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
-  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model Role_Permissions {
@@ -160,68 +229,4 @@ model Role_Permissions {
   Roles         Roles       @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([role_id, permission_id])
-}
-
-model Roles {
-  role_id          Int                @id
-  role_name        String?            @db.VarChar
-  Role_Permissions Role_Permissions[]
-  Users            Users[]
-}
-
-model Tags {
-  tag_id        Int           @id @default(autoincrement())
-  
-  tag_name      String        @unique @db.VarChar
-  
-  description   String?
-  Follow_Tags   Follow_Tags[]
-  Question_Tags Question_Tags[]
-}
-model User_Badges {
-  user_badge_id Int       @id
-  user_id       Int?
-  badge_id      Int?
-  granted_at    DateTime? @db.Timestamp(6)
-  Badges        Badges?   @relation(fields: [badge_id], references: [badge_id], onDelete: NoAction, onUpdate: NoAction)
-  Users         Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model Users {
-  user_id                                           Int            @id          @default(autoincrement())
-  username                                          String         @db.VarChar
-  email                                             String         @db.VarChar
-  password_hash                                     String         @db.VarChar
-  bio                                               String?
-  profile_image                                     String?         @db.VarChar
-  reputation                                        Int?
-  created_at                                        DateTime?       @db.Timestamp(6)
-  last_login                                        DateTime?       @db.Timestamp(6)
-  role_id                                           Int?
-  Answers                                           Answers[]
-  Comments                                          Comments[]
-  Drafts                                            Drafts[]
-  Edit_History                                      Edit_History[]
-  Follow_Tags                                       Follow_Tags[]
-  Follow_Users_Follow_Users_followed_user_idToUsers Follow_Users[]  @relation("Follow_Users_followed_user_idToUsers")
-  Follow_Users_Follow_Users_user_idToUsers          Follow_Users[]  @relation("Follow_Users_user_idToUsers")
-  Notifications                                     Notifications[]
-  Questions_Questions_closed_byToUsers              Questions[]     @relation("Questions_closed_byToUsers")
-  Questions_Questions_user_idToUsers                Questions[]     @relation("Questions_user_idToUsers")
-  Reports                                           Reports[]
-  User_Badges                                       User_Badges[]
-  Roles                                             Roles?          @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
-  Votes                                             Votes[]
-}
-
-model Votes {
-  vote_id     Int        @id
-  user_id     Int?
-  question_id Int?
-  answer_id   Int?
-  vote_type   String?    @db.VarChar
-  created_at  DateTime?  @db.Timestamp(6)
-  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
-  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }

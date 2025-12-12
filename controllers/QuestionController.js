@@ -66,7 +66,7 @@ class QuestionController {
         try {
             const questions = await prisma.questions.findMany({
                 include: {
-                    Users_Questions_user_idToUsers: {
+                    Author: { 
                         select: {
                             username: true,
                             reputation: true
