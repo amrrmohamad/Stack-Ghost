@@ -162,7 +162,7 @@ model Roles {
 }
 
 model Tags {
-  tag_id        Int             @id
+  tag_id        Int             @id @default(autoincrement())
   tag_name      String?         @unique @db.VarChar
   description   String?
   Follow_Tags   Follow_Tags[]

@@ -8,17 +8,13 @@
 
 import { PrismaClient } from '@prisma/client'; // ✅ الصح
 const prisma = new PrismaClient();
-/**
- * UserController Class
- * Handles incoming requests and interacts with the User model.
- */
+
+
 class UserController {
     /**
-     * Retrieves all users from the database.
-     * * @author Your Name
+     * Retrieves all users from the database
      * @param {import('express').Request} req - Express request object
      * @param {import('express').Response} res - Express response object
-     * @returns {Promise<void>} JSON response with users list
      */
     async getAllUsers(req, res) {
         try {
@@ -35,9 +31,8 @@ class UserController {
 
     /**
      * Creates a new user in the database.
-     * * @param {import('express').Request} req - The Express request object containing user data in body.
+     * @param {import('express').Request} req - The Express request object containing user data in body.
      * @param {import('express').Response} res - The Express response object.
-     * @returns {Promise<void>} Returns a JSON response with the created user object.
      */
     async createUser(req, res) {
         try {
