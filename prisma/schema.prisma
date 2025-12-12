@@ -36,15 +36,19 @@ model Badges {
 }
 
 model Comments {
-  comment_id  Int        @id
-  user_id     Int?
+  comment_id  Int       @id @default(autoincrement())
+  
+  user_id     Int
+  body        String
+  
   question_id Int?
   answer_id   Int?
-  body        String?
-  created_at  DateTime?  @db.Timestamp(6)
-  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
-  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+
+  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade)
+  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  Users       Users      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Drafts {

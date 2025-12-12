@@ -11,7 +11,7 @@ import userRoutes from './routes/userRoutes.js';
 import questionRoutes from './routes/questionRoutes.js'
 import answerRoutes from './routes/answerRoutes.js'
 import tagRoutes from './routes/tagRoutes.js'
-
+import commentRoutes from './routes/commentRoutes.js';
 
 const PORT = 3000;
 
@@ -27,6 +27,8 @@ app.use('/api', questionRoutes);
 app.use('/api', answerRoutes);
 
 app.use('/api', tagRoutes);
+
+app.use('/api', commentRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
