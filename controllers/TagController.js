@@ -21,6 +21,7 @@ class TagController {
         try {
             const { tag_name, description } = req.body;
 
+            // Validation Layer
             if (!tag_name) {
                 return res.status(400).json({
                     success: false,
@@ -43,6 +44,7 @@ class TagController {
 
         } catch (error) {
             console.error(error);
+            // التعامل مع تكرار الاسم
             if (error.code === 'P2002') {
                 return res.status(409).json({ success: false, message: "Tag already exists" });
             }

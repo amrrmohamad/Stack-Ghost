@@ -8,15 +8,19 @@ datasource db {
 }
 
 model Answers {
-  answer_id    Int            @id @default(autoincrement()) 
-  question_id  Int?
-  user_id      Int?
-  body         String?
-  is_accepted  Boolean?       @default(false)
-  created_at   DateTime?      @default(now()) @db.Timestamp(6)
-  updated_at   DateTime?      @updatedAt @db.Timestamp(6)
-  Questions    Questions?     @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Users        Users?         @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  answer_id    Int       @id @default(autoincrement())
+  
+  question_id  Int
+  user_id      Int
+  body         String
+  
+  is_accepted  Boolean   @default(false)
+  created_at   DateTime  @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @updatedAt @db.Timestamp(6)
+
+  Questions    Questions @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+  Users        Users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  
   Comments     Comments[]
   Edit_History Edit_History[]
   Reports      Reports[]
@@ -112,23 +116,23 @@ model Question_Tags {
 }
 
 model Questions {
-  question_id                      Int             @id                 @default(autoincrement())
-  user_id                          Int?
-  title                            String?         @db.VarChar
-  body                             String?
-  views_count                      Int?            @default(0)
-  is_closed                        Boolean?        @default(false)
-  closed_by                        Int?
-  created_at                       DateTime?       @default(now())     @db.Timestamp(6)
-  updated_at                       DateTime?       @updatedAt          @db.Timestamp(6)
-  Answers                          Answers[]
-  Comments                         Comments[]
-  Edit_History                     Edit_History[]
-  Question_Tags                    Question_Tags[]
-  Users_Questions_closed_byToUsers Users?          @relation("Questions_closed_byToUsers", fields: [closed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  Users_Questions_user_idToUsers   Users?          @relation("Questions_user_idToUsers", fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-  Reports                          Reports[]
-  Votes                            Votes[]
+  question_id                          Int             @id @default(autoincrement())
+  user_id                              Int
+  title                                String          @db.VarChar
+  body                                 String
+  views_count                          Int             @default(0)
+  is_closed                            Boolean         @default(false)
+  closed_by                            Int?
+  created_at                           DateTime        @default(now()) @db.Timestamp(6)
+  updated_at                           DateTime?       @updatedAt @db.Timestamp(6)
+  Answers                              Answers[]
+  Comments                             Comments[]
+  Edit_History                         Edit_History[]
+  Question_Tags                        Question_Tags[]
+  Users_Questions_closed_byToUsers     Users?          @relation("Questions_closed_byToUsers", fields: [closed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  Users_Questions_user_idToUsers       Users           @relation("Questions_user_idToUsers", fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  Reports                              Reports[]
+  Votes                                Votes[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -162,13 +166,14 @@ model Roles {
 }
 
 model Tags {
-  tag_id        Int             @id @default(autoincrement())
-  tag_name      String?         @unique @db.VarChar
+  tag_id        Int           @id @default(autoincrement())
+  
+  tag_name      String        @unique @db.VarChar
+  
   description   String?
   Follow_Tags   Follow_Tags[]
   Question_Tags Question_Tags[]
 }
-
 model User_Badges {
   user_badge_id Int       @id
   user_id       Int?

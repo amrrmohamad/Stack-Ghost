@@ -8,7 +8,6 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-
 class QuestionController {
     /**
      * Create a new question
@@ -17,20 +16,36 @@ class QuestionController {
      */
     async createQuestion(req, res) {
         try {
-            const { title, body, user_id } = req.body;
+            const { title, body, user_id, tag_ids } = req.body;
+
             if (!title || !body || !user_id) {
                 return res.status(400).json({
                     success: false,
                     message: "Title, Body, and User ID are required"
                 });
             }
+
+            let tagsData = {};
+            if (tag_ids && Array.isArray(tag_ids) && tag_ids.length > 0) {
+                tagsData = {
+                    create: tag_ids.map(id => ({
+                        Tags: { connect: { tag_id: parseInt(id) } }
+                    }))
+                };
+            }
+
             const newQuestion = await prisma.questions.create({
                 data: {
                     title,
                     body,
-                    user_id: parseInt(user_id)
+                    user_id: parseInt(user_id),
+                    Question_Tags: tagsData
+                },
+                include: {
+                    Question_Tags: true
                 }
             });
+
             res.status(201).json({
                 success: true,
                 message: "Question posted successfully 🚀",
@@ -49,22 +64,24 @@ class QuestionController {
      */
     async getAllQuestions(req, res) {
         try {
-            const questions = await prisma.questions.findMany(
-                {
-                    include: {
-                        Users_Questions_user_idToUsers: {
-                            select: {
-                                username: true,
-                                reputation: true
-                            }
+            const questions = await prisma.questions.findMany({
+                include: {
+                    Users_Questions_user_idToUsers: {
+                        select: {
+                            username: true,
+                            reputation: true
                         }
                     },
-                    orderBy: {
-                        created_at: 'desc'
+                    Question_Tags: {
+                        include: {
+                            Tags: true
+                        }
                     }
+                },
+                orderBy: {
+                    created_at: 'desc'
                 }
-            )
-
+            });
 
             res.status(200).json({
                 success: true,
@@ -77,4 +94,5 @@ class QuestionController {
         }
     }
 }
+
 export default new QuestionController();

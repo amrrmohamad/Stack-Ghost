@@ -6,30 +6,27 @@
  * @date 2025-12-11
  */
 
-
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-
-class AnswerController
-{
+class AnswerController {
     /**
      * Create a new answer
      * @param {import('express').Request} req 
      * @param {import('express').Response} res 
      */
-    async createAnswer(req, res)
-    {
-        try
-        {
-            const {body, question_id, user_id} = req.body;
+    async createAnswer(req, res) {
+        try {
+            const { body, question_id, user_id } = req.body;
+            
             if (!body || !question_id || !user_id) {
                 return res.status(400).json({
                     success: false,
                     message: "Body, Question ID, and User ID are required"
                 });
             }
+
             const newAnswer = await prisma.answers.create({
                 data: {
                     body,
@@ -43,12 +40,12 @@ class AnswerController
                 message: "Answer added successfully 🚀",
                 data: newAnswer
             });
-        }catch(error)
-        {
+        } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+
     /**
      * get all answers and users who answer it
      * @param {import('express').Request} req 
@@ -56,7 +53,7 @@ class AnswerController
      */
     async getQuestionAnswers(req, res) {
         try {
-            const { questionId } = req.params; 
+            const { questionId } = req.params;
 
             const answers = await prisma.answers.findMany({
                 where: {
@@ -84,4 +81,5 @@ class AnswerController
         }
     }
 }
+
 export default new AnswerController();

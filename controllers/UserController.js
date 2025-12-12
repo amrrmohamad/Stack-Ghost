@@ -6,7 +6,7 @@
  * @date 2025-12-11
  */
 
-import { PrismaClient } from '@prisma/client'; // ✅ الصح
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
