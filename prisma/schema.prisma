@@ -179,10 +179,10 @@ model User_Badges {
 }
 
 model Users {
-  user_id                                           Int             @id          @default(autoincrement())
-  username                                          String?         @db.VarChar
-  email                                             String?         @db.VarChar
-  password_hash                                     String?         @db.VarChar
+  user_id                                           Int            @id          @default(autoincrement())
+  username                                          String         @db.VarChar
+  email                                             String         @db.VarChar
+  password_hash                                     String         @db.VarChar
   bio                                               String?
   profile_image                                     String?         @db.VarChar
   reputation                                        Int?

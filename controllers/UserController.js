@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'; // ✅ الصح
+import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 
@@ -36,45 +37,52 @@ class UserController {
      */
     async createUser(req, res) {
         try {
-            const { username, email } = req.body;
+            const { username, email, password } = req.body;
 
-            // Basic validation layer (should be moved to a validator middleware later)
-            if (!username || !email) {
+            if (!username || !email || !password) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Please provide both username and email.'
+                    message: "Missing required fields: username, email, and password are required."
                 });
             }
+
+            if (password.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Password must be at least 6 characters long."
+                });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
 
             const newUser = await prisma.users.create({
                 data: {
                     username,
                     email,
-                    created_at: new Date()
+                    password_hash: hashedPassword, 
                 }
             });
 
-            // 201 Created is the standard status for successful resource creation
+            const { password_hash, ...userWithoutPass } = newUser;
+
             res.status(201).json({
                 success: true,
-                message: 'User created successfully',
-                data: newUser
+                message: "User registered successfully 🎉",
+                data: userWithoutPass
             });
-        } catch (error) {
-            console.error('[UserController] createUser Error:', error);
 
-            // Check for unique constraint violation (P2002 is Prisma code for unique constraint)
+        } catch (error) {
+            console.error(error);
+
             if (error.code === 'P2002') {
                 return res.status(409).json({
                     success: false,
-                    message: 'Email already exists.'
+                    message: "Username or Email already exists!"
                 });
             }
 
-            res.status(500).json({
-                success: false,
-                message: 'Internal Server Error'
-            });
+            res.status(500).json({ success: false, message: "Internal Server Error" });
         }
     }
 }
