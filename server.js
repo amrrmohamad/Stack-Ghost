@@ -9,7 +9,7 @@ import 'dotenv/config';
 import express from 'express';
 import userRoutes from './routes/userRoutes.js';
 import questionRoutes from './routes/questionRoutes.js'
-
+import answerRoutes from './routes/answerRoutes.js'
 const PORT = 3000;
 
 const app = express();
@@ -21,6 +21,7 @@ app.use('/api', userRoutes);
 
 app.use('/api', questionRoutes);
 
+app.use('/api', answerRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
