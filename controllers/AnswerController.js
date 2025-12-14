@@ -192,6 +192,110 @@ class AnswerController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+    /**
+     * updateAnswer - is update answer by id
+     * @param {req} request 
+     * @param {res} response
+     * @returns void
+     */
+    async updateAnswer(req, res) {
+        try {
+            const { id } = req.params;
+            const { body, user_id } = req.body; 
+            const answerId = parseInt(id);
+
+            if (isNaN(answerId)) {
+                return res.status(400).json({ success: false, message: "Invalid Answer ID" });
+            }
+
+            if (!body || !user_id) {
+                return res.status(400).json({ success: false, message: "Body and user_id are required" });
+            }
+
+            const oldAnswer = await prisma.answers.findUnique({
+                where: { answer_id: answerId }
+            });
+
+            if (!oldAnswer) {
+                return res.status(404).json({ success: false, message: "Answer not found" });
+            }
+
+            const userExists = await prisma.users.findUnique({
+                where: { user_id: parseInt(user_id) }
+            });
+
+            if (!userExists) {
+                return res.status(404).json({ success: false, message: "User performing the edit does not exist" });
+            }
+
+            const result = await prisma.$transaction(async (prisma) => {
+                
+                await prisma.edit_History.create({
+                    data: {
+                        answer_id: answerId,
+                        user_id: parseInt(user_id),
+                        old_body: oldAnswer.body,
+                        new_body: body,
+                        created_at: new Date()
+                    }
+                });
+
+                const updated = await prisma.answers.update({
+                    where: { answer_id: answerId },
+                    data: {
+                        body: body,
+                        updated_at: new Date()
+                    }
+                });
+
+                return updated;
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Answer updated and history saved",
+                data: result
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
+    /**
+     * deleteAnswer - is delete answer by id
+     * @req : request
+     * @res : response
+     * returns
+     */
+    async deleteAnswer(req, res) {
+        try {
+            const { id } = req.params;
+            const answerId = parseInt(id);
+
+            if (isNaN(answerId)) {
+                return res.status(400).json({ success: false, message: "Invalid Answer ID" });
+            }
+
+            await prisma.answers.delete({
+                where: { answer_id: answerId }
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Answer deleted successfully"
+            });
+
+        } catch (error) {
+            if (error.code === 'P2025') {
+                return res.status(404).json({ success: false, message: "Answer not found" });
+            }
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
 }
 
 export default new AnswerController();

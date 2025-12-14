@@ -116,6 +116,96 @@ class CommentController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+    /**
+     * Update an existing comment
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res
+     */
+    async updateComment(req, res) {
+        try {
+            const { id } = req.params;
+            const { body, user_id } = req.body; 
+            const commentId = parseInt(id);
+
+            if (isNaN(commentId)) {
+                return res.status(400).json({ success: false, message: "Invalid Comment ID" });
+            }
+
+            if (!body) {
+                return res.status(400).json({ success: false, message: "Comment body is required" });
+            }
+
+            const comment = await prisma.comments.findUnique({
+                where: { comment_id: commentId }
+            });
+
+            if (!comment) {
+                return res.status(404).json({ success: false, message: "Comment not found" });
+            }
+
+            if (user_id && comment.user_id !== parseInt(user_id)) {
+                return res.status(403).json({ success: false, message: "You are not authorized to update this comment" });
+            }
+
+            const updatedComment = await prisma.comments.update({
+                where: { comment_id: commentId },
+                data: {
+                    body: body,
+                }
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Comment updated successfully",
+                data: updatedComment
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+    /**
+     * Delete a comment
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res
+     */
+    async deleteComment(req, res) {
+        try {
+            const { id } = req.params;
+            const { user_id } = req.body;
+            const commentId = parseInt(id);
+
+            if (isNaN(commentId)) {
+                return res.status(400).json({ success: false, message: "Invalid Comment ID" });
+            }
+
+            const comment = await prisma.comments.findUnique({
+                where: { comment_id: commentId }
+            });
+
+            if (!comment) {
+                return res.status(404).json({ success: false, message: "Comment not found" });
+            }
+
+            if (user_id && comment.user_id !== parseInt(user_id)) {
+                return res.status(403).json({ success: false, message: "You are not authorized to delete this comment" });
+            }
+
+            await prisma.comments.delete({
+                where: { comment_id: commentId }
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Comment deleted successfully"
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
 }
 
 export default new CommentController();

@@ -17,4 +17,8 @@ router.post('/', AnswerController.createAnswer);
 router.get('/:questionId', AnswerController.getQuestionAnswers);
 
 router.post('/accept', AnswerController.acceptAnswer);
+
+router.put('/:id', AnswerController.updateAnswer);
+
+router.delete('/:id', AnswerController.deleteAnswer);
 export default router;
