@@ -64,10 +64,12 @@ class CommentController {
      */
     async getComments(req, res) {
         try {
-            // هنا بناخد البيانات من اللينك (Query Params) مش من البودي
             const { question_id, answer_id } = req.query;
 
-            // لازم نتأكد إن اليوزر باعت واحد منهم على الأقل
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
             if (!question_id && !answer_id) {
                 return res.status(400).json({
                     success: false,
@@ -75,31 +77,37 @@ class CommentController {
                 });
             }
 
-            // نجهز الفلتر بناءً على اللي مبعوت
             let whereClause = {};
-            
             if (question_id) {
                 whereClause.question_id = parseInt(question_id);
             } else if (answer_id) {
                 whereClause.answer_id = parseInt(answer_id);
             }
 
+            const totalComments = await prisma.comments.count({
+                where: whereClause
+            });
+
             const comments = await prisma.comments.findMany({
                 where: whereClause,
+                skip: skip,      
+                take: limit,     
                 include: {
-                    // هات بيانات اليوزر اللي كتب التعليق (اسمه وصورته)
                     Users: {
                         select: { username: true, profile_image: true, reputation: true }
                     }
                 },
                 orderBy: {
-                    created_at: 'asc' // القديم الأول (زي الشات)
+                    created_at: 'asc' 
                 }
             });
 
             res.status(200).json({
                 success: true,
                 count: comments.length,
+                total: totalComments,
+                totalPages: Math.ceil(totalComments / limit),
+                currentPage: page,
                 data: comments
             });
 

@@ -59,13 +59,46 @@ class TagController {
      */
     async getAllTags(req, res) {
         try {
-            const tags = await prisma.tags.findMany();
-            
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20; 
+            const skip = (page - 1) * limit;
+
+            const { q } = req.query;
+            const whereClause = q ? { tag_name: { contains: q } } : {};
+
+            const totalTags = await prisma.tags.count({ where: whereClause });
+
+            const tags = await prisma.tags.findMany({
+                where: whereClause,
+                skip: skip,
+                take: limit,
+                orderBy: {
+                    tag_name: 'asc' 
+                },
+                include: {
+                    _count: {
+                        select: { Question_Tags: true } 
+                    }
+                }
+            });
+
+            const formattedTags = tags.map(tag => ({
+                tag_id: tag.tag_id,
+                tag_name: tag.tag_name,
+                description: tag.description,
+                created_at: tag.created_at,
+                questions_count: tag._count.Question_Tags 
+            }));
+
             res.status(200).json({
                 success: true,
-                count: tags.length,
-                data: tags
+                count: formattedTags.length,
+                total: totalTags,
+                totalPages: Math.ceil(totalTags / limit),
+                currentPage: page,
+                data: formattedTags
             });
+
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });

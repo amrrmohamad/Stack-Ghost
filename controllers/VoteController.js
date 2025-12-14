@@ -190,11 +190,25 @@ class VoteController {
         try {
             const { user_id } = req.params;
 
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            const totalVotes = await prisma.votes.count({
+                where: { user_id: parseInt(user_id) }
+            });
+
             const votes = await prisma.votes.findMany({
                 where: { user_id: parseInt(user_id) },
+                skip: skip,
+                take: limit,
                 include: {
-                    Questions: { select: { title: true, question_id: true } }, 
-                    Answers: { select: { body: true, answer_id: true } }
+                    Questions: { 
+                        select: { title: true, question_id: true } 
+                    }, 
+                    Answers: { 
+                        select: { body: true, answer_id: true, question_id: true } 
+                    }
                 },
                 orderBy: { created_at: 'desc' } 
             });
@@ -202,6 +216,9 @@ class VoteController {
             res.status(200).json({
                 success: true,
                 count: votes.length,
+                total: totalVotes,
+                totalPages: Math.ceil(totalVotes / limit),
+                currentPage: page,
                 data: votes
             });
 

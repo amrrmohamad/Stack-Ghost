@@ -55,16 +55,25 @@ class AnswerController {
         try {
             const { questionId } = req.params;
 
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            const totalAnswers = await prisma.answers.count({
+                where: { question_id: parseInt(questionId) }
+            });
+
             const answersData = await prisma.answers.findMany({
                 where: {
                     question_id: parseInt(questionId)
                 },
+                skip: skip,     
+                take: limit,    
                 include: {
                     Users: {
                         select: { username: true, reputation: true, profile_image: true }
                     },
                     Votes: true,
-                    
                     Comments: {
                         include: {
                             Users: {
@@ -95,7 +104,10 @@ class AnswerController {
 
             res.status(200).json({
                 success: true,
-                count: answersWithCounts.length,
+                count: answersWithCounts.length, 
+                total: totalAnswers,             
+                totalPages: Math.ceil(totalAnswers / limit), 
+                currentPage: page,               
                 data: answersWithCounts
             });
 

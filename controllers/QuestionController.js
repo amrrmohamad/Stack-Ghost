@@ -74,6 +74,11 @@ class QuestionController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
+
+            if (limit > 50) {
+                limit = 50;
+            }
+
             const skip = (page - 1) * limit;
 
             const totalQuestions = await prisma.questions.count();
@@ -82,14 +87,14 @@ class QuestionController {
                 skip: skip,
                 take: limit,
                 orderBy: { created_at: 'desc' },
-                
+
                 select: {
                     question_id: true,
                     title: true,
                     body: true,
                     views_count: true,
                     created_at: true,
-                    
+
                     Author: {
                         select: {
                             username: true,
@@ -97,16 +102,16 @@ class QuestionController {
                             reputation: true
                         }
                     },
-                    
+
                     Question_Tags: {
                         select: {
                             Tags: {
                                 // 1. التعديل هنا: اسم العمود tag_name
-                                select: { tag_name: true } 
+                                select: { tag_name: true }
                             }
                         }
                     },
-                    
+
                     Votes: { select: { vote_type: true } },
                     _count: { select: { Answers: true } }
                 }
@@ -115,8 +120,8 @@ class QuestionController {
             const sanitizedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
 
-                const bodySnippet = q.body.length > 150 
-                    ? q.body.substring(0, 150) + '...' 
+                const bodySnippet = q.body.length > 150
+                    ? q.body.substring(0, 150) + '...'
                     : q.body;
 
                 // 2. والتعديل هنا كمان عشان الماب تشتغل صح
@@ -131,7 +136,7 @@ class QuestionController {
                     answers_count: q._count.Answers,
                     created_at: q.created_at,
                     author: q.Author,
-                    tags: tags 
+                    tags: tags
                 };
             });
 
@@ -158,9 +163,9 @@ class QuestionController {
     async getQuestionById(req, res) {
         try {
             const { id } = req.params;
-            
+
             const cookieName = `viewed_${id}`;
-            
+
             const hasViewed = req.cookies[cookieName];
 
             let question;
@@ -169,11 +174,11 @@ class QuestionController {
                 question = await prisma.questions.findUnique({
                     where: { question_id: parseInt(id) },
                     include: {
-                         Author: { select: { username: true, reputation: true, profile_image: true } },
-                         Question_Tags: { include: { Tags: true } },
-                         Votes: { select: { vote_type: true } },
-                         Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
-                         _count: { select: { Answers: true } }
+                        Author: { select: { username: true, reputation: true, profile_image: true } },
+                        Question_Tags: { include: { Tags: true } },
+                        Votes: { select: { vote_type: true } },
+                        Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
+                        _count: { select: { Answers: true } }
                     }
                 });
             } else {
@@ -181,11 +186,11 @@ class QuestionController {
                     where: { question_id: parseInt(id) },
                     data: { views_count: { increment: 1 } },
                     include: {
-                         Author: { select: { username: true, reputation: true, profile_image: true } },
-                         Question_Tags: { include: { Tags: true } },
-                         Votes: { select: { vote_type: true } },
-                         Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
-                         _count: { select: { Answers: true } }
+                        Author: { select: { username: true, reputation: true, profile_image: true } },
+                        Question_Tags: { include: { Tags: true } },
+                        Votes: { select: { vote_type: true } },
+                        Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
+                        _count: { select: { Answers: true } }
                     }
                 });
 

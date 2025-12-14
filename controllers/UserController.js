@@ -19,14 +19,45 @@ class UserController {
      */
     async getAllUsers(req, res) {
         try {
-            const users = await prisma.users.findMany();
-            res.json({
-                massage: "success",
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const skip = (page - 1) * limit;
+
+            const totalUsers = await prisma.users.count();
+
+            const users = await prisma.users.findMany({
+                skip: skip,
+                take: limit,
+                orderBy: {
+                    reputation: 'desc' 
+                },
+                select: {
+                    user_id: true,
+                    username: true,
+                    profile_image: true,
+                    reputation: true,
+                    created_at: true,
+                    _count: {
+                        select: { 
+                            AuthoredQuestions: true, 
+                            Answers: true    
+                        }
+                    }
+                }
+            });
+
+            res.status(200).json({
+                success: true,
+                count: users.length,
+                total: totalUsers,
+                totalPages: Math.ceil(totalUsers / limit),
+                currentPage: page,
                 data: users
             });
+
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ error: "something goes wrong while fetching the data from data base" })
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
         }
     }
 
