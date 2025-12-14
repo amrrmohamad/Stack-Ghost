@@ -122,6 +122,60 @@ class QuestionController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+    async getQuestionById(req, res) {
+        try {
+            const { id } = req.params;
+            
+            const cookieName = `viewed_${id}`;
+            
+            const hasViewed = req.cookies[cookieName];
+
+            let question;
+
+            if (hasViewed) {
+                question = await prisma.questions.findUnique({
+                    where: { question_id: parseInt(id) },
+                    include: {
+                         Author: { select: { username: true, reputation: true, profile_image: true } },
+                         Question_Tags: { include: { Tags: true } },
+                         Votes: { select: { vote_type: true } },
+                         Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
+                         _count: { select: { Answers: true } }
+                    }
+                });
+            } else {
+                question = await prisma.questions.update({
+                    where: { question_id: parseInt(id) },
+                    data: { views_count: { increment: 1 } },
+                    include: {
+                         Author: { select: { username: true, reputation: true, profile_image: true } },
+                         Question_Tags: { include: { Tags: true } },
+                         Votes: { select: { vote_type: true } },
+                         Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
+                         _count: { select: { Answers: true } }
+                    }
+                });
+
+                res.cookie(cookieName, 'true', { maxAge: 60 * 60 * 1000, httpOnly: true });
+            }
+
+            if (!question) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            const score = question.Votes ? question.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0) : 0;
+            const { Votes, ...questionData } = question;
+
+            res.status(200).json({
+                success: true,
+                data: { ...questionData, vote_count: score }
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
 }
 
 export default new QuestionController();

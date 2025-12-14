@@ -12,5 +12,5 @@ const router = express.Router();
 
 router.post('/questions', QuestionController.createQuestion);
 router.get('/questions', QuestionController.getAllQuestions);
-
+router.get('/questions/:id', QuestionController.getQuestionById);
 export default router;

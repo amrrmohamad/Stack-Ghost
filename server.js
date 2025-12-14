@@ -7,6 +7,7 @@
  */
 import 'dotenv/config';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import userRoutes from './routes/userRoutes.js';
 import questionRoutes from './routes/questionRoutes.js'
 import answerRoutes from './routes/answerRoutes.js'
@@ -18,6 +19,7 @@ const PORT = 3000;
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 
 app.use('/api', userRoutes); 

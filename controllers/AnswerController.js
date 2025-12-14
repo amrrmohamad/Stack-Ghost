@@ -61,9 +61,20 @@ class AnswerController {
                 },
                 include: {
                     Users: {
-                        select: { username: true, reputation: true }
+                        select: { username: true, reputation: true, profile_image: true }
                     },
-                    Votes: true
+                    Votes: true,
+                    
+                    Comments: {
+                        include: {
+                            Users: {
+                                select: { username: true, profile_image: true }
+                            }
+                        },
+                        orderBy: {
+                            created_at: 'asc'
+                        }
+                    }
                 },
                 orderBy: {
                     created_at: 'desc'
@@ -72,13 +83,13 @@ class AnswerController {
 
             const answersWithCounts = answersData.map(answer => {
                 const voteCount = answer.Votes.reduce((acc, vote) => {
-                    return acc + (vote.value || 0);
+                    return acc + (vote.value || vote.vote_type || 0); 
                 }, 0);
 
                 return {
                     ...answer,
                     vote_count: voteCount,
-                    Votes: undefined
+                    Votes: undefined 
                 };
             });
 
