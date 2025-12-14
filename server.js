@@ -21,19 +21,17 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+app.use('/api/users', userRoutes); 
 
-app.use('/api', userRoutes); 
+app.use('/api/questions', questionRoutes); 
 
-app.use('/api', questionRoutes);
+app.use('/api/answers', answerRoutes);
 
-app.use('/api', answerRoutes);
+app.use('/api/tags', tagRoutes);
 
-app.use('/api', tagRoutes);
+app.use('/api/comments', commentRoutes);
 
-app.use('/api', commentRoutes);
-
-app.use('/api', voteRoutes);
-
+app.use('/api/votes', voteRoutes);
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

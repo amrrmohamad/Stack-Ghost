@@ -11,7 +11,7 @@ import TagController from '../controllers/TagController.js';
 
 const router = express.Router();
 
-router.post('/tags', TagController.createTag);
-router.get('/tags', TagController.getAllTags);
+router.post('/', TagController.createTag);
+router.get('/', TagController.getAllTags);
 
 export default router;

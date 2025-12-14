@@ -11,10 +11,10 @@ import AnswerController from '../controllers/AnswerController.js';
 
 const router = express.Router();
 
-router.post('/answers', AnswerController.createAnswer);
+router.post('/', AnswerController.createAnswer);
 
 
-router.get('/answers/:questionId', AnswerController.getQuestionAnswers);
+router.get('/:questionId', AnswerController.getQuestionAnswers);
 
-router.post('/answers/accept', AnswerController.acceptAnswer);
+router.post('/accept', AnswerController.acceptAnswer);
 export default router;

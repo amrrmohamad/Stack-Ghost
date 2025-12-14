@@ -10,7 +10,12 @@ import QuestionController from '../controllers/QuestionController.js';
 
 const router = express.Router();
 
-router.post('/questions', QuestionController.createQuestion);
-router.get('/questions', QuestionController.getAllQuestions);
-router.get('/questions/:id', QuestionController.getQuestionById);
+router.get('/search', QuestionController.searchQuestions);
+
+router.post('/', QuestionController.createQuestion);
+
+router.get('/', QuestionController.getAllQuestions);
+
+router.get('/:id', QuestionController.getQuestionById);
+
 export default router;

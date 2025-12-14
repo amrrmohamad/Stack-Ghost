@@ -12,9 +12,9 @@ import UserController from '../controllers/UserController.js';
 const router = express.Router();
 
 // لما حد يطلب اللينك ده GET، شغل دالة getAllUsers
-router.get('/users', UserController.getAllUsers);
+router.get('/', UserController.getAllUsers);
 
 // لما حد يبعت داتا POST، شغل دالة createUser
-router.post('/users', UserController.createUser);
+router.post('/', UserController.createUser);
 
 export default router;

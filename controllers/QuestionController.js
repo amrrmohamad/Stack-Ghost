@@ -210,6 +210,113 @@ class QuestionController {
             });
 
         } catch (error) {
+            if (error.code === 'P2025') {
+                return res.status(404).json({
+                    success: false,
+                    message: "Question not found"
+                });
+            }
+
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+    /**
+     * searchQuestions - is a function responsible for searching in 
+     * the database based on the title, username or tag
+     * @req : request
+     * @res : response
+     * returns void
+     */
+    async searchQuestions(req, res) {
+        try {
+            const { q } = req.query;
+
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            if (!q) {
+                return res.status(400).json({ success: false, message: "Search query 'q' is required" });
+            }
+
+            const whereClause = {
+                OR: [
+                    {
+                        title: { contains: q, mode: 'insensitive' }
+                    },
+                    {
+                        Author: {
+                            username: { contains: q, mode: 'insensitive' }
+                        }
+                    },
+                    {
+                        Question_Tags: {
+                            some: {
+                                Tags: {
+                                    tag_name: { contains: q, mode: 'insensitive' }
+                                }
+                            }
+                        }
+                    }
+                ]
+            };
+
+            const totalResults = await prisma.questions.count({
+                where: whereClause
+            });
+
+            const questions = await prisma.questions.findMany({
+                where: whereClause,
+                skip: skip,
+                take: limit,
+                orderBy: { created_at: 'desc' },
+
+                select: {
+                    question_id: true,
+                    title: true,
+                    body: true,
+                    views_count: true,
+                    created_at: true,
+                    Author: {
+                        select: { username: true, profile_image: true, reputation: true }
+                    },
+                    Question_Tags: {
+                        select: { Tags: { select: { tag_name: true } } }
+                    },
+                    Votes: { select: { vote_type: true } },
+                    _count: { select: { Answers: true } }
+                }
+            });
+
+            const formattedQuestions = questions.map(q => {
+                const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
+                const bodySnippet = q.body.length > 150 ? q.body.substring(0, 150) + '...' : q.body;
+                const tags = q.Question_Tags.map(qt => qt.Tags.tag_name);
+
+                return {
+                    question_id: q.question_id,
+                    title: q.title,
+                    summary: bodySnippet,
+                    views: q.views_count,
+                    score: score,
+                    answers_count: q._count.Answers,
+                    created_at: q.created_at,
+                    author: q.Author,
+                    tags: tags
+                };
+            });
+
+            res.status(200).json({
+                success: true,
+                count: formattedQuestions.length,
+                total: totalResults,
+                totalPages: Math.ceil(totalResults / limit),
+                currentPage: page,
+                data: formattedQuestions
+            });
+
+        } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }

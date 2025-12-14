@@ -14,8 +14,8 @@ import express from 'express';
 
 const router = express.Router();
 
-router.post('/votes', VoteController.handleVote);
-router.get('/votes/status', VoteController.checkVoteStatus);
-router.get('/users/:user_id/votes', VoteController.getUserVotesHistory);
+router.post('/', VoteController.handleVote);
+router.get('/status', VoteController.checkVoteStatus);
+router.get('/:user_id/votes', VoteController.getUserVotesHistory);
 
 export default router;

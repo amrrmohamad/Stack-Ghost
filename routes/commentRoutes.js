@@ -11,6 +11,6 @@ import CommentController from '../controllers/CommentController.js';
 
 const router = express.Router();
 
-router.post('/comments', CommentController.createComment);
-router.get('/comments', CommentController.getComments);
+router.post('/', CommentController.createComment);
+router.get('/', CommentController.getComments);
 export default router;
