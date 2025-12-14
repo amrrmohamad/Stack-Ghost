@@ -77,13 +77,22 @@ class QuestionController {
                     Author: {
                         select: {
                             username: true,
-                            reputation: true
+                            reputation: true,
+                            profile_image: true 
                         }
                     },
                     Question_Tags: {
                         include: {
                             Tags: true
                         }
+                    },
+                    Votes: {
+                        select: {
+                            vote_type: true
+                        }
+                    },
+                    _count: {
+                        select: { Answers: true }
                     }
                 },
                 orderBy: {
@@ -91,10 +100,22 @@ class QuestionController {
                 }
             });
 
+            const questionsWithStats = questions.map(q => {
+                const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
+
+                const { Votes, ...questionData } = q;
+
+                return {
+                    ...questionData,
+                    vote_count: score,     
+                    answers_count: q._count.Answers 
+                };
+            });
+
             res.status(200).json({
                 success: true,
-                count: questions.length,
-                data: questions
+                count: questionsWithStats.length,
+                data: questionsWithStats
             });
         } catch (error) {
             console.error(error);

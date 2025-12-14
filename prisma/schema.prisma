@@ -125,15 +125,23 @@ model Follow_Users {
 
 model Votes {
   vote_id     Int       @id @default(autoincrement())
-  user_id     Int?
+  user_id     Int
   question_id Int?
   answer_id   Int?
-  vote_type   String?   @db.VarChar
-  created_at  DateTime? @db.Timestamp(6)
+  
+  // 1: Upvote, -1: Downvote
+  vote_type   Int       @default(1)
+  
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
   
   Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade)
   Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
-  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  Users       Users      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, question_id, answer_id], name: "vote_unique_constraint")
+  
+  @@index([user_id, question_id])
+  @@index([user_id, answer_id])
 }
 
 model Reports {
