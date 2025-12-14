@@ -176,9 +176,9 @@ model Edit_History {
   old_body    String?
   new_body    String?
   created_at  DateTime? @db.Timestamp(6)
-  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
-  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
-  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade, onUpdate: NoAction)
+  Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: Cascade, onUpdate: NoAction)
+  Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: SetNull, onUpdate: NoAction)
 }
 
 model Follow_Tags {

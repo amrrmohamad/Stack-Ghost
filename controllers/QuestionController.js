@@ -64,7 +64,100 @@ class QuestionController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+    /**
+     * updateQuestion - is a function to update a question 
+     * in the system by id
+     * @param {req} request
+     * @param {res} response
+     * @returns 
+     */
+    async updateQuestion(req, res) {
+        try {
+            const { id } = req.params;
+            const { title, body, user_id } = req.body; 
+            const questionId = parseInt(id);
 
+            if (isNaN(questionId)) {
+                return res.status(400).json({ success: false, message: "Invalid ID" });
+            }
+
+            const oldQuestion = await prisma.questions.findUnique({
+                where: { question_id: questionId }
+            });
+
+            if (!oldQuestion) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            const result = await prisma.$transaction(async (prisma) => {
+                
+                await prisma.edit_History.create({
+                    data: {
+                        question_id: questionId,
+                        user_id: user_id, 
+                        old_body: oldQuestion.body, 
+                        new_body: body,             
+                        created_at: new Date()
+                    }
+                });
+
+                const updated = await prisma.questions.update({
+                    where: { question_id: questionId },
+                    data: {
+                        title: title,
+                        body: body,
+                        updated_at: new Date()
+                    }
+                });
+
+                return updated;
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Question updated and history saved",
+                data: result
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+    /**
+     * deleteQuestion - is a function to delete a question from system
+     * @param {req} request 
+     * @param {res} response
+     * @returns 
+     */
+    async deleteQuestion(req, res) {
+        try {
+            const { id } = req.params;
+            const questionId = parseInt(id);
+
+            if (isNaN(questionId)) {
+                return res.status(400).json({ success: false, message: "Invalid ID" });
+            }
+
+            // الحذف
+            await prisma.questions.delete({
+                where: { question_id: questionId }
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Question deleted successfully"
+            });
+
+        } catch (error) {
+            // لو بتحاول تمسح حاجة مش موجودة
+            if (error.code === 'P2025') {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
     /**
      * get all questions
      * @param {import('express').Request} req 
@@ -314,6 +407,62 @@ class QuestionController {
                 totalPages: Math.ceil(totalResults / limit),
                 currentPage: page,
                 data: formattedQuestions
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+    /**
+     * a function that show us the history of changing this question
+     * it is look like a version control
+     * @req : is the request
+     * @res : is the response
+     * returns void
+     */
+    async getQuestionHistory(req, res) {
+        try {
+            const { id } = req.params;
+            const questionId = parseInt(id);
+
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            if (isNaN(questionId)) {
+                return res.status(400).json({ success: false, message: "Invalid ID" });
+            }
+
+            const totalHistory = await prisma.edit_History.count({
+                where: { 
+                    question_id: questionId 
+                }
+            });
+
+            const history = await prisma.edit_History.findMany({
+                where: { 
+                    question_id: questionId 
+                },
+                skip: skip,      
+                take: limit,     
+                include: {
+                    Users: {
+                        select: { username: true, profile_image: true }
+                    }
+                },
+                orderBy: {
+                    created_at: 'desc' 
+                }
+            });
+
+            res.status(200).json({
+                success: true,
+                count: history.length,     
+                total: totalHistory,       
+                totalPages: Math.ceil(totalHistory / limit),
+                currentPage: page,
+                data: history
             });
 
         } catch (error) {

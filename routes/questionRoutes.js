@@ -18,4 +18,10 @@ router.get('/', QuestionController.getAllQuestions);
 
 router.get('/:id', QuestionController.getQuestionById);
 
+router.put('/:id', QuestionController.updateQuestion);
+
+router.get('/history/:id', QuestionController.getQuestionHistory);
+
+router.delete("/:id", QuestionController.deleteQuestion);
+
 export default router;
