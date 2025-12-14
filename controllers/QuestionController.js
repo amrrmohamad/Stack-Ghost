@@ -72,56 +72,89 @@ class QuestionController {
      */
     async getAllQuestions(req, res) {
         try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            const totalQuestions = await prisma.questions.count();
+
             const questions = await prisma.questions.findMany({
-                include: {
+                skip: skip,
+                take: limit,
+                orderBy: { created_at: 'desc' },
+                
+                select: {
+                    question_id: true,
+                    title: true,
+                    body: true,
+                    views_count: true,
+                    created_at: true,
+                    
                     Author: {
                         select: {
                             username: true,
-                            reputation: true,
-                            profile_image: true 
+                            profile_image: true,
+                            reputation: true
                         }
                     },
+                    
                     Question_Tags: {
-                        include: {
-                            Tags: true
-                        }
-                    },
-                    Votes: {
                         select: {
-                            vote_type: true
+                            Tags: {
+                                // 1. التعديل هنا: اسم العمود tag_name
+                                select: { tag_name: true } 
+                            }
                         }
                     },
-                    _count: {
-                        select: { Answers: true }
-                    }
-                },
-                orderBy: {
-                    created_at: 'desc'
+                    
+                    Votes: { select: { vote_type: true } },
+                    _count: { select: { Answers: true } }
                 }
             });
 
-            const questionsWithStats = questions.map(q => {
+            const sanitizedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
 
-                const { Votes, ...questionData } = q;
+                const bodySnippet = q.body.length > 150 
+                    ? q.body.substring(0, 150) + '...' 
+                    : q.body;
+
+                // 2. والتعديل هنا كمان عشان الماب تشتغل صح
+                const tags = q.Question_Tags.map(qt => qt.Tags.tag_name);
 
                 return {
-                    ...questionData,
-                    vote_count: score,     
-                    answers_count: q._count.Answers 
+                    question_id: q.question_id,
+                    title: q.title,
+                    summary: bodySnippet,
+                    views: q.views_count,
+                    score: score,
+                    answers_count: q._count.Answers,
+                    created_at: q.created_at,
+                    author: q.Author,
+                    tags: tags 
                 };
             });
 
             res.status(200).json({
                 success: true,
-                count: questionsWithStats.length,
-                data: questionsWithStats
+                count: sanitizedQuestions.length,
+                total: totalQuestions,
+                totalPages: Math.ceil(totalQuestions / limit),
+                currentPage: page,
+                data: sanitizedQuestions
             });
+
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+    /**
+     * 
+     * @param {req} request parameter 
+     * @param {res} response parameter 
+     * @returns void
+     */
     async getQuestionById(req, res) {
         try {
             const { id } = req.params;
