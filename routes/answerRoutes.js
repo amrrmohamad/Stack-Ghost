@@ -16,4 +16,5 @@ router.post('/answers', AnswerController.createAnswer);
 
 router.get('/answers/:questionId', AnswerController.getQuestionAnswers);
 
+router.post('/answers/accept', AnswerController.acceptAnswer);
 export default router;
