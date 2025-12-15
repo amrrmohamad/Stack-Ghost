@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="background-glow"></div>
+      <header class="topbar">
+        <div class="brand">
+          <!-- logo ghost icon goes here -->
+          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
+          <span class="brand__name">Stack Ghost</span>
+        </div>
+        <div class="search">
+          <span class="search__icon">
+            <!-- search icon goes here -->
+            <img src="img/vector-4.svg" alt="" />
+          </span>
+          <input
+            type="search"
+            placeholder="Search for questions, users, tags"
+            aria-label="Search for questions, users, tags"
+          />
+        </div>
+        
+        <div class="topbar__actions">
+          <div class="notifications">
+            <button
+              class="icon-button notifications__toggle"
+              aria-label="Notifications"
+              aria-expanded="false"
+              aria-haspopup="true"
+              data-notifications-toggle
+            >
+              <!-- bell icon goes here -->
+              <img src="img/vector-13.svg" alt="" />
+            </button>
+            <div class="notifications__dropdown glass" data-notifications-panel>
+              <div class="notifications__header">
+                <span>Notifications</span>
+              </div>
+              <ul class="list notifications__list" data-notifications-dropdown>
+                <!-- filled by data -->
+              </ul>
+            </div>
+          </div>
+          <div class="avatar avatar--sm">
+            <!-- profile image goes here -->
+            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar sidebar--left">
+          <nav class="nav">
+            <div class="nav__section">
+              <a class="nav__link nav__link--active" href="#">
+                <!-- sidebar icon #1 -->
+                <img class="nav__icon" src="img/vector.svg" alt="" />
+                <span>Home</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section nav__section--cluster">
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #2 -->
+                <img class="nav__icon" src="img/vector-3.svg" alt="" />
+                <span>Questions</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #3 -->
+                <img class="nav__icon" src="img/vector-7.svg" alt="" />
+                <span>Users</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #4 -->
+                <img class="nav__icon" src="img/vector-8.svg" alt="" />
+                <span>Tags</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section">
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #5 -->
+                <img class="nav__icon" src="img/vector-11.svg" alt="" />
+                <span>Badges</span>
+              </a>
+            </div>
+          </nav>
+          <div class="sidebar__ghost">
+            <!-- sidebar ghost illustration goes here -->
+            <img src="img/ghost.png" alt="" />
+          </div>
+        </aside>
+
+        <main class="content">
+          <div class="breadcrumb">Questions &gt;</div>
+          <section class="questions-top glass" data-questions-top>
+            <div class="questions-top__heading">
+              <h1 class="questions-top__title">
+                <span class="questions-top__title-accent" data-questions-title-accent>Recent</span>
+                <span data-questions-title-rest>Questions</span>
+              </h1>
+              <button class="btn btn--primary" data-ask-question>Ask Question</button>
+            </div>
+            <div class="questions-top__controls">
+              <div class="questions-top__filters" data-filter-group="questions">
+                <button class="filter-btn filter-btn--active" data-sort="newest">Newest</button>
+                <button class="filter-btn" data-sort="votes">Votes</button>
+                <button class="filter-btn" data-sort="oldest">Oldest</button>
+              </div>
+              <div class="questions-top__tag" data-active-tag>All tags</div>
+            </div>
+          </section>
+
+          <section class="questions-grid glass">
+            <header class="section-header">
+              <h2>Questions</h2>
+              <span class="section-pill">7 per page</span>
+            </header>
+            <div class="questions-grid__list" data-questions-list></div>
+            <div class="pagination" data-pagination></div>
+          </section>
+        </main>
+
+        <aside class="sidebar sidebar--right">
+          <div class="card glass profile-card">
+            <div class="profile-card__header">
+              <div class="avatar avatar--lg">
+                <!-- profile image goes here -->
+                <img id="profile-image-side" src="img/rafiki.png" alt="User avatar" />
+              </div>
+              <div>
+                <p class="profile-card__name" data-username>Amr</p>
+                <p class="profile-card__role">Ghost explorer</p>
+              </div>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <p class="stat__label">Reputation</p>
+                <p class="stat__value" data-reputation>5,000</p>
+              </div>
+              <div class="stat">
+                <p class="stat__label">Asked</p>
+                <p class="stat__value" data-asked>100</p>
+              </div>
+              <div class="stat">
+                <p class="stat__label">Answered</p>
+                <p class="stat__value" data-answered>50</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Notifications</h3>
+            </header>
+            <ul class="list" data-notifications>
+              <li class="list__item">your answer has been accepted..</li>
+              <li class="list__item">your question has been accepte..</li>
+              <li class="list__item">you clamed a silver ghost badg..</li>
+            </ul>
+          </div>
+
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Tags</h3>
+            </header>
+            <div class="tags" data-tags>
+              <span class="tag">c++</span>
+              <span class="tag">php</span>
+              <span class="tag">sql</span>
+              <span class="tag">html</span>
+            </div>
+          </div>
+
+          <div class="card glass illustration-card">
+            <div class="illustration-card__body">
+              <div>
+                <p class="eyebrow">Keep exploring</p>
+                <p class="illustration-card__text">
+                  Discover more ghostly good answers and badges.
+                </p>
+              </div>
+              <div class="illustration-card__img">
+                <!-- card image #1 goes here -->
+                <img src="img/cuate.png" alt="Ghost floating" />
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>
+

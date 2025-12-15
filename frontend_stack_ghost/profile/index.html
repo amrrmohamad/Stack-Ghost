@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="background-glow"></div>
+      <!-- Profile Header Section -->
+      <header class="topbar">
+        <div class="brand">
+          <!-- logo ghost icon goes here -->
+          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
+          <span class="brand__name">Stack Ghost</span>
+        </div>
+        <div class="search">
+          <span class="search__icon">
+            <!-- search icon goes here -->
+            <img src="img/vector-4.svg" alt="" />
+          </span>
+          <input
+            type="search"
+            placeholder="Search for questions, users, tags"
+            aria-label="Search for questions, users, tags"
+          />
+        </div>
+        <div class="topbar__actions">
+          <div class="notifications">
+            <button
+              class="icon-button notifications__toggle"
+              aria-label="Notifications"
+              aria-expanded="false"
+              aria-haspopup="true"
+              data-notifications-toggle
+            >
+              <!-- bell icon goes here -->
+              <img src="img/vector-13.svg" alt="" />
+            </button>
+            <div class="notifications__dropdown glass" data-notifications-panel>
+              <div class="notifications__header">
+                <span>Notifications</span>
+              </div>
+              <ul class="list notifications__list" data-notifications-dropdown>
+                <!-- notifications list here -->
+              </ul>
+            </div>
+          </div>
+          <div class="avatar avatar--sm">
+            <!-- profile image goes here -->
+            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+          </div>
+        </div>
+      </header>
+
+      <div class="layout layout--profile">
+        <aside class="sidebar sidebar--left">
+          <nav class="nav">
+            <div class="nav__section">
+              <a class="nav__link nav__link--active" href="#">
+                <!-- sidebar icon #1 -->
+                <img class="nav__icon" src="img/vector.svg" alt="" />
+                <span>Home</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section nav__section--cluster">
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #2 -->
+                <img class="nav__icon" src="img/vector-3.svg" alt="" />
+                <span>Questions</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #3 -->
+                <img class="nav__icon" src="img/vector-7.svg" alt="" />
+                <span>Users</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #4 -->
+                <img class="nav__icon" src="img/vector-8.svg" alt="" />
+                <span>Tags</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section">
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #5 -->
+                <img class="nav__icon" src="img/vector-11.svg" alt="" />
+                <span>Badges</span>
+              </a>
+            </div>
+          </nav>
+          <div class="sidebar__ghost">
+            <!-- sidebar ghost illustration goes here -->
+            <img src="img/ghost.png" alt="" />
+          </div>
+        </aside>
+
+        <main class="content content--profile">
+          <div class="breadcrumb">Home &gt; profile</div>
+
+          <div class="profile-header glass">
+            <div class="profile-header__grid">
+              <div class="profile-header__left">
+                <div class="avatar avatar--lg">
+                  <!-- profile image here -->
+                  <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+                </div>
+                <div class="profile-header__identity">
+                  <p class="profile-header__name" data-username>Amr M</p>
+                  <button class="btn btn--ghost profile-header__follow" aria-label="Follow user">FOLLOW</button>
+                </div>
+              </div>
+              <div class="profile-header__stats">
+                <div class="count-chip count-chip--stat count-chip--rep">
+                  <span class="count-chip__value" data-reputation>5,000</span>
+                  <span class="count-chip__label">Reputation</span>
+                  <!-- arrow icon -->
+                  <span class="count-chip__arrow count-chip__arrow--hidden">&rarr;</span>
+                </div>
+                <div class="count-chip count-chip--stat count-chip--questions">
+                  <span class="count-chip__value" data-asked>100</span>
+                  <span class="count-chip__label">Questions</span>
+                  <!-- arrow icon -->
+                  <span
+                    class="count-chip__arrow count-chip__arrow--hidden"
+                    role="button"
+                    tabindex="0"
+                    data-nav="questions"
+                    >&rarr;</span
+                  >
+                </div>
+                <div class="count-chip count-chip--stat count-chip--answers">
+                  <span class="count-chip__value" data-answered>50</span>
+                  <span class="count-chip__label">Answers</span>
+                  <!-- arrow icon -->
+                  <span
+                    class="count-chip__arrow count-chip__arrow--hidden"
+                    role="button"
+                    tabindex="0"
+                    data-nav="answers"
+                    >&rarr;</span
+                  >
+                </div>
+                <div class="count-chip count-chip--stat count-chip--followers">
+                  <span class="count-chip__value" data-followers>2,300</span>
+                  <span class="count-chip__label">Followers</span>
+                  <span class="count-chip__arrow count-chip__arrow--hidden">&rarr;</span>
+                </div>
+                <div class="count-chip count-chip--stat count-chip--following">
+                  <span class="count-chip__value" data-following>180</span>
+                  <span class="count-chip__label">Following</span>
+                  <span class="count-chip__arrow count-chip__arrow--hidden">&rarr;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-tabs profile-tabs--spread">
+              <button class="tab-btn tab-btn--active" data-tab="overview">Profile</button>
+              <button class="tab-btn" data-tab="activity">Activity</button>
+              <button class="tab-btn" data-tab="questions">Questions</button>
+              <button class="tab-btn" data-tab="answers">Answers</button>
+            </div>
+          </div>
+
+          <!-- Profile – Page 1 -->
+          <section class="profile-panel glass profile-panel--active profile-panel--scroll" data-panel="overview">
+            <div class="profile-stack">
+              <article class="card glass profile-about">
+                <header class="section-header">
+                  <h3>About</h3>
+                </header>
+                <p class="profile-about__text" data-about>
+                  Expert in distributed systems and service-oriented architectures.
+                </p>
+              </article>
+
+              <article class="card glass profile-badges">
+                <header class="section-header">
+                  <h3>Badges</h3>
+                  <!-- arrow icon -->
+                  <a class="section-link" href="#" aria-label="View all badges">&rarr;</a>
+                </header>
+                <div class="badge-row" data-badges>
+                  <!-- badge image -->
+                  <div class="badge">
+                    <img src="img/vector-5.svg" alt="Badge" />
+                    <span class="badge__label">Bronze</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card glass profile-posts">
+                <header class="section-header">
+                  <h3>Posts</h3>
+                </header>
+                <div class="post-list" data-posts>
+                  <div class="post-card">
+                    <div class="post-card__title">Sample question title</div>
+                    <div class="post-card__meta">by <span data-username>Amr</span></div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- Profile – Page 2 -->
+          <section class="profile-panel glass" data-panel="activity">
+            <div class="qa-grid">
+              <article class="card glass qa-block">
+                <header class="qa-block__header">
+                  <h3>Answers</h3>
+                  <a class="section-link" href="#" aria-label="View all answers" data-nav="answers">All</a>
+                </header>
+                <div class="qa-list qa-list--stacked" data-answers>
+                  <div class="qa-card qa-card--compact">
+                    <div class="qa-card__votes">
+                      <span class="qa-card__stat-number">5</span>
+                      <span class="qa-card__stat-label">Votes</span>
+                    </div>
+                    <div class="qa-card__content">
+                      <div class="qa-card__title">Answer preview</div>
+                      <div class="qa-card__meta">5 votes</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card glass qa-block">
+                <header class="qa-block__header">
+                  <h3>Questions</h3>
+                  <a class="section-link" href="#" aria-label="View all questions" data-nav="questions">All</a>
+                </header>
+                <div class="qa-list qa-list--stacked" data-questions>
+                  <div class="qa-card qa-card--compact">
+                    <div class="qa-card__votes">
+                      <span class="qa-card__stat-number">5</span>
+                      <span class="qa-card__stat-label">Votes</span>
+                    </div>
+                    <div class="qa-card__content">
+                      <div class="qa-card__title">Question title</div>
+                      <div class="qa-card__meta">5 votes</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <article class="card glass profile-tags profile-tags--vertical">
+              <header class="section-header">
+                <h3>Tags</h3>
+              </header>
+            <div class="tag-grid tag-grid--vertical" data-tag-cards data-tag-filterable="true">
+                <a class="tag-card tag-card--vertical" href="#">
+                  <span class="tag-card__name">c++</span>
+                  <span class="tag-card__count-box">
+                    <span class="tag-card__count-number">2</span>
+                    <span class="tag-card__count-label">Posts</span>
+                  </span>
+                </a>
+              </div>
+            </article>
+          </section>
+
+          <!-- Questions – Page 3 -->
+          <section class="profile-panel glass" data-panel="questions">
+            <header class="panel-header">
+              <h3>Questions</h3>
+              <div class="sort-controls">
+                <button class="sort-button sort-button--active" data-sort-target="questions" data-sort="newest">Newest</button>
+                <button class="sort-button" data-sort-target="questions" data-sort="votes">Votes</button>
+                <button class="sort-button" data-sort-target="questions" data-sort="oldest">Oldest</button>
+              </div>
+            </header>
+            <!-- BOX X: Question Card Layout Reference -->
+            <article class="question-card glass question-card--reference question-card--full" aria-hidden="true">
+              <div class="question-card__stats">
+                <div class="question-card__stat question-card__stat--votes">
+                  <span class="question-card__stat-number">12</span>
+                  <span class="question-card__stat-label">votes</span>
+                </div>
+                <div class="question-card__stat question-card__stat--answers">
+                  <span class="question-card__stat-number">4</span>
+                  <span class="question-card__stat-label">answers</span>
+                </div>
+                <div class="question-card__stat question-card__stat--views">
+                  <span class="question-card__stat-number">250</span>
+                  <span class="question-card__stat-label">views</span>
+                </div>
+              </div>
+              <div class="question-card__body">
+                <div class="question-card__title-row">
+                  <h3>Sample question title goes here</h3>
+                  <span class="pill pill--muted">[closed]</span>
+                </div>
+                <p class="question-card__excerpt">This is a short preview of the question content.</p>
+                <div class="question-card__tags">
+                  <span class="pill pill--muted">c++</span>
+                  <span class="pill pill--muted">php</span>
+                </div>
+              </div>
+            </article>
+            <!-- END BOX X -->
+            <div class="card-list qa-full-list" data-questions-full>
+              <!-- questions list here -->
+            </div>
+          </section>
+
+          <!-- Answers – Page 4 -->
+          <section class="profile-panel glass" data-panel="answers">
+            <header class="panel-header">
+              <h3>Answers</h3>
+              <div class="sort-controls">
+                <button class="sort-button sort-button--active" data-sort-target="answers" data-sort="newest">Newest</button>
+                <button class="sort-button" data-sort-target="answers" data-sort="votes">Votes</button>
+                <button class="sort-button" data-sort-target="answers" data-sort="oldest">Oldest</button>
+              </div>
+            </header>
+            <div class="card-list qa-full-list" data-answers-full>
+              <!-- answers list here -->
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
+
