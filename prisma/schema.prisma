@@ -185,8 +185,8 @@ model Follow_Tags {
   user_id    Int
   tag_id     Int
   created_at DateTime? @db.Timestamp(6)
-  Tags       Tags      @relation(fields: [tag_id], references: [tag_id], onDelete: NoAction, onUpdate: NoAction)
-  Users      Users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  Tags       Tags      @relation(fields: [tag_id], references: [tag_id], onDelete: NoAction, onUpdate: Cascade)
+  Users      Users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: Cascade)
 
   @@id([user_id, tag_id])
 }

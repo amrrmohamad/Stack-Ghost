@@ -88,7 +88,6 @@ class FollowController {
             const { id } = req.params;
             const userId = parseInt(id);
 
-            // إعدادات الـ Pagination
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             const skip = (page - 1) * limit;
@@ -169,6 +168,118 @@ class FollowController {
                 totalPages: Math.ceil(totalFollowing / limit),
                 currentPage: page,
                 data: formattedFollowing
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+    /**
+     * Toggle Follow Tag (Follow if not following, Unfollow if already following)
+     */
+    async toggleTagFollow(req, res) {
+        try {
+            const { id } = req.params; 
+            const { user_id } = req.body; 
+
+            const tagId = parseInt(id);
+            const userId = parseInt(user_id);
+
+            if (isNaN(tagId) || isNaN(userId)) {
+                return res.status(400).json({ success: false, message: "Invalid IDs" });
+            }
+
+            const tagExists = await prisma.tags.findUnique({ where: { tag_id: tagId } });
+            if (!tagExists) {
+                return res.status(404).json({ success: false, message: "Tag not found" });
+            }
+
+            const existingFollow = await prisma.follow_Tags.findUnique({
+                where: {
+                    user_id_tag_id: { // Prisma Composite Key
+                        user_id: userId,
+                        tag_id: tagId
+                    }
+                }
+            });
+
+            if (existingFollow) {
+                await prisma.follow_Tags.delete({
+                    where: {
+                        user_id_tag_id: {
+                            user_id: userId,
+                            tag_id: tagId
+                        }
+                    }
+                });
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Tag unfollowed successfully",
+                    status: "unfollowed"
+                });
+
+            } else {
+                await prisma.follow_Tags.create({
+                    data: {
+                        user_id: userId,
+                        tag_id: tagId,
+                        created_at: new Date()
+                    }
+                });
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Tag followed successfully",
+                    status: "followed"
+                });
+            }
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
+    /**
+     * Get all tags followed by a specific user with Pagination
+     */
+    async getFollowedTags(req, res) {
+        try {
+            const { id } = req.params;
+            const userId = parseInt(id);
+
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            if (isNaN(userId)) {
+                return res.status(400).json({ success: false, message: "Invalid User ID" });
+            }
+
+            const totalFollowedTags = await prisma.follow_Tags.count({
+                where: { user_id: userId }
+            });
+
+            const followedTags = await prisma.follow_Tags.findMany({
+                where: { user_id: userId },
+                skip: skip,     
+                take: limit,    
+                include: {
+                    Tags: true 
+                }
+            });
+
+            const formattedTags = followedTags.map(ft => ft.Tags);
+
+            res.status(200).json({
+                success: true,
+                count: formattedTags.length,        
+                total: totalFollowedTags,           
+                totalPages: Math.ceil(totalFollowedTags / limit),
+                currentPage: page,
+                data: formattedTags
             });
 
         } catch (error) {
