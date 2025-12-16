@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stack Ghost | Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="background-orb background-orb--left"></div>
+      <div class="background-orb background-orb--right"></div>
+      <div class="noise-overlay" aria-hidden="true"></div>
+
+      <!-- Header -->
+      <header class="page-header">
+        <div class="brand">
+          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost" />
+          <span class="brand__name">Stack Ghost</span>
+        </div>
+        <nav class="header-nav">
+          <a href="#" class="header-link">Sign in</a>
+          <a href="#" class="header-link header-link--primary" data-tab-link="signup">Sign up</a>
+        </nav>
+      </header>
+
+      <!-- Split Layout Container -->
+      <div class="split-layout">
+        <!-- Left Content Panel -->
+        <div class="content-panel">
+          <div class="hero-section">
+            <div class="hero-badge">
+              <span>Stack Ghost is now in beta</span>
+            </div>
+            <h1 class="hero-title">Phantom <span class="glow-text">Access</span> for Developers</h1>
+            <p class="hero-subtitle">
+              Premium authentication built for modern teams. Secure, fast, and designed with developers in mind.
+            </p>
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <img src="img/icon-lock.png" alt="Secure" />
+                </div>
+                <div class="feature-text">
+                  <h3>Secure & Reliable</h3>
+                  <p>Your data is protected with industry-standard encryption</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <img src="img/icon-lightning.png" alt="Fast" />
+                </div>
+                <div class="feature-text">
+                  <h3>Instant Access</h3>
+                  <p>Get answers and post questions in real-time</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon">
+                  <img src="img/icon-target.png" alt="Developer" />
+                </div>
+                <div class="feature-text">
+                  <h3>Developer Friendly</h3>
+                  <p>Easy-to-use interface intuitive search and clean</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Background Elements -->
+          <div class="visual-background" aria-hidden="true">
+            <img class="geometric-shape shape-1" src="ghost.png" alt="" />
+            <div class="particle particle-1"></div>
+            <div class="particle particle-2"></div>
+            <div class="particle particle-3"></div>
+            <div class="particle particle-4"></div>
+            <div class="grid-pattern"></div>
+          </div>
+        </div>
+
+        <!-- Right Auth Panel -->
+        <div class="auth-panel">
+          <section class="auth-card glass" aria-label="Authentication">
+            <div class="title-block">
+            <h2 class="auth-title" data-animate-title>Login</h2>
+            <p class="subtitle">Welcome back to Stack Ghost</p>
+          </div>
+
+          <div class="tab-switch" role="tablist" aria-label="Authentication tabs">
+            <button class="tab-switch__btn is-active" role="tab" aria-selected="true" data-tab="login">
+              Login
+            </button>
+            <button class="tab-switch__btn" role="tab" aria-selected="false" data-tab="signup">
+              Sign Up
+            </button>
+            <div class="tab-switch__indicator" aria-hidden="true"></div>
+          </div>
+
+          <div class="form-shell">
+            <!-- LOGIN FORM – Backend will handle POST /auth/login -->
+            <form class="auth-form is-active" data-form="login" data-auth-form="login" novalidate>
+              <div class="input-field">
+                <label for="login-email">Email or username</label>
+                <!-- USER IDENTIFIER (email or username) -->
+                <input
+                  id="login-email"
+                  name="identifier"
+                  type="text"
+                  placeholder="you@stackghost.dev"
+                  autocomplete="username"
+                  data-auth-field="identifier"
+                  required
+                />
+              </div>
+              <div class="input-field">
+                <label for="login-password">Password</label>
+                <!-- USER PASSWORD -->
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  placeholder="********"
+                  autocomplete="current-password"
+                  data-auth-field="password"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <label class="checkbox">
+                  <input type="checkbox" name="remember" checked />
+                  <span>Remember me</span>
+                </label>
+                <a class="link" href="#">Forgot password?</a>
+              </div>
+              <!-- SUBMIT LOGIN -->
+              <button class="btn btn--primary" type="submit" data-auth-submit="login">Login</button>
+            </form>
+
+            <!-- SIGNUP FORM – Backend will handle POST /auth/signup -->
+            <form class="auth-form" data-form="signup" data-auth-form="signup" novalidate>
+              <div class="input-field">
+                <label for="signup-name">Full name</label>
+                <!-- USER FULL NAME -->
+                <input
+                  id="signup-name"
+                  name="full_name"
+                  type="text"
+                  placeholder="Amira Ghost"
+                  autocomplete="name"
+                  data-auth-field="full_name"
+                  required
+                />
+              </div>
+              <div class="input-field">
+                <label for="signup-email">Work email</label>
+                <!-- USER EMAIL -->
+                <input
+                  id="signup-email"
+                  name="email"
+                  type="email"
+                  placeholder="team@stackghost.dev"
+                  autocomplete="email"
+                  data-auth-field="email"
+                  required
+                />
+              </div>
+              <div class="input-field">
+                <label for="signup-password">Password</label>
+                <input
+                  id="signup-password"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Create a strong password"
+                  data-auth-field="password"
+                  required
+                />
+              </div>
+              <div class="input-field">
+                <label for="signup-confirm">Confirm password</label>
+                <input
+                  id="signup-confirm"
+                  name="confirm_password"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Retype your password"
+                  data-auth-field="confirm_password"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <label class="checkbox">
+                  <input type="checkbox" name="terms" required />
+                  <span>I agree to the <a class="link" href="#">Terms &amp; Privacy</a></span>
+                </label>
+              </div>
+              <!-- SUBMIT SIGNUP -->
+              <button class="btn btn--primary" type="submit" data-auth-submit="signup">Create account</button>
+              <p class="footnote">Already have an account? <a class="link" data-tab-link="login" href="#">Login</a></p>
+            </form>
+          </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
