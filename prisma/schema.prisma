@@ -14,8 +14,14 @@ model Users {
   password_hash     String    @db.VarChar
   bio               String?
   profile_image     String?   @db.VarChar
-  reputation        Int?      @default(0)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  // i removed ? because reputation never be null
+  reputation        Int      @default(0)
+
+  // added is active: to block user if he take a report
+  is_active Boolean @default(true)
+
+  // i removed ? because every user must have start date
+  created_at        DateTime @default(now()) @db.Timestamp(6)
   last_login        DateTime? @db.Timestamp(6)
   role_id           Int?
 

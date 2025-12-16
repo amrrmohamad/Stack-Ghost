@@ -15,16 +15,43 @@ class QuestionController {
      */
     async createQuestion(req, res) {
         try {
-            const { title, body, user_id, tag_ids } = req.body;
+            const { title, body, tag_ids } = req.body;
+            const userId = req.user?.user_id;
 
-            if (!title || !body || !user_id) {
-                return res.status(400).json({
+            if (!userId) {
+                return res.status(401).json({
                     success: false,
-                    message: "Title, Body, and User ID are required"
+                    message: "Unauthorized: User not authenticated"
                 });
             }
 
-            const newQuestion = await questionService.createQuestion(title, body, user_id, tag_ids);
+            if (!title || !body) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Title and Body are required"
+                });
+            }
+
+            let tagsData = {};
+            if (tag_ids && Array.isArray(tag_ids) && tag_ids.length > 0) {
+                tagsData = {
+                    create: tag_ids.map(id => ({
+                        Tags: { connect: { tag_id: parseInt(id) } }
+                    }))
+                };
+            }
+
+            const newQuestion = await prisma.questions.create({
+                data: {
+                    title,
+                    body,
+                    user_id: userId,
+                    Question_Tags: tagsData
+                },
+                include: {
+                    Question_Tags: true
+                }
+            });
 
             res.status(201).json({
                 success: true,
@@ -54,14 +81,55 @@ class QuestionController {
     async updateQuestion(req, res) {
         try {
             const { id } = req.params;
-            const { title, body, user_id } = req.body; 
+            const { title, body } = req.body;
             const questionId = parseInt(id);
+            const userRole = req.user?.Roles?.role_name;
+            const userId = req.user?.user_id;
 
             if (isNaN(questionId)) {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const result = await questionService.updateQuestion(questionId, title, body, user_id);
+            const oldQuestion = await prisma.questions.findUnique({
+                where: { question_id: questionId }
+            });
+
+            if (!oldQuestion) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            // Prevent editing closed questions unless admin (or moderator if you want)
+            if (oldQuestion.is_closed && userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: "Cannot edit a closed question" });
+            }
+
+            // Only owner or admin can edit
+            if (oldQuestion.user_id !== userId && userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: "Not authorized to edit this question" });
+            }
+
+            const result = await prisma.$transaction(async (prisma) => {
+                await prisma.edit_History.create({
+                    data: {
+                        question_id: questionId,
+                        user_id: userId,
+                        old_body: oldQuestion.body,
+                        new_body: body,
+                        created_at: new Date()
+                    }
+                });
+
+                const updated = await prisma.questions.update({
+                    where: { question_id: questionId },
+                    data: {
+                        title: title,
+                        body: body,
+                        updated_at: new Date()
+                    }
+                });
+
+                return updated;
+            });
 
             res.status(200).json({
                 success: true,
@@ -81,39 +149,53 @@ class QuestionController {
         }
     }
     /**
-     * deleteQuestion - is a function to delete a question from system
-     * @param {req} request 
-     * @param {res} response
-     * @returns 
+     * Close a question (Admin / Moderator)
      */
-    async deleteQuestion(req, res) {
+    async closeQuestion(req, res) {
         try {
             const { id } = req.params;
             const questionId = parseInt(id);
+            const adminId = req.user.user_id;
 
             if (isNaN(questionId)) {
-                return res.status(400).json({ success: false, message: "Invalid ID" });
+                return res.status(400).json({ success: false, message: "Invalid question id" });
             }
 
-            const userId = req.body.user_id || req.user?.id;
-            await questionService.deleteQuestion(questionId, userId);
+            const question = await prisma.questions.findUnique({
+                where: { question_id: questionId }
+            });
+
+            if (!question) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            if (question.is_closed) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Question is already closed"
+                });
+            }
+
+            const closedQuestion = await prisma.questions.update({
+                where: { question_id: questionId },
+                data: {
+                    is_closed: true,
+                    closed_by: adminId
+                }
+            });
 
             res.status(200).json({
                 success: true,
-                message: "Question deleted successfully"
+                message: "Question closed successfully 🔒",
+                data: closedQuestion
             });
 
         } catch (error) {
-            if (error.message.includes("not found")) {
-                return res.status(404).json({ success: false, message: "Question not found" });
-            }
-            if (error.message.includes("Unauthorized")) {
-                return res.status(403).json({ success: false, message: error.message });
-            }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+
     /**
      * get all questions
      * @param {import('express').Request} req 
@@ -122,9 +204,48 @@ class QuestionController {
     async getAllQuestions(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+            const limit = parseInt(req.query.limit) || 10;
 
-            const { questions, totalQuestions, totalPages } = await questionService.getAllQuestions(page, limit);
+            if (limit > 50) {
+                limit = 50;
+            }
+
+            const skip = (page - 1) * limit;
+
+            const totalQuestions = await prisma.questions.count();
+
+            const questions = await prisma.questions.findMany({
+                skip: skip,
+                take: limit,
+                orderBy: { created_at: 'desc' },
+
+                select: {
+                    question_id: true,
+                    title: true,
+                    body: true,
+                    views_count: true,
+                    created_at: true,
+
+                    Author: {
+                        select: {
+                            username: true,
+                            profile_image: true,
+                            reputation: true
+                        }
+                    },
+
+                    Question_Tags: {
+                        select: {
+                            Tags: {
+                                select: { tag_name: true }
+                            }
+                        }
+                    },
+
+                    Votes: { select: { vote_type: true } },
+                    _count: { select: { Answers: true } }
+                }
+            });
 
             const sanitizedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
@@ -276,13 +397,33 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const { history, totalHistory, totalPages } = await questionService.getQuestionHistory(questionId, page, limit);
+            const totalHistory = await prisma.edit_History.count({
+                where: {
+                    question_id: questionId
+                }
+            });
+
+            const history = await prisma.edit_History.findMany({
+                where: {
+                    question_id: questionId
+                },
+                skip: skip,
+                take: limit,
+                include: {
+                    Users: {
+                        select: { username: true, profile_image: true }
+                    }
+                },
+                orderBy: {
+                    created_at: 'desc'
+                }
+            });
 
             res.status(200).json({
                 success: true,
-                count: history.length,     
-                total: totalHistory,       
-                totalPages: totalPages,
+                count: history.length,
+                total: totalHistory,
+                totalPages: Math.ceil(totalHistory / limit),
                 currentPage: page,
                 data: history
             });
