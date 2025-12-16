@@ -7,21 +7,32 @@
  */
 import express from 'express';
 import QuestionController from '../controllers/QuestionController.js';
+import auth from '../middlewares/auth.middleware.js';
+import { authorizeRoles } from '../middlewares/role.middleware.js';
 
 const router = express.Router();
 
+// Public search
 router.get('/search', QuestionController.searchQuestions);
 
-router.post('/', QuestionController.createQuestion);
-
+// Public: get all questions
 router.get('/', QuestionController.getAllQuestions);
 
+// Public: get question by id
 router.get('/:id', QuestionController.getQuestionById);
 
-router.put('/:id', QuestionController.updateQuestion);
-
+// Public: get question history
 router.get('/history/:id', QuestionController.getQuestionHistory);
 
-router.delete("/:id", QuestionController.deleteQuestion);
+// Authenticated: create question
+router.post('/', auth, QuestionController.createQuestion);
+
+// Authenticated: update question (owner or admin)
+router.put('/:id', auth, QuestionController.updateQuestion);
+
+// Authenticated: close question (admin or moderator)
+router.patch('/:id/close', auth, authorizeRoles('admin', 'moderator'), QuestionController.closeQuestion);
+
+
 
 export default router;

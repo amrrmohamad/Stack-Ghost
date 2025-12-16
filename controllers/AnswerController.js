@@ -27,6 +27,19 @@ class AnswerController {
                 });
             }
 
+            // check if question closed or not
+            const question = await prisma.questions.findUnique({
+                where: { question_id }
+            });
+
+            if (question.is_closed) {
+                return res.status(403).json({
+                    success: false,
+                    message: "This question is closed. You can't add new answers."
+                });
+            }
+
+
             const newAnswer = await prisma.answers.create({
                 data: {
                     body,
@@ -67,8 +80,8 @@ class AnswerController {
                 where: {
                     question_id: parseInt(questionId)
                 },
-                skip: skip,     
-                take: limit,    
+                skip: skip,
+                take: limit,
                 include: {
                     Users: {
                         select: { username: true, reputation: true, profile_image: true }
@@ -92,22 +105,22 @@ class AnswerController {
 
             const answersWithCounts = answersData.map(answer => {
                 const voteCount = answer.Votes.reduce((acc, vote) => {
-                    return acc + (vote.value || vote.vote_type || 0); 
+                    return acc + (vote.value || vote.vote_type || 0);
                 }, 0);
 
                 return {
                     ...answer,
                     vote_count: voteCount,
-                    Votes: undefined 
+                    Votes: undefined
                 };
             });
 
             res.status(200).json({
                 success: true,
-                count: answersWithCounts.length, 
-                total: totalAnswers,             
-                totalPages: Math.ceil(totalAnswers / limit), 
-                currentPage: page,               
+                count: answersWithCounts.length,
+                total: totalAnswers,
+                totalPages: Math.ceil(totalAnswers / limit),
+                currentPage: page,
                 data: answersWithCounts
             });
 
@@ -132,7 +145,7 @@ class AnswerController {
 
             const answerToAccept = await prisma.answers.findUnique({
                 where: { answer_id: parseInt(answer_id) },
-                include: { Questions: true } 
+                include: { Questions: true }
             });
 
             if (!answerToAccept) {
@@ -201,7 +214,7 @@ class AnswerController {
     async updateAnswer(req, res) {
         try {
             const { id } = req.params;
-            const { body, user_id } = req.body; 
+            const { body, user_id } = req.body;
             const answerId = parseInt(id);
 
             if (isNaN(answerId)) {
@@ -229,7 +242,7 @@ class AnswerController {
             }
 
             const result = await prisma.$transaction(async (prisma) => {
-                
+
                 await prisma.edit_History.create({
                     data: {
                         answer_id: answerId,

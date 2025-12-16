@@ -8,18 +8,37 @@
 
 import express from 'express';
 import UserController from '../controllers/UserController.js';
+import auth from '../middlewares/auth.middleware.js';
+import checkPermission from '../middlewares/permission.middleware.js';
 
 const router = express.Router();
 
-// لما حد يطلب اللينك ده GET، شغل دالة getAllUsers
-router.get('/', UserController.getAllUsers);
+/**
+ * ========== USER ROUTES ==========
+ * NOTE: /me routes must come before /:id routes to avoid route conflicts
+ */
 
-// لما حد يبعت داتا POST، شغل دالة createUser
-router.post('/', UserController.createUser);
+// Get current logged-in user's profile
+router.get('/me', auth, UserController.getCurrentUser);
 
-router.get('/:id', UserController.getUserById);
+// Update current user's profile
+router.put('/me', auth, UserController.updateProfile);
 
-router.put('/:id', UserController.updateUser);
+/**
+ * ========== ADMIN ROUTES ==========
+ */
 
-router.delete('/:id', UserController.deleteUser);
+// Get all users (dashboard admin)
+router.get('/', auth, checkPermission('manage_users'), UserController.getAllUsers);
+
+// Update user state (activate/deactivate)
+router.patch('/:id/state', auth, checkPermission('manage_users'), UserController.updateUserState);
+
+/**
+ * ========== PUBLIC USER ROUTES ==========
+ */
+
+// Get public profile of another user
+router.get('/:id', auth, UserController.getUserProfile);
+
 export default router;

@@ -16,12 +16,20 @@ class QuestionController {
      */
     async createQuestion(req, res) {
         try {
-            const { title, body, user_id, tag_ids } = req.body;
+            const { title, body, tag_ids } = req.body;
+            const userId = req.user?.user_id;
 
-            if (!title || !body || !user_id) {
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Unauthorized: User not authenticated"
+                });
+            }
+
+            if (!title || !body) {
                 return res.status(400).json({
                     success: false,
-                    message: "Title, Body, and User ID are required"
+                    message: "Title and Body are required"
                 });
             }
 
@@ -38,7 +46,7 @@ class QuestionController {
                 data: {
                     title,
                     body,
-                    user_id: parseInt(user_id),
+                    user_id: userId,
                     Question_Tags: tagsData
                 },
                 include: {
@@ -74,8 +82,10 @@ class QuestionController {
     async updateQuestion(req, res) {
         try {
             const { id } = req.params;
-            const { title, body, user_id } = req.body; 
+            const { title, body } = req.body;
             const questionId = parseInt(id);
+            const userRole = req.user?.Roles?.role_name;
+            const userId = req.user?.user_id;
 
             if (isNaN(questionId)) {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
@@ -89,14 +99,23 @@ class QuestionController {
                 return res.status(404).json({ success: false, message: "Question not found" });
             }
 
+            // Prevent editing closed questions unless admin (or moderator if you want)
+            if (oldQuestion.is_closed && userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: "Cannot edit a closed question" });
+            }
+
+            // Only owner or admin can edit
+            if (oldQuestion.user_id !== userId && userRole !== 'admin') {
+                return res.status(403).json({ success: false, message: "Not authorized to edit this question" });
+            }
+
             const result = await prisma.$transaction(async (prisma) => {
-                
                 await prisma.edit_History.create({
                     data: {
                         question_id: questionId,
-                        user_id: user_id, 
-                        old_body: oldQuestion.body, 
-                        new_body: body,             
+                        user_id: userId,
+                        old_body: oldQuestion.body,
+                        new_body: body,
                         created_at: new Date()
                     }
                 });
@@ -125,39 +144,53 @@ class QuestionController {
         }
     }
     /**
-     * deleteQuestion - is a function to delete a question from system
-     * @param {req} request 
-     * @param {res} response
-     * @returns 
+     * Close a question (Admin / Moderator)
      */
-    async deleteQuestion(req, res) {
+    async closeQuestion(req, res) {
         try {
             const { id } = req.params;
             const questionId = parseInt(id);
+            const adminId = req.user.user_id;
 
             if (isNaN(questionId)) {
-                return res.status(400).json({ success: false, message: "Invalid ID" });
+                return res.status(400).json({ success: false, message: "Invalid question id" });
             }
 
-            // الحذف
-            await prisma.questions.delete({
+            const question = await prisma.questions.findUnique({
                 where: { question_id: questionId }
+            });
+
+            if (!question) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            if (question.is_closed) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Question is already closed"
+                });
+            }
+
+            const closedQuestion = await prisma.questions.update({
+                where: { question_id: questionId },
+                data: {
+                    is_closed: true,
+                    closed_by: adminId
+                }
             });
 
             res.status(200).json({
                 success: true,
-                message: "Question deleted successfully"
+                message: "Question closed successfully 🔒",
+                data: closedQuestion
             });
 
         } catch (error) {
-            // لو بتحاول تمسح حاجة مش موجودة
-            if (error.code === 'P2025') {
-                return res.status(404).json({ success: false, message: "Question not found" });
-            }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+
     /**
      * get all questions
      * @param {import('express').Request} req 
@@ -199,7 +232,6 @@ class QuestionController {
                     Question_Tags: {
                         select: {
                             Tags: {
-                                // 1. التعديل هنا: اسم العمود tag_name
                                 select: { tag_name: true }
                             }
                         }
@@ -217,7 +249,6 @@ class QuestionController {
                     ? q.body.substring(0, 150) + '...'
                     : q.body;
 
-                // 2. والتعديل هنا كمان عشان الماب تشتغل صح
                 const tags = q.Question_Tags.map(qt => qt.Tags.tag_name);
 
                 return {
@@ -435,31 +466,31 @@ class QuestionController {
             }
 
             const totalHistory = await prisma.edit_History.count({
-                where: { 
-                    question_id: questionId 
+                where: {
+                    question_id: questionId
                 }
             });
 
             const history = await prisma.edit_History.findMany({
-                where: { 
-                    question_id: questionId 
+                where: {
+                    question_id: questionId
                 },
-                skip: skip,      
-                take: limit,     
+                skip: skip,
+                take: limit,
                 include: {
                     Users: {
                         select: { username: true, profile_image: true }
                     }
                 },
                 orderBy: {
-                    created_at: 'desc' 
+                    created_at: 'desc'
                 }
             });
 
             res.status(200).json({
                 success: true,
-                count: history.length,     
-                total: totalHistory,       
+                count: history.length,
+                total: totalHistory,
                 totalPages: Math.ceil(totalHistory / limit),
                 currentPage: page,
                 data: history

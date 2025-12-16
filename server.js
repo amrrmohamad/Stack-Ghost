@@ -14,6 +14,7 @@ import answerRoutes from './routes/answerRoutes.js'
 import tagRoutes from './routes/tagRoutes.js'
 import commentRoutes from './routes/commentRoutes.js';
 import voteRoutes from './routes/voteRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 const PORT = 3000;
 
 const app = express();
@@ -22,6 +23,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/users', userRoutes); 
+// route for authcontroller
+app.use('/api/auth', authRoutes);
 
 app.use('/api/questions', questionRoutes); 
 

@@ -7,16 +7,18 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 
 class UserController {
     /**
-     * Retrieves all users from the database
+     * Retrieves all users from the database TO DASHBOARD ADMIN
+     * (used in admin dashboard)
      * @param {import('express').Request} req - Express request object
      * @param {import('express').Response} res - Express response object
      */
+
+    // (======JUST ADMIN USE IT======)
     async getAllUsers(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
@@ -29,18 +31,24 @@ class UserController {
                 skip: skip,
                 take: limit,
                 orderBy: {
-                    reputation: 'desc' 
+                    reputation: 'desc'
                 },
                 select: {
                     user_id: true,
                     username: true,
                     profile_image: true,
                     reputation: true,
+                    is_active: true,
                     created_at: true,
                     _count: {
-                        select: { 
-                            AuthoredQuestions: true, 
-                            Answers: true    
+                        select: {
+                            AuthoredQuestions: true,
+                            Answers: true
+                        }
+                    }, // added the role of user
+                    Roles: {
+                        select: {
+                            role_name: true
                         }
                     }
                 }
@@ -62,73 +70,46 @@ class UserController {
     }
 
     /**
-     * Creates a new user in the database.
-     * @param {import('express').Request} req - The Express request object containing user data in body.
-     * @param {import('express').Response} res - The Express response object.
+     * update state of user in DASHBOARD
+     * @param {import('express').Request} req - Express request object
+     * @param {import('express').Response} res - Express response object
      */
-    async createUser(req, res) {
+    //(======JUST ADMIN USE IT======)
+    async updateUserState(req, res) {
         try {
-            const { username, email, password } = req.body;
+            const userId = parseInt(req.params.id);
+            const { isActive } = req.body;
 
-            if (!username || !email || !password) {
+            if (typeof isActive !== 'boolean') {
                 return res.status(400).json({
                     success: false,
-                    message: "Missing required fields: username, email, and password are required."
+                    message: 'isActive must be boolean'
                 });
             }
+            console.log(req.user);
 
-            if (password.length < 6) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Password must be at least 6 characters long."
-                });
-            }
-
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-
-            const newUser = await prisma.users.create({
-                data: {
-                    username,
-                    email,
-                    password_hash: hashedPassword, 
-                }
+            await prisma.users.update({
+                where: { user_id: userId },
+                data: { is_active: isActive }
             });
 
-            const { password_hash, ...userWithoutPass } = newUser;
-
-            res.status(201).json({
+            res.json({
                 success: true,
-                message: "User registered successfully 🎉",
-                data: userWithoutPass
+                message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
             });
-
-        } catch (error) {
-            console.error(error);
-
-            if (error.code === 'P2002') {
-                return res.status(409).json({
-                    success: false,
-                    message: "Username or Email already exists!"
-                });
-            }
-
-            res.status(500).json({ success: false, message: "Internal Server Error" });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
-    /**
-     * Get single user by ID
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
-    async getUserById(req, res) {
-        try {
-            const { id } = req.params;
-            const userId = parseInt(id);
 
-            if (isNaN(userId)) {
-                return res.status(400).json({ success: false, message: "Invalid User ID" });
-            }
+    /**
+      * Authenticated user: get his own data
+      * RETURN all data for logged in user (current user) (used in profile page)
+      */
+    async getCurrentUser(req, res) {
+        try {
+            const userId = req.user.user_id;
 
             const user = await prisma.users.findUnique({
                 where: { user_id: userId },
@@ -136,118 +117,100 @@ class UserController {
                     user_id: true,
                     username: true,
                     email: true,
+                    bio: true,
                     profile_image: true,
                     reputation: true,
-                    bio: true, 
                     created_at: true,
+                    Roles: {
+                        select: { role_name: true }
+                    }
+                }
+            });
+
+            res.json({ success: true, data: user });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Server error' });
+        }
+    }
+
+    /**
+     * Public user profile
+     * RETURN information about another users (used in following page)
+     */
+    async getUserProfile(req, res) {
+        try {
+            const userId = parseInt(req.params.id);
+
+            const user = await prisma.users.findUnique({
+                where: { user_id: userId },
+                select: {
+                    user_id: true,
+                    username: true,
+                    bio: true,
+                    profile_image: true,
+                    reputation: true,
+                    Roles: { select: { role_name: true } },
+                    created_at: true,
+                    is_active: true,
                     _count: {
                         select: {
-                            AuthoredQuestions: true,
-                            Answers: true
+                            Answers: true,
+                            AuthoredQuestions: true
                         }
                     }
                 }
             });
 
-            if (!user) {
-                return res.status(404).json({ success: false, message: "User not found" });
+            if (!user || !user.is_active) {
+                return res.status(404).json({ success: false, message: 'User not found' });
             }
 
-            res.status(200).json({
-                success: true,
-                data: user
-            });
-
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
+            res.json({ success: true, data: user });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
     /**
-     * Update user details
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
+     * Owner: update profile info
      */
-    async updateUser(req, res) {
+    async updateProfile(req, res) {
         try {
-            const { id } = req.params;
-            const userId = parseInt(id);
-            const { username, email, password, bio, profile_image } = req.body;
+            const userId = req.user.user_id;
+            const { username, bio, profile_image } = req.body;
 
-            if (isNaN(userId)) {
-                return res.status(400).json({ success: false, message: "Invalid User ID" });
-            }
+            // Only include fields that are provided
+            const data = {};
+            if (username !== undefined) data.username = username;
+            if (bio !== undefined) data.bio = bio;
+            if (profile_image !== undefined) data.profile_image = profile_image;
 
-            let updateData = {};
-
-            if (username) updateData.username = username;
-            if (email) updateData.email = email;
-            if (bio) updateData.bio = bio;
-            if (profile_image) updateData.profile_image = profile_image;
-
-            if (password) {
-                if (password.length < 6) {
-                    return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
-                }
-                const salt = await bcrypt.genSalt(10);
-                updateData.password_hash = await bcrypt.hash(password, salt);
-            }
-
-            const updatedUser = await prisma.users.update({
+            // Debug log you can remove it
+            console.log('UpdateProfile:', { userId, data });
+            
+            const updated = await prisma.users.update({
                 where: { user_id: userId },
-                data: updateData
+                data
             });
 
-            const { password_hash, ...userWithoutPass } = updatedUser;
-
-            res.status(200).json({
+            res.json({
                 success: true,
-                message: "User profile updated successfully",
-                data: userWithoutPass
+                message: 'Profile updated successfully',
+                data: {
+                    user_id: updated.user_id,
+                    username: updated.username,
+                    bio: updated.bio,
+                    profile_image: updated.profile_image
+                }
             });
-
-        } catch (error) {
-            if (error.code === 'P2002') {
-                return res.status(409).json({ success: false, message: "Username or Email already exists" });
+        } catch (err) {
+            if (err.code === 'P2002') {
+                return res.status(409).json({ success: false, message: 'Username already taken' });
             }
-            if (error.code === 'P2025') {
-                return res.status(404).json({ success: false, message: "User not found" });
-            }
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
-        }
-    }
-
-    /**
-     * Delete user account
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
-    async deleteUser(req, res) {
-        try {
-            const { id } = req.params;
-            const userId = parseInt(id);
-
-            if (isNaN(userId)) {
-                return res.status(400).json({ success: false, message: "Invalid User ID" });
-            }
-
-            await prisma.users.delete({
-                where: { user_id: userId }
-            });
-
-            res.status(200).json({
-                success: true,
-                message: "User deleted successfully"
-            });
-
-        } catch (error) {
-            if (error.code === 'P2025') {
-                return res.status(404).json({ success: false, message: "User not found" });
-            }
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
+            console.error(err);
+            return res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 }
