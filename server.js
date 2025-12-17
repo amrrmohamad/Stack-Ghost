@@ -18,10 +18,12 @@ import authRoutes from './routes/authRoutes.js';
 import followRoutes from './routes/followRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import cors from 'cors';
 const PORT = 3000;
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 

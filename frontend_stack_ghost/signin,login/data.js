@@ -1,7 +1,6 @@
 // All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
-const USERS_ENDPOINT = "/api/users";
-
+const LOGIN_ENDPOINT = "http://localhost:3000/api/auth/login"; 
+const REGISTER_ENDPOINT = "http://localhost:3000/api/auth/register";
 export const fallbackUserData = {
   username: "Amr",
   profileImage: "img/rafiki.png",
