@@ -6,9 +6,7 @@
  * @date 2025-12-12
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import * as commentService from '../utils/commentService.js';
 
 class CommentController {
 
@@ -35,15 +33,7 @@ class CommentController {
                 });
             }
 
-            const newComment = await prisma.comments.create({
-                data: {
-                    body,
-                    user_id: parseInt(user_id),
-                    // لو القيمة موجودة حولها لرقم، لو مش موجودة خليها null
-                    question_id: question_id ? parseInt(question_id) : null,
-                    answer_id: answer_id ? parseInt(answer_id) : null
-                }
-            });
+            const newComment = await commentService.createComment(body, user_id, question_id, answer_id);
 
             res.status(201).json({
                 success: true,
@@ -68,7 +58,6 @@ class CommentController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (!question_id && !answer_id) {
                 return res.status(400).json({
@@ -77,36 +66,13 @@ class CommentController {
                 });
             }
 
-            let whereClause = {};
-            if (question_id) {
-                whereClause.question_id = parseInt(question_id);
-            } else if (answer_id) {
-                whereClause.answer_id = parseInt(answer_id);
-            }
-
-            const totalComments = await prisma.comments.count({
-                where: whereClause
-            });
-
-            const comments = await prisma.comments.findMany({
-                where: whereClause,
-                skip: skip,      
-                take: limit,     
-                include: {
-                    Users: {
-                        select: { username: true, profile_image: true, reputation: true }
-                    }
-                },
-                orderBy: {
-                    created_at: 'asc' 
-                }
-            });
+            const { comments, totalComments, totalPages } = await commentService.getComments(question_id, answer_id, page, limit);
 
             res.status(200).json({
                 success: true,
                 count: comments.length,
                 total: totalComments,
-                totalPages: Math.ceil(totalComments / limit),
+                totalPages: totalPages,
                 currentPage: page,
                 data: comments
             });
@@ -135,24 +101,7 @@ class CommentController {
                 return res.status(400).json({ success: false, message: "Comment body is required" });
             }
 
-            const comment = await prisma.comments.findUnique({
-                where: { comment_id: commentId }
-            });
-
-            if (!comment) {
-                return res.status(404).json({ success: false, message: "Comment not found" });
-            }
-
-            if (user_id && comment.user_id !== parseInt(user_id)) {
-                return res.status(403).json({ success: false, message: "You are not authorized to update this comment" });
-            }
-
-            const updatedComment = await prisma.comments.update({
-                where: { comment_id: commentId },
-                data: {
-                    body: body,
-                }
-            });
+            const updatedComment = await commentService.updateComment(commentId, body, user_id);
 
             res.status(200).json({
                 success: true,
@@ -161,6 +110,12 @@ class CommentController {
             });
 
         } catch (error) {
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
+            if (error.message.includes("not authorized")) {
+                return res.status(403).json({ success: false, message: error.message });
+            }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
@@ -180,21 +135,7 @@ class CommentController {
                 return res.status(400).json({ success: false, message: "Invalid Comment ID" });
             }
 
-            const comment = await prisma.comments.findUnique({
-                where: { comment_id: commentId }
-            });
-
-            if (!comment) {
-                return res.status(404).json({ success: false, message: "Comment not found" });
-            }
-
-            if (user_id && comment.user_id !== parseInt(user_id)) {
-                return res.status(403).json({ success: false, message: "You are not authorized to delete this comment" });
-            }
-
-            await prisma.comments.delete({
-                where: { comment_id: commentId }
-            });
+            await commentService.deleteComment(commentId, user_id);
 
             res.status(200).json({
                 success: true,
@@ -202,6 +143,12 @@ class CommentController {
             });
 
         } catch (error) {
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
+            if (error.message.includes("not authorized")) {
+                return res.status(403).json({ success: false, message: error.message });
+            }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }

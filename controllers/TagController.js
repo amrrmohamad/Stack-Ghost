@@ -6,9 +6,7 @@
  * @date 2025-12-11
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import * as tagService from '../utils/tagService.js';
 
 class TagController {
 
@@ -28,12 +26,7 @@ class TagController {
                 });
             }
 
-            const newTag = await prisma.tags.create({
-                data: {
-                    tag_name,
-                    description
-                }
-            });
+            const newTag = await tagService.createTag(tag_name, description);
 
             res.status(201).json({
                 success: true,
@@ -43,8 +36,7 @@ class TagController {
 
         } catch (error) {
             console.error(error);
-            // التعامل مع تكرار الاسم
-            if (error.code === 'P2002') {
+            if (error.message.includes("already exists")) {
                 return res.status(409).json({ success: false, message: "Tag already exists" });
             }
             res.status(500).json({ success: false, message: "Server Error" });
@@ -60,42 +52,17 @@ class TagController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20; 
-            const skip = (page - 1) * limit;
-
             const { q } = req.query;
-            const whereClause = q ? { tag_name: { contains: q } } : {};
 
-            const totalTags = await prisma.tags.count({ where: whereClause });
-
-            const tags = await prisma.tags.findMany({
-                where: whereClause,
-                skip: skip,
-                take: limit,
-                orderBy: {
-                    tag_name: 'asc' 
-                },
-                include: {
-                    _count: {
-                        select: { Question_Tags: true } 
-                    }
-                }
-            });
-
-            const formattedTags = tags.map(tag => ({
-                tag_id: tag.tag_id,
-                tag_name: tag.tag_name,
-                description: tag.description,
-                created_at: tag.created_at,
-                questions_count: tag._count.Question_Tags 
-            }));
+            const { tags, totalTags, totalPages } = await tagService.getAllTags(page, limit, q);
 
             res.status(200).json({
                 success: true,
-                count: formattedTags.length,
+                count: tags.length,
                 total: totalTags,
-                totalPages: Math.ceil(totalTags / limit),
+                totalPages: totalPages,
                 currentPage: page,
-                data: formattedTags
+                data: tags
             });
 
         } catch (error) {
@@ -118,13 +85,7 @@ class TagController {
                 return res.status(400).json({ success: false, message: "Invalid Tag ID" });
             }
 
-            const updatedTag = await prisma.tags.update({
-                where: { tag_id: tagId },
-                data: {
-                    tag_name: tag_name, 
-                    description: description 
-                }
-            });
+            const updatedTag = await tagService.updateTag(tagId, tag_name, description);
 
             res.status(200).json({
                 success: true,
@@ -133,10 +94,10 @@ class TagController {
             });
 
         } catch (error) {
-            if (error.code === 'P2002') {
+            if (error.message.includes("already exists")) {
                 return res.status(409).json({ success: false, message: "Tag name already exists" });
             }
-            if (error.code === 'P2025') {
+            if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: "Tag not found" });
             }
             console.error(error);
@@ -158,9 +119,7 @@ class TagController {
                 return res.status(400).json({ success: false, message: "Invalid Tag ID" });
             }
 
-            await prisma.tags.delete({
-                where: { tag_id: tagId }
-            });
+            await tagService.deleteTag(tagId);
 
             res.status(200).json({
                 success: true,
@@ -168,10 +127,10 @@ class TagController {
             });
 
         } catch (error) {
-            if (error.code === 'P2025') {
+            if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: "Tag not found" });
             }
-            if (error.code === 'P2003') {
+            if (error.message.includes("associated")) {
                 return res.status(400).json({ 
                     success: false, 
                     message: "Cannot delete this tag because it is associated with questions. Please remove associations first." 

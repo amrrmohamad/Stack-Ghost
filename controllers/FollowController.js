@@ -4,9 +4,7 @@
  * @author M-Ahmd
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import * as followService from '../utils/followService.js';
 
 class FollowController {
 
@@ -31,50 +29,17 @@ class FollowController {
                 return res.status(400).json({ success: false, message: "You cannot follow yourself" });
             }
 
-            const existingFollow = await prisma.follow_Users.findUnique({
-                where: {
-                    user_id_followed_user_id: {
-                        user_id: currentUserId,
-                        followed_user_id: targetUserId
-                    }
-                }
+            const result = await followService.toggleFollowUser(targetUserId, currentUserId);
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                status: result.status
             });
-
-            if (existingFollow) {
-                await prisma.follow_Users.delete({
-                    where: {
-                        user_id_followed_user_id: {
-                            user_id: currentUserId,
-                            followed_user_id: targetUserId
-                        }
-                    }
-                });
-
-                return res.status(200).json({
-                    success: true,
-                    message: "Unfollowed successfully",
-                    status: "unfollowed"
-                });
-
-            } else {
-                await prisma.follow_Users.create({
-                    data: {
-                        user_id: currentUserId,
-                        followed_user_id: targetUserId,
-                        created_at: new Date()
-                    }
-                });
-
-                return res.status(200).json({
-                    success: true,
-                    message: "Followed successfully",
-                    status: "followed"
-                });
-            }
 
         } catch (error) {
             console.error(error);
-            if (error.code === 'P2003') {
+            if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: "User not found" });
             }
             res.status(500).json({ success: false, message: "Server Error" });
@@ -90,36 +55,20 @@ class FollowController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (isNaN(userId)) {
                 return res.status(400).json({ success: false, message: "Invalid User ID" });
             }
 
-            const totalFollowers = await prisma.follow_Users.count({
-                where: { followed_user_id: userId }
-            });
-
-            const followers = await prisma.follow_Users.findMany({
-                where: { followed_user_id: userId },
-                skip: skip,    
-                take: limit, 
-                include: {
-                    Follower: {
-                        select: { user_id: true, username: true, profile_image: true, reputation: true }
-                    }
-                }
-            });
-
-            const formattedFollowers = followers.map(f => f.Follower);
+            const { followers, totalFollowers, totalPages } = await followService.getFollowers(userId, page, limit);
 
             res.status(200).json({
                 success: true,
-                count: formattedFollowers.length, 
+                count: followers.length, 
                 total: totalFollowers,            
-                totalPages: Math.ceil(totalFollowers / limit),
+                totalPages: totalPages,
                 currentPage: page,
-                data: formattedFollowers
+                data: followers
             });
 
         } catch (error) {
@@ -138,36 +87,20 @@ class FollowController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (isNaN(userId)) {
                 return res.status(400).json({ success: false, message: "Invalid User ID" });
             }
 
-            const totalFollowing = await prisma.follow_Users.count({
-                where: { user_id: userId }
-            });
-
-            const following = await prisma.follow_Users.findMany({
-                where: { user_id: userId },
-                skip: skip,
-                take: limit,
-                include: {
-                    Followed: {
-                        select: { user_id: true, username: true, profile_image: true, reputation: true }
-                    }
-                }
-            });
-
-            const formattedFollowing = following.map(f => f.Followed);
+            const { following, totalFollowing, totalPages } = await followService.getFollowing(userId, page, limit);
 
             res.status(200).json({
                 success: true,
-                count: formattedFollowing.length,
+                count: following.length,
                 total: totalFollowing,
-                totalPages: Math.ceil(totalFollowing / limit),
+                totalPages: totalPages,
                 currentPage: page,
-                data: formattedFollowing
+                data: following
             });
 
         } catch (error) {
@@ -190,54 +123,19 @@ class FollowController {
                 return res.status(400).json({ success: false, message: "Invalid IDs" });
             }
 
-            const tagExists = await prisma.tags.findUnique({ where: { tag_id: tagId } });
-            if (!tagExists) {
-                return res.status(404).json({ success: false, message: "Tag not found" });
-            }
+            const result = await followService.toggleTagFollow(tagId, userId);
 
-            const existingFollow = await prisma.follow_Tags.findUnique({
-                where: {
-                    user_id_tag_id: { // Prisma Composite Key
-                        user_id: userId,
-                        tag_id: tagId
-                    }
-                }
+            res.status(200).json({
+                success: true,
+                message: result.message,
+                status: result.status
             });
-
-            if (existingFollow) {
-                await prisma.follow_Tags.delete({
-                    where: {
-                        user_id_tag_id: {
-                            user_id: userId,
-                            tag_id: tagId
-                        }
-                    }
-                });
-
-                return res.status(200).json({
-                    success: true,
-                    message: "Tag unfollowed successfully",
-                    status: "unfollowed"
-                });
-
-            } else {
-                await prisma.follow_Tags.create({
-                    data: {
-                        user_id: userId,
-                        tag_id: tagId,
-                        created_at: new Date()
-                    }
-                });
-
-                return res.status(200).json({
-                    success: true,
-                    message: "Tag followed successfully",
-                    status: "followed"
-                });
-            }
 
         } catch (error) {
             console.error(error);
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -252,34 +150,20 @@ class FollowController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (isNaN(userId)) {
                 return res.status(400).json({ success: false, message: "Invalid User ID" });
             }
 
-            const totalFollowedTags = await prisma.follow_Tags.count({
-                where: { user_id: userId }
-            });
-
-            const followedTags = await prisma.follow_Tags.findMany({
-                where: { user_id: userId },
-                skip: skip,     
-                take: limit,    
-                include: {
-                    Tags: true 
-                }
-            });
-
-            const formattedTags = followedTags.map(ft => ft.Tags);
+            const { tags, totalFollowedTags, totalPages } = await followService.getFollowedTags(userId, page, limit);
 
             res.status(200).json({
                 success: true,
-                count: formattedTags.length,        
+                count: tags.length,        
                 total: totalFollowedTags,           
-                totalPages: Math.ceil(totalFollowedTags / limit),
+                totalPages: totalPages,
                 currentPage: page,
-                data: formattedTags
+                data: tags
             });
 
         } catch (error) {

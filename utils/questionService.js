@@ -111,6 +111,7 @@ export const getQuestionById = async (questionId) => {
                     }
                 }
             },
+            Votes: { select: { vote_type: true } },
             _count: {
                 select: { Answers: true, Votes: true, Comments: true }
             }
@@ -125,42 +126,66 @@ export const getQuestionById = async (questionId) => {
 };
 
 /**
- * Update a question
+ * Get question by ID with optional view increment
  */
-export const updateQuestion = async (questionId, title, body, userId) => {
-    try {
-        const oldQuestion = await prisma.questions.findUnique({
-            where: { question_id: questionId }
-        });
-
-        if (!oldQuestion) {
-            throw new Error('Question not found');
-        }
-
-        if (oldQuestion.user_id !== parseInt(userId)) {
-            throw new Error('Unauthorized to update this question');
-        }
-
-        const updatedQuestion = await prisma.questions.update({
+export const fetchQuestionById = async (questionId, incrementView = false) => {
+    if (incrementView) {
+        const question = await prisma.questions.update({
             where: { question_id: questionId },
-            data: {
-                title: title || oldQuestion.title,
-                body: body || oldQuestion.body,
-                updated_at: new Date()
-            },
+            data: { views_count: { increment: 1 } },
             include: {
-                Question_Tags: true
+                Author: { select: { username: true, reputation: true, profile_image: true } },
+                Question_Tags: { include: { Tags: true } },
+                Votes: { select: { vote_type: true } },
+                Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
+                _count: { select: { Answers: true } }
             }
         });
 
-        return updatedQuestion;
+        if (!question) throw new Error('Question not found');
+        return question;
+    }
+
+    return await getQuestionById(questionId);
+};
+
+/**
+ * Update a question
+ */
+export const updateQuestion = async (questionId, title, body, userId) => {
+    // perform edit history record + update inside a transaction
+    const oldQuestion = await prisma.questions.findUnique({ where: { question_id: questionId } });
+
+    if (!oldQuestion) throw new Error('Question not found');
+    if (oldQuestion.user_id !== parseInt(userId)) throw new Error('Unauthorized to update this question');
+
+    try {
+        const updated = await prisma.$transaction(async (tx) => {
+            await tx.edit_History.create({
+                data: {
+                    question_id: questionId,
+                    user_id: parseInt(userId),
+                    old_body: oldQuestion.body,
+                    new_body: body,
+                    created_at: new Date()
+                }
+            });
+
+            return await tx.questions.update({
+                where: { question_id: questionId },
+                data: {
+                    title: title || oldQuestion.title,
+                    body: body || oldQuestion.body,
+                    updated_at: new Date()
+                },
+                include: { Question_Tags: true }
+            });
+        });
+
+        return updated;
     } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Question title already exists');
-        }
-        if (error.code === 'P2025') {
-            throw new Error('Question not found');
-        }
+        if (error.code === 'P2002') throw new Error('Question title already exists');
+        if (error.code === 'P2025') throw new Error('Question not found');
         throw error;
     }
 };
@@ -193,6 +218,31 @@ export const deleteQuestion = async (questionId, userId) => {
         }
         throw error;
     }
+};
+
+/**
+ * Get question edit history
+ */
+export const getQuestionHistory = async (questionId, page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+
+    const totalHistory = await prisma.edit_History.count({
+        where: { question_id: parseInt(questionId) }
+    });
+
+    const history = await prisma.edit_History.findMany({
+        where: { question_id: parseInt(questionId) },
+        skip,
+        take: limit,
+        include: {
+            Users: {
+                select: { username: true, profile_image: true }
+            }
+        },
+        orderBy: { created_at: 'desc' }
+    });
+
+    return { history, totalHistory, totalPages: Math.ceil(totalHistory / limit) };
 };
 
 /**

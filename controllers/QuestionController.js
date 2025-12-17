@@ -5,9 +5,7 @@
  * @version 1.0.0
  * @date 2025-12-11
  */
-import { PrismaClient } from "@prisma/client";
-import { awardBadge } from "../utils/badgeService.js";
-const prisma = new PrismaClient();
+import * as questionService from "../utils/questionService.js";
 
 class QuestionController {
     /**
@@ -26,38 +24,7 @@ class QuestionController {
                 });
             }
 
-            let tagsData = {};
-            if (tag_ids && Array.isArray(tag_ids) && tag_ids.length > 0) {
-                tagsData = {
-                    create: tag_ids.map(id => ({
-                        Tags: { connect: { tag_id: parseInt(id) } }
-                    }))
-                };
-            }
-
-            const newQuestion = await prisma.questions.create({
-                data: {
-                    title,
-                    body,
-                    user_id: parseInt(user_id),
-                    Question_Tags: tagsData
-                },
-                include: {
-                    Question_Tags: true
-                }
-            });
-
-            try {
-                const questionCount = await prisma.questions.count({
-                    where: { user_id: parseInt(user_id) }
-                });
-
-                if (questionCount === 1) {
-                    await awardBadge(parseInt(user_id), 'Student');
-                }
-            } catch (badgeError) {
-                console.error("Badge System Error:", badgeError);
-            }
+            const newQuestion = await questionService.createQuestion(title, body, user_id, tag_ids);
 
             res.status(201).json({
                 success: true,
@@ -67,7 +34,7 @@ class QuestionController {
         } catch (error) {
             console.error(error);
 
-            if (error.code === 'P2002' && error.meta?.target?.includes('title')) {
+            if (error.message.includes("already exists")) {
                 return res.status(409).json({
                     success: false,
                     message: "A question with this title already exists. Please choose a different title."
@@ -94,37 +61,7 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const oldQuestion = await prisma.questions.findUnique({
-                where: { question_id: questionId }
-            });
-
-            if (!oldQuestion) {
-                return res.status(404).json({ success: false, message: "Question not found" });
-            }
-
-            const result = await prisma.$transaction(async (prisma) => {
-                
-                await prisma.edit_History.create({
-                    data: {
-                        question_id: questionId,
-                        user_id: user_id, 
-                        old_body: oldQuestion.body, 
-                        new_body: body,             
-                        created_at: new Date()
-                    }
-                });
-
-                const updated = await prisma.questions.update({
-                    where: { question_id: questionId },
-                    data: {
-                        title: title,
-                        body: body,
-                        updated_at: new Date()
-                    }
-                });
-
-                return updated;
-            });
+            const result = await questionService.updateQuestion(questionId, title, body, user_id);
 
             res.status(200).json({
                 success: true,
@@ -134,6 +71,12 @@ class QuestionController {
 
         } catch (error) {
             console.error(error);
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ success: false, message: "Question not found" });
+            }
+            if (error.message.includes("Unauthorized")) {
+                return res.status(403).json({ success: false, message: error.message });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -152,10 +95,8 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            // الحذف
-            await prisma.questions.delete({
-                where: { question_id: questionId }
-            });
+            const userId = req.body.user_id || req.user?.id;
+            await questionService.deleteQuestion(questionId, userId);
 
             res.status(200).json({
                 success: true,
@@ -163,9 +104,11 @@ class QuestionController {
             });
 
         } catch (error) {
-            // لو بتحاول تمسح حاجة مش موجودة
-            if (error.code === 'P2025') {
+            if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: "Question not found" });
+            }
+            if (error.message.includes("Unauthorized")) {
+                return res.status(403).json({ success: false, message: error.message });
             }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
@@ -179,49 +122,9 @@ class QuestionController {
     async getAllQuestions(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
+            const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
-            if (limit > 50) {
-                limit = 50;
-            }
-
-            const skip = (page - 1) * limit;
-
-            const totalQuestions = await prisma.questions.count();
-
-            const questions = await prisma.questions.findMany({
-                skip: skip,
-                take: limit,
-                orderBy: { created_at: 'desc' },
-
-                select: {
-                    question_id: true,
-                    title: true,
-                    body: true,
-                    views_count: true,
-                    created_at: true,
-
-                    Author: {
-                        select: {
-                            username: true,
-                            profile_image: true,
-                            reputation: true
-                        }
-                    },
-
-                    Question_Tags: {
-                        select: {
-                            Tags: {
-                                // 1. التعديل هنا: اسم العمود tag_name
-                                select: { tag_name: true }
-                            }
-                        }
-                    },
-
-                    Votes: { select: { vote_type: true } },
-                    _count: { select: { Answers: true } }
-                }
-            });
+            const { questions, totalQuestions, totalPages } = await questionService.getAllQuestions(page, limit);
 
             const sanitizedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
@@ -230,7 +133,6 @@ class QuestionController {
                     ? q.body.substring(0, 150) + '...'
                     : q.body;
 
-                // 2. والتعديل هنا كمان عشان الماب تشتغل صح
                 const tags = q.Question_Tags.map(qt => qt.Tags.tag_name);
 
                 return {
@@ -250,7 +152,7 @@ class QuestionController {
                 success: true,
                 count: sanitizedQuestions.length,
                 total: totalQuestions,
-                totalPages: Math.ceil(totalQuestions / limit),
+                totalPages: totalPages,
                 currentPage: page,
                 data: sanitizedQuestions
             });
@@ -271,40 +173,16 @@ class QuestionController {
             const { id } = req.params;
 
             const cookieName = `viewed_${id}`;
-
             const hasViewed = req.cookies[cookieName];
 
-            let question;
-
-            if (hasViewed) {
-                question = await prisma.questions.findUnique({
-                    where: { question_id: parseInt(id) },
-                    include: {
-                        Author: { select: { username: true, reputation: true, profile_image: true } },
-                        Question_Tags: { include: { Tags: true } },
-                        Votes: { select: { vote_type: true } },
-                        Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
-                        _count: { select: { Answers: true } }
-                    }
-                });
-            } else {
-                question = await prisma.questions.update({
-                    where: { question_id: parseInt(id) },
-                    data: { views_count: { increment: 1 } },
-                    include: {
-                        Author: { select: { username: true, reputation: true, profile_image: true } },
-                        Question_Tags: { include: { Tags: true } },
-                        Votes: { select: { vote_type: true } },
-                        Comments: { include: { Users: { select: { username: true, profile_image: true } } } },
-                        _count: { select: { Answers: true } }
-                    }
-                });
-
-                res.cookie(cookieName, 'true', { maxAge: 60 * 60 * 1000, httpOnly: true });
-            }
+            const question = await questionService.fetchQuestionById(parseInt(id), !hasViewed);
 
             if (!question) {
                 return res.status(404).json({ success: false, message: "Question not found" });
+            }
+
+            if (!hasViewed) {
+                res.cookie(cookieName, 'true', { maxAge: 60 * 60 * 1000, httpOnly: true });
             }
 
             const score = question.Votes ? question.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0) : 0;
@@ -316,7 +194,7 @@ class QuestionController {
             });
 
         } catch (error) {
-            if (error.code === 'P2025') {
+            if (error.message.includes("not found")) {
                 return res.status(404).json({
                     success: false,
                     message: "Question not found"
@@ -340,60 +218,12 @@ class QuestionController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (!q) {
                 return res.status(400).json({ success: false, message: "Search query 'q' is required" });
             }
 
-            const whereClause = {
-                OR: [
-                    {
-                        title: { contains: q, mode: 'insensitive' }
-                    },
-                    {
-                        Author: {
-                            username: { contains: q, mode: 'insensitive' }
-                        }
-                    },
-                    {
-                        Question_Tags: {
-                            some: {
-                                Tags: {
-                                    tag_name: { contains: q, mode: 'insensitive' }
-                                }
-                            }
-                        }
-                    }
-                ]
-            };
-
-            const totalResults = await prisma.questions.count({
-                where: whereClause
-            });
-
-            const questions = await prisma.questions.findMany({
-                where: whereClause,
-                skip: skip,
-                take: limit,
-                orderBy: { created_at: 'desc' },
-
-                select: {
-                    question_id: true,
-                    title: true,
-                    body: true,
-                    views_count: true,
-                    created_at: true,
-                    Author: {
-                        select: { username: true, profile_image: true, reputation: true }
-                    },
-                    Question_Tags: {
-                        select: { Tags: { select: { tag_name: true } } }
-                    },
-                    Votes: { select: { vote_type: true } },
-                    _count: { select: { Answers: true } }
-                }
-            });
+            const { questions, total, totalPages } = await questionService.searchQuestions(q, page, limit);
 
             const formattedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
@@ -416,8 +246,8 @@ class QuestionController {
             res.status(200).json({
                 success: true,
                 count: formattedQuestions.length,
-                total: totalResults,
-                totalPages: Math.ceil(totalResults / limit),
+                total: total,
+                totalPages: totalPages,
                 currentPage: page,
                 data: formattedQuestions
             });
@@ -441,39 +271,18 @@ class QuestionController {
 
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
-            const skip = (page - 1) * limit;
 
             if (isNaN(questionId)) {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const totalHistory = await prisma.edit_History.count({
-                where: { 
-                    question_id: questionId 
-                }
-            });
-
-            const history = await prisma.edit_History.findMany({
-                where: { 
-                    question_id: questionId 
-                },
-                skip: skip,      
-                take: limit,     
-                include: {
-                    Users: {
-                        select: { username: true, profile_image: true }
-                    }
-                },
-                orderBy: {
-                    created_at: 'desc' 
-                }
-            });
+            const { history, totalHistory, totalPages } = await questionService.getQuestionHistory(questionId, page, limit);
 
             res.status(200).json({
                 success: true,
                 count: history.length,     
                 total: totalHistory,       
-                totalPages: Math.ceil(totalHistory / limit),
+                totalPages: totalPages,
                 currentPage: page,
                 data: history
             });
