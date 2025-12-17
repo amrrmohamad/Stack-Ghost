@@ -6,7 +6,8 @@
  * @date 2025-12-11
  */
 import * as questionService from "../utils/questionService.js";
-
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 class QuestionController {
     /**
      * Create a new question

@@ -7,7 +7,8 @@
  */
 
 import * as answerService from '../utils/answerService.js';
-
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 class AnswerController {
     /**
      * Create a new answer
