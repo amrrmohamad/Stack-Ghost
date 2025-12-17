@@ -6,7 +6,7 @@
  * @date 2025-12-11
  */
 import { PrismaClient } from "@prisma/client";
-import { awardBadge } from "../utils/badgeService";
+import { awardBadge } from "../utils/badgeService.js";
 const prisma = new PrismaClient();
 
 class QuestionController {
