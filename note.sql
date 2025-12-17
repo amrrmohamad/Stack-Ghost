@@ -43,7 +43,7 @@ SELECT permission_id FROM "Permissions" WHERE permission_name = 'close_questions
 
 -- Suppose the permission_id is 1 and admin role_id is 1, moderator role_id is 2
 -- Link permission to admin and moderator roles
-INSERT INTO "Role_Permissions" (role_id, permission_id) VALUES (1, 1), (2, 1) ON CONFLICT DO NOTHING;
+INSERT INTO "Role_Permissions" (role_id, permission_id) VALUES (1, 2), (2, 2) ON CONFLICT DO NOTHING;
 
 
 INSERT INTO "Tags" (tag_name) VALUES
