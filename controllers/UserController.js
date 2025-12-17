@@ -138,8 +138,23 @@ class UserController {
                     email: true,
                     profile_image: true,
                     reputation: true,
-                    bio: true, 
+                    bio: true,
                     created_at: true,
+                    
+                    User_Badges: {
+                        select: {
+                            granted_at: true,
+                            Badges: {        
+                                select: {
+                                    badge_name: true,
+                                    description: true,
+                                    badge_type: true, 
+                                    icon: true
+                                }
+                            }
+                        }
+                    },
+
                     _count: {
                         select: {
                             AuthoredQuestions: true,
@@ -153,9 +168,18 @@ class UserController {
                 return res.status(404).json({ success: false, message: "User not found" });
             }
 
+            const formattedUser = {
+                ...user,
+                badges: user.User_Badges.map(ub => ({
+                    ...ub.Badges,
+                    granted_at: ub.granted_at
+                })),
+                User_Badges: undefined 
+            };
+
             res.status(200).json({
                 success: true,
-                data: user
+                data: formattedUser 
             });
 
         } catch (error) {
@@ -163,7 +187,6 @@ class UserController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
-
     /**
      * Update user details
      * @param {import('express').Request} req 
