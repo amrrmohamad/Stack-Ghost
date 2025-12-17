@@ -8,17 +8,20 @@
 
 import express from 'express';
 import AnswerController from '../controllers/AnswerController.js';
+import auth from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', AnswerController.createAnswer);
+// Create answer (authenticated user)
+router.post('/', auth, AnswerController.createAnswer);
 
-
+// Get answers for a question
 router.get('/:questionId', AnswerController.getQuestionAnswers);
 
-router.post('/accept', AnswerController.acceptAnswer);
+// Accept answer (RESTful: /answers/:id/accept) - question owner only
+router.post('/:id/accept', auth, AnswerController.acceptAnswer);
 
-router.put('/:id', AnswerController.updateAnswer);
-
-router.delete('/:id', AnswerController.deleteAnswer);
+// Update / delete require authentication; ownership enforced in service
+router.put('/:id', auth, AnswerController.updateAnswer);
+router.delete('/:id', auth, AnswerController.deleteAnswer);
 export default router;

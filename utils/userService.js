@@ -1,3 +1,5 @@
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 /**
  * @file userService.js
  * @description Service layer for User operations
@@ -6,19 +8,12 @@
  * @date 2025-12-16
  */
 
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
-
 /**
- * Get all users with pagination
+ * Retrieves all users from the database (admin dashboard)
  */
-export const getAllUsers = async (page = 1, limit = 20) => {
+const getAllUsers = async (page = 1, limit = 20) => {
     const skip = (page - 1) * limit;
-    
     const totalUsers = await prisma.users.count();
-    
     const users = await prisma.users.findMany({
         skip,
         take: limit,
@@ -28,158 +23,116 @@ export const getAllUsers = async (page = 1, limit = 20) => {
             username: true,
             profile_image: true,
             reputation: true,
+            is_active: true,
             created_at: true,
             _count: {
-                select: { 
-                    AuthoredQuestions: true, 
-                    Answers: true    
+                select: {
+                    AuthoredQuestions: true,
+                    Answers: true
+                }
+            },
+            Roles: {
+                select: {
+                    role_name: true
                 }
             }
         }
     });
+    return {
+        users,
+        totalUsers,
+        totalPages: Math.ceil(totalUsers / limit),
+        count: users.length
+    };
+}
 
-    return { users, totalUsers, totalPages: Math.ceil(totalUsers / limit) };
+/**
+ * Update user state (activate/deactivate) -- admin only
+ */
+const updateUserState = async (userId, isActive) => {
+    if (typeof isActive !== 'boolean') {
+        throw new Error('isActive must be boolean');
+    }
+    try {
+        await prisma.users.update({
+            where: { user_id: userId },
+            data: { is_active: isActive }
+        });
+        return { success: true, message: `User ${isActive ? 'activated' : 'deactivated'} successfully` };
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw new Error('User not found');
+        }
+        throw err;
+    }
 };
 
 /**
- * Get user by ID with all details
+ * Get current logged-in user's profile (for /me)
  */
-export const getUserById = async (userId) => {
+
+const getCurrentUser = async (userId) => {
     const user = await prisma.users.findUnique({
         where: { user_id: userId },
         select: {
             user_id: true,
             username: true,
             email: true,
+            bio: true,
             profile_image: true,
             reputation: true,
-            bio: true,
             created_at: true,
-            
-            User_Badges: {
-                select: {
-                    granted_at: true,
-                    Badges: {        
-                        select: {
-                            badge_name: true,
-                            description: true,
-                            badge_type: true, 
-                            icon: true
-                        }
-                    }
-                }
+            is_active: true,
+            Roles: {
+                select: { role_name: true }
             },
-
             _count: {
                 select: {
-                    AuthoredQuestions: true,
-                    Answers: true
+                    Answers: true,
+                    AuthoredQuestions: true
                 }
             }
         }
     });
-
-    if (!user) {
+    if (!user || user.is_active === false) {
         throw new Error('User not found');
     }
-
-    return {
-        ...user,
-        badges: user.User_Badges.map(ub => ({
-            ...ub.Badges,
-            granted_at: ub.granted_at
-        })),
-        User_Badges: undefined 
-    };
+    return user;
 };
 
 /**
- * Create a new user
+ * Update current user's profile (owner)
  */
-export const createUser = async (username, email, password) => {
-    if (!username || !email || !password) {
-        throw new Error('Missing required fields');
-    }
-
-    if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+const updateProfile = async (userId, updates) => {
+    const { username, bio, profile_image } = updates;
+    const data = {};
+    if (username !== undefined) data.username = username;
+    if (bio !== undefined) data.bio = bio;
+    if (profile_image !== undefined) data.profile_image = profile_image;
     try {
-        const newUser = await prisma.users.create({
-            data: {
-                username,
-                email,
-                password_hash: hashedPassword
-            }
-        });
-
-        const { password_hash, ...userWithoutPass } = newUser;
-        return userWithoutPass;
-    } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Username or Email already exists');
-        }
-        throw error;
-    }
-};
-
-/**
- * Update user profile
- */
-export const updateUser = async (userId, updates) => {
-    const { username, email, password, bio, profile_image } = updates;
-    
-    let updateData = {};
-
-    if (username) updateData.username = username;
-    if (email) updateData.email = email;
-    if (bio) updateData.bio = bio;
-    if (profile_image) updateData.profile_image = profile_image;
-
-    if (password) {
-        if (password.length < 6) {
-            throw new Error('Password must be at least 6 characters');
-        }
-        const salt = await bcrypt.genSalt(10);
-        updateData.password_hash = await bcrypt.hash(password, salt);
-    }
-
-    try {
-        const updatedUser = await prisma.users.update({
+        const updated = await prisma.users.update({
             where: { user_id: userId },
-            data: updateData
+            data
         });
-
-        const { password_hash, ...userWithoutPass } = updatedUser;
-        return userWithoutPass;
-    } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Username or Email already exists');
+        return {
+            user_id: updated.user_id,
+            username: updated.username,
+            bio: updated.bio,
+            profile_image: updated.profile_image
+        };
+    } catch (err) {
+        if (err.code === 'P2002') {
+            throw new Error('Username already taken');
         }
-        if (error.code === 'P2025') {
+        if (err.code === 'P2025') {
             throw new Error('User not found');
         }
-        throw error;
+        throw err;
     }
 };
-
-/**
- * Delete user account
- */
-export const deleteUser = async (userId) => {
-    try {
-        await prisma.users.delete({
-            where: { user_id: userId }
-        });
-        return { success: true };
-    } catch (error) {
-        if (error.code === 'P2025') {
-            throw new Error('User not found');
-        }
-        throw error;
-    }
+export {
+    getAllUsers,
+    updateUserState,
+    getCurrentUser,
+    updateProfile
 };

@@ -33,26 +33,7 @@ class QuestionController {
                 });
             }
 
-            let tagsData = {};
-            if (tag_ids && Array.isArray(tag_ids) && tag_ids.length > 0) {
-                tagsData = {
-                    create: tag_ids.map(id => ({
-                        Tags: { connect: { tag_id: parseInt(id) } }
-                    }))
-                };
-            }
-
-            const newQuestion = await prisma.questions.create({
-                data: {
-                    title,
-                    body,
-                    user_id: userId,
-                    Question_Tags: tagsData
-                },
-                include: {
-                    Question_Tags: true
-                }
-            });
+            const newQuestion = await questionService.createQuestion(title, body, userId, tag_ids);
 
             res.status(201).json({
                 success: true,
@@ -91,46 +72,8 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const oldQuestion = await prisma.questions.findUnique({
-                where: { question_id: questionId }
-            });
-
-            if (!oldQuestion) {
-                return res.status(404).json({ success: false, message: "Question not found" });
-            }
-
-            // Prevent editing closed questions unless admin (or moderator if you want)
-            if (oldQuestion.is_closed && userRole !== 'admin') {
-                return res.status(403).json({ success: false, message: "Cannot edit a closed question" });
-            }
-
-            // Only owner or admin can edit
-            if (oldQuestion.user_id !== userId && userRole !== 'admin') {
-                return res.status(403).json({ success: false, message: "Not authorized to edit this question" });
-            }
-
-            const result = await prisma.$transaction(async (prisma) => {
-                await prisma.edit_History.create({
-                    data: {
-                        question_id: questionId,
-                        user_id: userId,
-                        old_body: oldQuestion.body,
-                        new_body: body,
-                        created_at: new Date()
-                    }
-                });
-
-                const updated = await prisma.questions.update({
-                    where: { question_id: questionId },
-                    data: {
-                        title: title,
-                        body: body,
-                        updated_at: new Date()
-                    }
-                });
-
-                return updated;
-            });
+            const isAdmin = userRole === 'admin' || userRole === 'moderator';
+            const result = await questionService.updateQuestion(questionId, title, body, userId, isAdmin);
 
             res.status(200).json({
                 success: true,
@@ -162,28 +105,7 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid question id" });
             }
 
-            const question = await prisma.questions.findUnique({
-                where: { question_id: questionId }
-            });
-
-            if (!question) {
-                return res.status(404).json({ success: false, message: "Question not found" });
-            }
-
-            if (question.is_closed) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Question is already closed"
-                });
-            }
-
-            const closedQuestion = await prisma.questions.update({
-                where: { question_id: questionId },
-                data: {
-                    is_closed: true,
-                    closed_by: adminId
-                }
-            });
+            const closedQuestion = await questionService.closeQuestion(questionId, adminId);
 
             res.status(200).json({
                 success: true,
@@ -205,7 +127,7 @@ class QuestionController {
     async getAllQuestions(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
+            let limit = parseInt(req.query.limit) || 10;
 
             if (limit > 50) {
                 limit = 50;
@@ -263,6 +185,8 @@ class QuestionController {
                     views: q.views_count,
                     score: score,
                     answers_count: q._count.Answers,
+                    is_closed: q.is_closed,
+                    closed_by: q.closed_by,
                     created_at: q.created_at,
                     author: q.Author,
                     tags: tags
@@ -358,6 +282,8 @@ class QuestionController {
                     views: q.views_count,
                     score: score,
                     answers_count: q._count.Answers,
+                    is_closed: q.is_closed,
+                    closed_by: q.closed_by,
                     created_at: q.created_at,
                     author: q.Author,
                     tags: tags

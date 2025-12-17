@@ -68,19 +68,28 @@ export const createQuestion = async (title, body, userId, tagIds = []) => {
  */
 export const getAllQuestions = async (page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
-    
+
     const totalQuestions = await prisma.questions.count();
-    
+
     const questions = await prisma.questions.findMany({
         skip,
         take: limit,
-        include: {
+        select: {
+            question_id: true,
+            title: true,
+            body: true,
+            views_count: true,
+            is_closed: true,
+            closed_by: true,
+            created_at: true,
+            updated_at: true,
             Author: {
                 select: { username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }
             },
+            Votes: { select: { vote_type: true } },
             _count: {
                 select: { Answers: true, Votes: true, Comments: true }
             }
@@ -97,7 +106,15 @@ export const getAllQuestions = async (page = 1, limit = 10) => {
 export const getQuestionById = async (questionId) => {
     const question = await prisma.questions.findUnique({
         where: { question_id: questionId },
-        include: {
+        select: {
+            question_id: true,
+            title: true,
+            body: true,
+            views_count: true,
+            is_closed: true,
+            closed_by: true,
+            created_at: true,
+            updated_at: true,
             Author: {
                 select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
@@ -152,12 +169,12 @@ export const fetchQuestionById = async (questionId, incrementView = false) => {
 /**
  * Update a question
  */
-export const updateQuestion = async (questionId, title, body, userId) => {
+export const updateQuestion = async (questionId, title, body, userId, isAdmin = false) => {
     // perform edit history record + update inside a transaction
     const oldQuestion = await prisma.questions.findUnique({ where: { question_id: questionId } });
 
     if (!oldQuestion) throw new Error('Question not found');
-    if (oldQuestion.user_id !== parseInt(userId)) throw new Error('Unauthorized to update this question');
+    if (!isAdmin && oldQuestion.user_id !== parseInt(userId)) throw new Error('Unauthorized to update this question');
 
     try {
         const updated = await prisma.$transaction(async (tx) => {
@@ -174,8 +191,8 @@ export const updateQuestion = async (questionId, title, body, userId) => {
             return await tx.questions.update({
                 where: { question_id: questionId },
                 data: {
-                    title: title || oldQuestion.title,
-                    body: body || oldQuestion.body,
+                    title: title ?? oldQuestion.title,
+                    body: body ?? oldQuestion.body,
                     updated_at: new Date()
                 },
                 include: { Question_Tags: true }
@@ -250,7 +267,7 @@ export const getQuestionHistory = async (questionId, page = 1, limit = 10) => {
  */
 export const searchQuestions = async (keyword, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
-    
+
     const questions = await prisma.questions.findMany({
         where: {
             OR: [
@@ -287,7 +304,7 @@ export const searchQuestions = async (keyword, page = 1, limit = 10) => {
  */
 export const getQuestionsByTag = async (tagId, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
-    
+
     const questions = await prisma.questions.findMany({
         where: {
             Question_Tags: {

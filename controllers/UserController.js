@@ -6,8 +6,7 @@
  * @date 2025-12-11
  */
 
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import * as userService from '../utils/userService.js';
 
 
 class UserController {
@@ -23,37 +22,7 @@ class UserController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
-            const skip = (page - 1) * limit;
-
-            const totalUsers = await prisma.users.count();
-
-            const users = await prisma.users.findMany({
-                skip: skip,
-                take: limit,
-                orderBy: {
-                    reputation: 'desc'
-                },
-                select: {
-                    user_id: true,
-                    username: true,
-                    profile_image: true,
-                    reputation: true,
-                    is_active: true,
-                    created_at: true,
-                    _count: {
-                        select: {
-                            AuthoredQuestions: true,
-                            Answers: true
-                        }
-                    }, // added the role of user
-                    Roles: {
-                        select: {
-                            role_name: true
-                        }
-                    }
-                }
-            });
-
+            const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit);
             res.status(200).json({
                 success: true,
                 count: users.length,
@@ -62,7 +31,6 @@ class UserController {
                 currentPage: page,
                 data: users
             });
-
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
@@ -79,25 +47,21 @@ class UserController {
         try {
             const userId = parseInt(req.params.id);
             const { isActive } = req.body;
-
             if (typeof isActive !== 'boolean') {
                 return res.status(400).json({
                     success: false,
                     message: 'isActive must be boolean'
                 });
             }
-            console.log(req.user);
-
-            await prisma.users.update({
-                where: { user_id: userId },
-                data: { is_active: isActive }
-            });
-
+            await userService.updateUserState(userId, isActive);
             res.json({
                 success: true,
                 message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
             });
         } catch (err) {
+            if (err.message === 'User not found') {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
             console.error(err);
             res.status(500).json({ success: false, message: 'Server error' });
         }
@@ -110,25 +74,12 @@ class UserController {
     async getCurrentUser(req, res) {
         try {
             const userId = req.user.user_id;
-
-            const user = await prisma.users.findUnique({
-                where: { user_id: userId },
-                select: {
-                    user_id: true,
-                    username: true,
-                    email: true,
-                    bio: true,
-                    profile_image: true,
-                    reputation: true,
-                    created_at: true,
-                    Roles: {
-                        select: { role_name: true }
-                    }
-                }
-            });
-
+            const user = await userService.getCurrentUser(userId);
             res.json({ success: true, data: user });
         } catch (err) {
+            if (err.message === 'User not found') {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
             console.error(err);
             res.status(500).json({ success: false, message: 'Server error' });
         }
@@ -140,33 +91,12 @@ class UserController {
     async getUserProfile(req, res) {
         try {
             const userId = parseInt(req.params.id);
-
-            const user = await prisma.users.findUnique({
-                where: { user_id: userId },
-                select: {
-                    user_id: true,
-                    username: true,
-                    bio: true,
-                    profile_image: true,
-                    reputation: true,
-                    Roles: { select: { role_name: true } },
-                    created_at: true,
-                    is_active: true,
-                    _count: {
-                        select: {
-                            Answers: true,
-                            AuthoredQuestions: true
-                        }
-                    }
-                }
-            });
-
-            if (!user || !user.is_active) {
-                return res.status(404).json({ success: false, message: 'User not found' });
-            }
-
+            const user = await userService.getUserById(userId);
             res.json({ success: true, data: user });
         } catch (err) {
+            if (err.message === 'User not found') {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
             console.error(err);
             res.status(500).json({ success: false, message: 'Server error' });
         }
@@ -179,21 +109,7 @@ class UserController {
         try {
             const userId = req.user.user_id;
             const { username, bio, profile_image } = req.body;
-
-            // Only include fields that are provided
-            const data = {};
-            if (username !== undefined) data.username = username;
-            if (bio !== undefined) data.bio = bio;
-            if (profile_image !== undefined) data.profile_image = profile_image;
-
-            // Debug log you can remove it
-            console.log('UpdateProfile:', { userId, data });
-            
-            const updated = await prisma.users.update({
-                where: { user_id: userId },
-                data
-            });
-
+            const updated = await userService.updateProfile(userId, { username, bio, profile_image });
             res.json({
                 success: true,
                 message: 'Profile updated successfully',
@@ -205,8 +121,11 @@ class UserController {
                 }
             });
         } catch (err) {
-            if (err.code === 'P2002') {
+            if (err.message === 'Username already taken') {
                 return res.status(409).json({ success: false, message: 'Username already taken' });
+            }
+            if (err.message === 'User not found') {
+                return res.status(404).json({ success: false, message: 'User not found' });
             }
             console.error(err);
             return res.status(500).json({ success: false, message: 'Server error' });
