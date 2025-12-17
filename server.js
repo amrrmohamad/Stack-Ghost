@@ -15,6 +15,9 @@ import tagRoutes from './routes/tagRoutes.js'
 import commentRoutes from './routes/commentRoutes.js';
 import voteRoutes from './routes/voteRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import followRoutes from './routes/followRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 const PORT = 3000;
 
 const app = express();
