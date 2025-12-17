@@ -23,7 +23,6 @@ model Users {
   
   Answers           Answers[]
   Comments          Comments[]
-  Drafts            Drafts[]
   Edit_History      Edit_History[]
   User_Badges       User_Badges[]
   Notifications     Notifications[]
@@ -158,16 +157,6 @@ model Reports {
   Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model Drafts {
-  draft_id   Int       @id @default(autoincrement())
-  user_id    Int?
-  draft_type String?   @db.VarChar
-  title      String?   @db.VarChar
-  body       String?
-  updated_at DateTime? @db.Timestamp(6)
-  Users      Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
-}
-
 model Edit_History {
   edit_id     Int       @id @default(autoincrement())
   user_id     Int?
@@ -200,21 +189,33 @@ model Notifications {
   Users           Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+enum BadgeLevel {
+  BRONZE
+  SILVER
+  GOLD
+}
+
 model Badges {
   badge_id    Int           @id @default(autoincrement())
-  badge_name  String?       @db.VarChar
-  badge_type  String?       @db.VarChar
-  description String?
+  badge_name  String        @unique 
+  description String        
+  badge_type  BadgeLevel    @default(BRONZE) 
+  icon        String?       
+  
   User_Badges User_Badges[]
 }
 
 model User_Badges {
-  user_badge_id Int       @id @default(autoincrement())
-  user_id       Int?
-  badge_id      Int?
-  granted_at    DateTime? @db.Timestamp(6)
-  Badges        Badges?   @relation(fields: [badge_id], references: [badge_id], onDelete: NoAction, onUpdate: NoAction)
-  Users         Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  user_badge_id Int      @id @default(autoincrement())
+  user_id       Int      
+  badge_id      Int      
+  granted_at    DateTime @default(now()) @db.Timestamp(6)
+  
+  // العلاقات
+  Badges        Badges   @relation(fields: [badge_id], references: [badge_id], onDelete: Cascade)
+  Users         Users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, badge_id]) 
 }
 
 model Roles {

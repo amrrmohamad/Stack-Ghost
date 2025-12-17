@@ -6,6 +6,7 @@
  * @date 2025-12-11
  */
 import { PrismaClient } from "@prisma/client";
+import { awardBadge } from "../utils/badgeService";
 const prisma = new PrismaClient();
 
 class QuestionController {
@@ -45,6 +46,18 @@ class QuestionController {
                     Question_Tags: true
                 }
             });
+
+            try {
+                const questionCount = await prisma.questions.count({
+                    where: { user_id: parseInt(user_id) }
+                });
+
+                if (questionCount === 1) {
+                    await awardBadge(parseInt(user_id), 'Student');
+                }
+            } catch (badgeError) {
+                console.error("Badge System Error:", badgeError);
+            }
 
             res.status(201).json({
                 success: true,

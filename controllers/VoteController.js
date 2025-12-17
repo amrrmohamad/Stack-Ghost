@@ -2,10 +2,12 @@
  * @file VoteController.js
  * @description Controller responsible for handling Votes CRUD operations.
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-13
+ * @version 1.1.0
+ * @date 2025-12-16
  */
 import { PrismaClient } from "@prisma/client";
+import { awardBadge } from '../utils/badgeService.js'; 
+
 const prisma = new PrismaClient();
 
 const REPUTATION_GAINS = {
@@ -34,18 +36,15 @@ class VoteController {
         let targetEntity;
         let ownerIdField;
         let ownerModel;
-        let voteTypeKey;
-
+        
         if (question_id) {
             targetEntity = 'question';
             ownerIdField = 'user_id';
             ownerModel = prisma.questions;
-            voteTypeKey = vote_type === 1 ? 'UPVOTE_QUESTION' : 'DOWNVOTE_QUESTION';
         } else {
             targetEntity = 'answer';
             ownerIdField = 'user_id';
             ownerModel = prisma.answers;
-            voteTypeKey = vote_type === 1 ? 'UPVOTE_ANSWER' : 'DOWNVOTE_ANSWER';
         }
 
         try {
@@ -69,15 +68,16 @@ class VoteController {
             });
 
             // -----------------------------------------------------
-            //                    Transaction
+            //                      Transaction
             // -----------------------------------------------------
 
             let reputationChangeForOwner = 0;
+            let actionType = ""; 
 
             if (existingVote) {
                 if (existingVote.vote_type === vote_type) {
                     if (existingVote.vote_type === 1) {
-                        reputationChangeForOwner = -REPUTATION_GAINS.UPVOTE_QUESTION;
+                        reputationChangeForOwner = -REPUTATION_GAINS.UPVOTE_QUESTION; // same value for Q/A
                     } else {
                         reputationChangeForOwner = -REPUTATION_GAINS.RECEIVED_DOWNVOTE;
                     }
@@ -89,10 +89,9 @@ class VoteController {
                             data: { reputation: { increment: reputationChangeForOwner } }
                         })
                     ]);
-                    return res.status(200).json({ success: true, message: `Vote on ${targetEntity} removed. Reputation adjusted.`, action: "unvote" });
+                    actionType = "unvote";
 
                 } else {
-
                     const oldVoteReputationEffect = existingVote.vote_type === 1
                         ? -REPUTATION_GAINS.UPVOTE_QUESTION
                         : -REPUTATION_GAINS.RECEIVED_DOWNVOTE;
@@ -113,7 +112,7 @@ class VoteController {
                             data: { reputation: { increment: reputationChangeForOwner } }
                         })
                     ]);
-                    return res.status(200).json({ success: true, message: `Vote on ${targetEntity} flipped. Reputation adjusted.`, action: "flip" });
+                    actionType = "flip";
                 }
             } else {
                 reputationChangeForOwner = vote_type === 1
@@ -134,8 +133,43 @@ class VoteController {
                         data: { reputation: { increment: reputationChangeForOwner } }
                     })
                 ]);
-                return res.status(201).json({ success: true, message: `New ${vote_type === 1 ? 'Upvote' : 'Downvote'} recorded. Reputation updated.`, action: "new_vote" });
+                actionType = "new_vote";
             }
+            // badges code 
+            if (targetEntity === 'answer') {
+                (async () => {
+                    try {
+                        const aggregation = await prisma.votes.aggregate({
+                            where: { answer_id: parseInt(answer_id) },
+                            _sum: { vote_type: true }
+                        });
+                        
+                        const score = aggregation._sum.vote_type || 0;
+
+                        if (score >= 10) {
+                            await awardBadge(postOwnerId, 'Nice Answer');
+                        }
+
+                        if (score >= 100) {
+                            await awardBadge(postOwnerId, 'Guru');
+                        }
+
+                    } catch (badgeError) {
+                        console.error("Badge Check Error:", badgeError);
+                    }
+                })();
+            }
+
+            let message = "";
+            if (actionType === "unvote") message = `Vote on ${targetEntity} removed.`;
+            else if (actionType === "flip") message = `Vote on ${targetEntity} flipped.`;
+            else message = `New ${vote_type === 1 ? 'Upvote' : 'Downvote'} recorded.`;
+
+            return res.status(200).json({ 
+                success: true, 
+                message: message, 
+                action: actionType 
+            });
 
         } catch (error) {
             console.error(error);
