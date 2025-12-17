@@ -125,7 +125,7 @@ function setupNavigation() {
   if (exploreBtn) {
     exploreBtn.addEventListener("click", () => {
       // وديه لصفحة الأسئلة (تأكد إنك عملت ملف questions.html)
-      window.location.href = "questions.html"; 
+      window.location.href = "../questions/index.html"; 
     });
   }
 
@@ -134,7 +134,7 @@ function setupNavigation() {
   askBtns.forEach(btn => {
     btn.addEventListener("click", () => {
       // وديه لصفحة إضافة سؤال (تأكد إنك عملت ملف ask.html)
-      window.location.href = "ask.html"; 
+      window.location.href = "../ask/index.html"; 
     });
   });
 
