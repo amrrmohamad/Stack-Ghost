@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createNotification } from './notificationService.js';
 const prisma = new PrismaClient();
 
 export const awardBadge = async (userId, badgeName) => {
@@ -30,7 +31,11 @@ export const awardBadge = async (userId, badgeName) => {
 
         console.log(`User ${userId} earned badge: ${badgeName} 🏅`);
 
-        // TODO: Notification 
+        // Create notification for badge award
+        await createNotification(
+            userId,
+            `Congratulations! You earned the "${badgeName}" badge! 🏅`
+        );
 
     } catch (error) {
         console.error("Error awarding badge:", error);
