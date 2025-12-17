@@ -8,11 +8,38 @@
 
 import express from 'express';
 import TagController from '../controllers/TagController.js';
+import auth from '../middlewares/auth.middleware.js';
+import { authorizeRoles } from '../middlewares/role.middleware.js';
 
 const router = express.Router();
-
-router.post('/', TagController.createTag);
+// get all tags
 router.get('/', TagController.getAllTags);
-router.put('/:id', TagController.updateTag);
-router.delete('/:id', TagController.deleteTag);
+
+
+// ======= ADMIN AND MODERATOR ONLY ======
+
+// create tag
+router.post(
+    '/',
+    auth,
+    authorizeRoles('admin', 'moderator'),
+    TagController.createTag
+);
+
+// update tag
+router.put(
+    '/:id',
+    auth,
+    authorizeRoles('admin', 'moderator'),
+    TagController.updateTag
+);
+
+// delete tag
+router.delete(
+    '/:id',
+    auth,
+    authorizeRoles('admin'),
+    TagController.deleteTag
+);
+
 export default router;

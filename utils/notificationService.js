@@ -2,12 +2,11 @@
  * @file notificationService.js
  * @description Service for managing notifications in the system
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 /**
  * Create a new notification
@@ -87,15 +86,29 @@ export const getUnreadCount = async (userId) => {
 /**
  * Mark a notification as read
  * @param {number} notificationId - The notification ID
+ * @param {number} requestUserId - The user making the request (for ownership check)
  * @returns {Promise<Object>} The updated notification
  */
-export const markAsRead = async (notificationId) => {
+export const markAsRead = async (notificationId, requestUserId) => {
     try {
-        const notification = await prisma.notifications.update({
+        // First check ownership
+        const notification = await prisma.notifications.findUnique({
+            where: { notification_id: notificationId }
+        });
+        
+        if (!notification) {
+            throw new Error('Notification not found');
+        }
+        
+        if (notification.user_id !== requestUserId) {
+            throw new Error('You can only mark your own notifications as read');
+        }
+        
+        const updated = await prisma.notifications.update({
             where: { notification_id: notificationId },
             data: { is_read: true }
         });
-        return notification;
+        return updated;
     } catch (error) {
         console.error("Error marking notification as read:", error);
         throw error;
@@ -126,14 +139,28 @@ export const markAllAsRead = async (userId) => {
 /**
  * Delete a notification
  * @param {number} notificationId - The notification ID
+ * @param {number} requestUserId - The user making the request (for ownership check)
  * @returns {Promise<Object>} The deleted notification
  */
-export const deleteNotification = async (notificationId) => {
+export const deleteNotification = async (notificationId, requestUserId) => {
     try {
-        const notification = await prisma.notifications.delete({
+        // First check ownership
+        const notification = await prisma.notifications.findUnique({
             where: { notification_id: notificationId }
         });
-        return notification;
+        
+        if (!notification) {
+            throw new Error('Notification not found');
+        }
+        
+        if (notification.user_id !== requestUserId) {
+            throw new Error('You can only delete your own notifications');
+        }
+        
+        const deleted = await prisma.notifications.delete({
+            where: { notification_id: notificationId }
+        });
+        return deleted;
     } catch (error) {
         console.error("Error deleting notification:", error);
         throw error;

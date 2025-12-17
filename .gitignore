@@ -8,3 +8,7 @@ node_modules
 prisma/dev.db
 prisma/test.db
 prisma/migrations
+
+# Logs
+logs/*.log
+!logs/.gitkeep

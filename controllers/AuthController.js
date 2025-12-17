@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
+import { ERRORS } from '../lib/errors.js';
 
 class AuthController {
 
@@ -103,6 +102,15 @@ class AuthController {
                 { expiresIn: '7d' }
             );
 
+            // Store refresh token in database
+            await prisma.users.update({
+                where: { user_id: user.user_id },
+                data: { 
+                    refresh_token: refreshToken,
+                    last_login: new Date()
+                }
+            });
+
             res.json({
                 success: true,
                 message: 'Login successful',
@@ -125,24 +133,51 @@ class AuthController {
     async refreshToken(req, res) {
         try {
             const { refreshToken } = req.body;
-            if (!refreshToken) return res.status(401).json({ success: false, message: 'Refresh token required' });
+            if (!refreshToken) return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
 
-            const user = await prisma.users.findFirst({ where: { refresh_token: refreshToken } });
-            if (!user) return res.status(403).json({ success: false, message: 'Invalid refresh token' });
-
+            // Verify token first
             const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+            
+            // Check if token exists in database
+            const user = await prisma.users.findFirst({ 
+                where: { 
+                    refresh_token: refreshToken,
+                    user_id: decoded.user_id
+                } 
+            });
+            
+            if (!user) return res.status(403).json({ success: false, message: 'Invalid refresh token' });
+            if (!user.is_active) return res.status(403).json({ success: false, message: ERRORS.USER_DEACTIVATED });
 
+            // Generate new access token
             const newAccessToken = jwt.sign(
                 { user_id: decoded.user_id },
                 process.env.JWT_SECRET,
                 { expiresIn: '15m' }
             );
+            
+            // Generate new refresh token (token rotation for security)
+            const newRefreshToken = jwt.sign(
+                { user_id: decoded.user_id },
+                process.env.REFRESH_TOKEN_SECRET,
+                { expiresIn: '7d' }
+            );
+            
+            // Update refresh token in database
+            await prisma.users.update({
+                where: { user_id: user.user_id },
+                data: { refresh_token: newRefreshToken }
+            });
 
-            res.json({ success: true, accessToken: newAccessToken });
+            res.json({ 
+                success: true, 
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            });
 
         } catch (err) {
             console.error(err);
-            res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+            res.status(403).json({ success: false, message: ERRORS.TOKEN_EXPIRED });
         }
     }
 

@@ -1,16 +1,29 @@
 import { fetchUserData, fallbackUserData } from "./data.js";
+import api from '../js/api.js';
 
 let cachedUser = null;
+let allQuestions = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Show loading state
+  showLoadingState();
+  
   cachedUser = await loadUser();
   applyUserData(cachedUser);
+  
+  // Load questions
+  await loadQuestions();
+  
   setupPanelSwitching();
   setupFilters();
   setupNotificationDropdown();
   setupTagRemoval();
-  renderQuestions(cachedUser.questions, "newest");
-  renderAnswers(cachedUser.answers, "newest");
+  setupLogout();
+  setupNavigation();
+  setupSearch();
+  
+  // Hide loading state
+  hideLoadingState();
 });
 
 async function loadUser() {
@@ -22,26 +35,148 @@ async function loadUser() {
   }
 }
 
+async function loadQuestions() {
+  try {
+    const response = await api.getQuestions(1, 20);
+    if (response.success && response.data) {
+      allQuestions = response.data.map(q => ({
+        question_id: q.question_id,
+        title: q.title,
+        summary: q.summary,
+        votes: q.score || 0,
+        answers: q.answers_count || 0,
+        views: q.views || 0,
+        tags: q.tags || [],
+        author: q.author,
+        is_closed: q.is_closed,
+        created_at: q.created_at,
+        url: `../questions/index.html?id=${q.question_id}`
+      }));
+      
+      renderQuestionsGrid(allQuestions);
+    }
+  } catch (error) {
+    console.error('Error loading questions:', error);
+  }
+}
+
+function showLoadingState() {
+  const main = document.querySelector('.content');
+  if (main) {
+    main.style.opacity = '0.5';
+  }
+}
+
+function hideLoadingState() {
+  const main = document.querySelector('.content');
+  if (main) {
+    main.style.opacity = '1';
+  }
+}
+
+function setupLogout() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await api.logout();
+    });
+  }
+}
+
+function setupNavigation() {
+  // Navigate to questions page
+  const exploreBtn = document.querySelector('[data-nav="questions"]');
+  if (exploreBtn) {
+    exploreBtn.addEventListener('click', () => {
+      window.location.href = '../questions/index.html';
+    });
+  }
+  
+  // Navigate to ask question (if implemented)
+  const askBtn = document.querySelector('[data-nav="ask"]');
+  if (askBtn) {
+    askBtn.addEventListener('click', () => {
+      alert('Ask Question page - Coming soon!');
+      // window.location.href = '../ask/index.html';
+    });
+  }
+}
+
 function applyUserData(user) {
+  // Update username in multiple places
   document.querySelectorAll("[data-username]").forEach((el) => {
     el.textContent = user.username;
   });
+  
+  // Update email
+  document.querySelectorAll("[data-email]").forEach((el) => {
+    el.textContent = user.email || 'Ghost explorer';
+  });
+  
+  // Update reputation with animation
   document.querySelectorAll("[data-reputation]").forEach((el) => {
-    el.textContent = formatNumber(user.reputation);
+    animateNumber(el, 0, user.reputation, 1000);
   });
+  
+  // Update asked questions count
   document.querySelectorAll("[data-asked]").forEach((el) => {
-    el.textContent = formatNumber(user.asked);
+    animateNumber(el, 0, user.asked, 1000);
   });
+  
+  // Update answered count
   document.querySelectorAll("[data-answered]").forEach((el) => {
-    el.textContent = formatNumber(user.answered);
+    animateNumber(el, 0, user.answered, 1000);
   });
 
+  // Set profile images
   setImage("profile-image", user.profileImage);
+  setImage("profile-image-side", user.profileImage);
 
-  renderList("[data-tags]", user.tags, buildTagPill);
+  // Render tags with follow functionality
+  renderTagList("[data-tags]", user.tags);
 
-  renderList("[data-notifications]", user.notifications, buildNotificationItem);
-  renderList("[data-notifications-dropdown]", user.notifications, buildNotificationItem);
+  // Render notifications
+  renderNotificationsList("[data-notifications]", user.notifications);
+  renderNotificationsList("[data-notifications-dropdown]", user.notifications);
+}
+
+function animateNumber(element, start, end, duration) {
+  const range = end - start;
+  const increment = range / (duration / 16); // 60fps
+  let current = start;
+  
+  const timer = setInterval(() => {
+    current += increment;
+    if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+      element.textContent = formatNumber(end);
+      clearInterval(timer);
+    } else {
+      element.textContent = formatNumber(Math.floor(current));
+    }
+  }, 16);
+}
+
+function renderTagList(selector, tags) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+  container.innerHTML = '';
+  
+  tags.forEach(tag => {
+    const pill = buildTagPill(tag);
+    container.appendChild(pill);
+  });
+}
+
+function renderNotificationsList(selector, notifications) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+  container.innerHTML = '';
+  
+  notifications.slice(0, 5).forEach(notification => {
+    const item = buildNotificationItem(notification);
+    container.appendChild(item);
+  });
 }
 
 function setImage(id, src) {
@@ -115,39 +250,68 @@ function setupFilters() {
   });
 }
 
-function renderQuestions(items, sortKey) {
-  const container = document.querySelector("[data-questions-full]");
+function renderQuestionsGrid(questions) {
+  const container = document.querySelector('.card-list');
   if (!container) return;
-  const sorted = sortItems(items, sortKey);
-  container.innerHTML = "";
-
-  sorted.forEach((q) => {
-    const card = document.createElement("article");
-    card.className = "qa-card qa-card--full";
-
-    const header = document.createElement("div");
-    header.className = "qa-card__header";
-    header.innerHTML = `
-      <div class="qa-card__title"><!-- question card: title -->${q.title}</div>
-      <div class="qa-card__meta">
-        <span class="pill pill--muted"><!-- question card: votes -->${formatNumber(q.votes)} votes</span>
-        <span class="pill pill--muted"><!-- question card: views -->${formatNumber(q.views ?? 0)} views</span>
-      </div>
-    `;
-
-    const tags = document.createElement("div");
-    tags.className = "qa-card__tags";
-    (q.tags || []).forEach((tag) => {
-      const span = document.createElement("span");
-      span.className = "tag";
-      span.textContent = tag;
-      tags.appendChild(span);
-    });
-
-    card.append(header, tags);
-    if (q.url) card.addEventListener("click", () => (window.location.href = q.url));
+  
+  container.innerHTML = '';
+  
+  // Show max 5 questions on home page
+  const questionsToShow = questions.slice(0, 5);
+  
+  questionsToShow.forEach(q => {
+    const card = buildQuestionCard(q);
     container.appendChild(card);
   });
+  
+  // If no questions, show empty state
+  if (questionsToShow.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; opacity: 0.6;">
+        <p>No questions yet. Be the first to ask!</p>
+      </div>
+    `;
+  }
+}
+
+function buildQuestionCard(q) {
+  const card = document.createElement('article');
+  card.className = 'question-card glass';
+  card.style.cursor = 'pointer';
+  
+  const statusBadge = q.is_closed ? ' <span style="color: #ff6b6b; font-size: 12px;">[closed]</span>' : '';
+  
+  card.innerHTML = `
+    <div class="question-card__stats">
+      <div class="question-card__stat question-card__stat--votes">
+        <span class="question-card__stat-number">${formatNumber(q.votes)}</span>
+        <span class="question-card__stat-label">votes</span>
+      </div>
+      <div class="question-card__stat question-card__stat--answers">
+        <span class="question-card__stat-number">${formatNumber(q.answers)}</span>
+        <span class="question-card__stat-label">answers</span>
+      </div>
+      <div class="question-card__stat question-card__stat--views">
+        <span class="question-card__stat-number">${formatNumber(q.views)}</span>
+        <span class="question-card__stat-label">views</span>
+      </div>
+    </div>
+    <div class="question-card__body">
+      <h3>${q.title}${statusBadge}</h3>
+      ${q.summary ? `<p>${q.summary}</p>` : ''}
+      ${q.tags && q.tags.length > 0 ? `
+        <div class="qa-card__tags" style="margin-top: 12px;">
+          ${q.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+  
+  card.addEventListener('click', () => {
+    window.location.href = q.url;
+  });
+  
+  return card;
 }
 
 function renderAnswers(items, sortKey) {
@@ -226,15 +390,68 @@ function setupTagRemoval() {
   const container = document.querySelector("[data-tags]");
   if (!container) return;
 
-  container.addEventListener("click", (event) => {
+  container.addEventListener("click", async (event) => {
     const button = event.target.closest(".tag-remove-btn");
     if (!button) return;
 
     const tagEl = button.closest(".tag");
-    if (tagEl) {
-      tagEl.classList.add("tag--hidden");
-      setTimeout(() => tagEl.remove(), 180);
+    if (tagEl && cachedUser) {
+      const tagName = tagEl.textContent.replace('×', '').trim();
+      
+      try {
+        // Find tag ID (would need to fetch from API in real implementation)
+        // For now, just remove from UI
+        tagEl.classList.add("tag--hidden");
+        setTimeout(() => tagEl.remove(), 180);
+        
+        // Show feedback
+        console.log(`Unfollowed tag: ${tagName}`);
+      } catch (error) {
+        console.error('Error unfollowing tag:', error);
+        alert('Failed to unfollow tag. Please try again.');
+      }
     }
+  });
+}
+
+// Add search functionality
+function setupSearch() {
+  const searchInput = document.getElementById('search-input');
+  if (!searchInput) return;
+  
+  let searchTimeout;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+      renderQuestionsGrid(allQuestions);
+      return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+      try {
+        const response = await api.searchQuestions(query, 1, 20);
+        if (response.success && response.data) {
+          const searchResults = response.data.map(q => ({
+            question_id: q.question_id,
+            title: q.title,
+            summary: q.summary,
+            votes: q.score || 0,
+            answers: q.answers_count || 0,
+            views: q.views || 0,
+            tags: q.tags || [],
+            author: q.author,
+            is_closed: q.is_closed,
+            created_at: q.created_at,
+            url: `../questions/index.html?id=${q.question_id}`
+          }));
+          renderQuestionsGrid(searchResults);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+    }, 300); // Debounce 300ms
   });
 }
 

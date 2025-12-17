@@ -10,11 +10,6 @@ import * as tagService from '../utils/tagService.js';
 
 class TagController {
 
-    /**
-     * Create a new Tag (e.g., "javascript")
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
     async createTag(req, res) {
         try {
             const { tag_name, description } = req.body;
@@ -22,122 +17,94 @@ class TagController {
             if (!tag_name) {
                 return res.status(400).json({
                     success: false,
-                    message: "Tag name is required"
+                    message: 'Tag name is required'
                 });
             }
 
-            const newTag = await tagService.createTag(tag_name, description);
+            const tag = await tagService.createTag(tag_name, description);
 
             res.status(201).json({
                 success: true,
-                message: "Tag created successfully",
-                data: newTag
+                data: tag
             });
 
         } catch (error) {
-            console.error(error);
-            if (error.message.includes("already exists")) {
-                return res.status(409).json({ success: false, message: "Tag already exists" });
+            if (error.message.includes('exists')) {
+                return res.status(409).json({ success: false, message: error.message });
             }
-            res.status(500).json({ success: false, message: "Server Error" });
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
-    /**
-     * Get all Tags
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
     async getAllTags(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20; 
-            const { q } = req.query;
+            const limit = parseInt(req.query.limit) || 20;
+            const q = req.query.q || '';
 
-            const { tags, totalTags, totalPages } = await tagService.getAllTags(page, limit, q);
+            const result = await tagService.getAllTags(page, limit, q);
 
             res.status(200).json({
                 success: true,
-                count: tags.length,
-                total: totalTags,
-                totalPages: totalPages,
-                currentPage: page,
-                data: tags
+                ...result,
+                currentPage: page
             });
 
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
-    /**
-     * Update Tag details
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
+
     async updateTag(req, res) {
         try {
-            const { id } = req.params;
+            const tagId = parseInt(req.params.id);
             const { tag_name, description } = req.body;
-            const tagId = parseInt(id);
 
             if (isNaN(tagId)) {
-                return res.status(400).json({ success: false, message: "Invalid Tag ID" });
+                return res.status(400).json({ success: false, message: 'Invalid tag id' });
             }
 
-            const updatedTag = await tagService.updateTag(tagId, tag_name, description);
+            const updated = await tagService.updateTag(tagId, tag_name, description);
 
             res.status(200).json({
                 success: true,
-                message: "Tag updated successfully",
-                data: updatedTag
+                data: updated
             });
 
         } catch (error) {
-            if (error.message.includes("already exists")) {
-                return res.status(409).json({ success: false, message: "Tag name already exists" });
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, message: error.message });
             }
-            if (error.message.includes("not found")) {
-                return res.status(404).json({ success: false, message: "Tag not found" });
+            if (error.message.includes('exists')) {
+                return res.status(409).json({ success: false, message: error.message });
             }
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
-    /**
-     * Delete a Tag
-     * @param {import('express').Request} req 
-     * @param {import('express').Response} res
-     */
     async deleteTag(req, res) {
         try {
-            const { id } = req.params;
-            const tagId = parseInt(id);
+            const tagId = parseInt(req.params.id);
 
             if (isNaN(tagId)) {
-                return res.status(400).json({ success: false, message: "Invalid Tag ID" });
+                return res.status(400).json({ success: false, message: 'Invalid tag id' });
             }
 
             await tagService.deleteTag(tagId);
 
             res.status(200).json({
                 success: true,
-                message: "Tag deleted successfully"
+                message: 'Tag deleted successfully'
             });
 
         } catch (error) {
-            if (error.message.includes("not found")) {
-                return res.status(404).json({ success: false, message: "Tag not found" });
+            if (error.message.includes('associated')) {
+                return res.status(400).json({ success: false, message: error.message });
             }
-            if (error.message.includes("associated")) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Cannot delete this tag because it is associated with questions. Please remove associations first." 
-                });
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, message: error.message });
             }
-            console.error(error);
-            res.status(500).json({ success: false, message: "Server Error" });
+            res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 }

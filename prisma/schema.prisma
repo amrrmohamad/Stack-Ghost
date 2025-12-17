@@ -19,6 +19,9 @@ model Users {
 
   // added is active: to block user if he take a report
   is_active Boolean @default(true)
+  
+  // refresh token for JWT authentication
+  refresh_token     String?   @db.VarChar
 
   // i removed ? because every user must have start date
   created_at        DateTime @default(now()) @db.Timestamp(6)
@@ -26,6 +29,9 @@ model Users {
   role_id           Int?
 
   Roles             Roles?     @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction)
+  
+  @@index([email])
+  @@index([username])
   
   Answers           Answers[]
   Comments          Comments[]
@@ -63,6 +69,10 @@ model Questions {
 
   Author        Users     @relation("Questions_user_idToUsers", fields: [user_id], references: [user_id], onDelete: Cascade)
   ClosedByUser  Users?    @relation("Questions_closed_byToUsers", fields: [closed_by], references: [user_id], onDelete: SetNull)
+  
+  @@index([user_id])
+  @@index([created_at(sort: Desc)])
+  @@index([is_closed, created_at(sort: Desc)])
 }
 
 model Answers {
@@ -83,6 +93,11 @@ model Answers {
   Edit_History Edit_History[]
   Reports      Reports[]
   Votes        Votes[]
+  
+  @@index([question_id])
+  @@index([user_id])
+  @@index([question_id, is_accepted])
+  @@index([question_id, created_at(sort: Desc)])
 }
 
 model Tags {
@@ -106,6 +121,10 @@ model Comments {
   Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: Cascade)
   Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
   Users       Users      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  
+  @@index([question_id, created_at])
+  @@index([answer_id, created_at])
+  @@index([user_id])
 }
 
 model Question_Tags {
@@ -147,13 +166,15 @@ model Votes {
   
   @@index([user_id, question_id])
   @@index([user_id, answer_id])
+  @@index([question_id, vote_type])
+  @@index([answer_id, vote_type])
 }
 
 model Reports {
   report_id   Int       @id @default(autoincrement())
   user_id     Int?
   reason      String?
-  status      String?   @db.VarChar(50)
+  status      String?   @default("pending") @db.VarChar(50)
   created_at  DateTime? @default(now()) @db.Timestamp(6)
   question_id Int?
   answer_id   Int?
@@ -161,6 +182,11 @@ model Reports {
   Answers     Answers?   @relation(fields: [answer_id], references: [answer_id], onDelete: NoAction, onUpdate: NoAction)
   Questions   Questions? @relation(fields: [question_id], references: [question_id], onDelete: NoAction, onUpdate: NoAction)
   Users       Users?     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  
+  @@index([status, created_at(sort: Desc)])
+  @@index([question_id])
+  @@index([answer_id])
+  @@index([user_id])
 }
 
 model Edit_History {
@@ -190,9 +216,11 @@ model Notifications {
   notification_id Int       @id @default(autoincrement())
   user_id         Int?
   content         String?
-  is_read         Boolean?
-  created_at      DateTime? @db.Timestamp(6)
+  is_read         Boolean?  @default(false)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
   Users           Users?    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  
+  @@index([user_id, is_read, created_at(sort: Desc)])
 }
 
 enum BadgeLevel {

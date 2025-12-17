@@ -1,151 +1,164 @@
-// All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
+/**
+ * @file data.js
+ * @description Data fetching for profile page - connects to backend API
+ */
+
+import api from '../js/api.js';
 
 export const fallbackUserData = {
-  username: "Amr",
-  profileImage: "img/rafiki.png",
-  reputation: 5000,
-  asked: 100,
-  answered: 50,
-  followers: 2300,
-  following: 180,
-  about:
-    "Expert in distributed systems and service-oriented architectures (microservices, event-driven, CQRS).",
-  tags: ["c++", "php", "sql", "html"],
-  notifications: [
-    "your answer has been accepted..",
-    "your question has been accepte..",
-    "you clamed a silver ghost badg..",
-  ],
-  badges: [
-    { label: "Bronze", icon: "img/vector-5.svg" },
-    { label: "Silver", icon: "img/vector-6.svg" },
-    { label: "Gold", icon: "img/vector-7.svg" },
-  ],
-  posts: [
-    { title: "Problem with WebGL and unity input system", username: "Amr" },
-    { title: "Java UUID generation (name-based, predictable)", username: "Amr" },
-  ],
-  questions: [
-    {
-      title: "Can System.Text.Json.Serialization detect long reference cycles?",
-      votes: 5,
-      views: 312,
-      tags: ["c++", "sql"],
-      answers: 4,
-      excerpt:
-        "I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development platform with Maven.",
-      createdAt: "2025-12-09T02:16:00Z",
-      url: "#",
-    },
-    {
-      title: "Avoiding duplicated Spring Bean classes",
-      votes: 3,
-      views: 210,
-      tags: ["php", "css"],
-      answers: 2,
-      excerpt:
-        "All dependencies were generated automatically and I need to avoid duplication while keeping configurations clean.",
-      createdAt: "2025-12-08T02:16:00Z",
-      url: "#",
-    },
-    {
-      title: "Why my query is slow?",
-      votes: 0,
-      views: 102,
-      tags: ["sql"],
-      answers: 1,
-      excerpt: "A complex SQL query is performing slowly even with indexes; looking for tuning tips.",
-      createdAt: "2025-12-07T02:16:00Z",
-      url: "#",
-    },
-    {
-      title: "How to debounce input in React?",
-      votes: -1,
-      views: 88,
-      tags: ["html"],
-      answers: 0,
-      excerpt: "Need a clean pattern to debounce controlled inputs in React without extra rerenders.",
-      createdAt: "2025-12-06T02:16:00Z",
-      url: "#",
-    },
-  ],
-  answers: [
-    {
-      snippet: "Use a binary semaphore to guard access",
-      questionTitle: "How to change locale for a vbs script?",
-      votes: 5,
-      views: 402,
-      createdAt: "2025-12-09T02:16:00Z",
-      url: "#",
-    },
-    {
-      snippet: "You can memoize this selector",
-      questionTitle: "Delete all files and folders in a directory",
-      votes: 3,
-      views: 280,
-      createdAt: "2025-12-08T02:16:00Z",
-      url: "#",
-    },
-    {
-      snippet: "Check your CORS policy",
-      questionTitle: "How can I auto-elevate my batch file?",
-      votes: 0,
-      views: 190,
-      createdAt: "2025-12-07T02:16:00Z",
-      url: "#",
-    },
-    {
-      snippet: "Consider batching writes",
-      questionTitle: "Using PowerShell to write a file in UTF-8 without the BOM",
-      votes: -1,
-      views: 120,
-      createdAt: "2025-12-06T02:16:00Z",
-      url: "#",
-    },
-  ],
-  tagCards: [
-    { name: "c++", posts: 2, url: "#" },
-    { name: "css", posts: 2, url: "#" },
-    { name: "html", posts: 2, url: "#" },
-    { name: "sql", posts: 2, url: "#" },
-    { name: "php", posts: 2, url: "#" },
-  ],
+  username: "Guest",
+  profileImage: "../signin,login/ghost.png",
+  reputation: 0,
+  asked: 0,
+  answered: 0,
+  followers: 0,
+  following: 0,
+  about: "No bio yet.",
+  badges: [],
+  questions: [],
+  answers: [],
+  tagCards: [],
+  posts: []
 };
 
-export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
-  }
-
-  const payload = await response.json();
-
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    followers: payload?.followers ?? fallbackUserData.followers,
-    following: payload?.following ?? fallbackUserData.following,
-    about: payload?.about ?? fallbackUserData.about,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    posts: Array.isArray(payload?.posts) && payload.posts.length ? payload.posts : fallbackUserData.posts,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tagCards:
-      Array.isArray(payload?.tagCards) && payload.tagCards.length ? payload.tagCards : fallbackUserData.tagCards,
-  };
+/**
+ * Get user ID from URL parameter or use current user
+ */
+function getUserIdFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const id = urlParams.get('id');
+  return id ? parseInt(id) : null;
 }
 
+/**
+ * Fetch complete user profile data
+ */
+export async function fetchUserData() {
+  try {
+    if (!api.isAuthenticated()) {
+      window.location.href = '../signin,login/index.html';
+      return fallbackUserData;
+    }
+
+    const userId = getUserIdFromURL();
+    const targetUserId = userId || api.getUser()?.user_id;
+
+    if (!targetUserId) {
+      // If no user ID, get current user
+      const currentUser = await api.getCurrentUser();
+      return await fetchCompleteProfile(currentUser.data.user_id);
+    }
+
+    return await fetchCompleteProfile(targetUserId);
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    if (error.message?.includes('Session expired') || error.message?.includes('Unauthorized')) {
+      api.clearTokens();
+      window.location.href = '../signin,login/index.html';
+    }
+    return fallbackUserData;
+  }
+}
+
+/**
+ * Fetch complete profile with all data
+ */
+async function fetchCompleteProfile(userId) {
+  try {
+    // Fetch complete profile with all includes
+    const response = await api.getCompleteProfile(userId);
+    
+    if (!response.success || !response.data) {
+      throw new Error('Failed to load profile');
+    }
+
+    const data = response.data;
+    const user = data.user;
+    const followStats = data.followStats || { followersCount: 0, followingCount: 0 };
+
+    // Check if current user is following this user
+    let isFollowing = false;
+    try {
+      const currentUserId = api.getUser()?.user_id;
+      if (currentUserId && currentUserId !== userId) {
+        // Check if current user is in the followers list
+        const followersResponse = await api.getFollowers(userId, 1, 1000);
+        if (followersResponse.success && followersResponse.data) {
+          // followersResponse.data is array of user objects with user_id
+          isFollowing = followersResponse.data.some(f => f.user_id === currentUserId);
+        }
+      } else if (currentUserId === userId) {
+        isFollowing = null; // Can't follow yourself
+      }
+    } catch (e) {
+      console.warn('Could not check follow status:', e);
+      // Default to false if check fails
+      isFollowing = false;
+    }
+
+    return {
+      user_id: user.user_id,
+      username: user.username || 'User',
+      email: user.email || '',
+      bio: user.bio || 'No bio yet.',
+      profileImage: user.profile_image || '../signin,login/ghost.png',
+      reputation: user.reputation || 0,
+      asked: user._count?.AuthoredQuestions || 0,
+      answered: user._count?.Answers || 0,
+      followers: followStats.followersCount || 0,
+      following: followStats.followingCount || 0,
+      role: user.Roles?.role_name || 'user',
+      isFollowing: isFollowing,
+      badges: (data.badges || []).map(b => ({
+        badge_id: b.badge_id,
+        badge_name: b.badge_name,
+        badge_type: b.badge_type,
+        description: b.description,
+        icon: b.icon || '../signin,login/ghost.png',
+        label: b.badge_name,
+        granted_at: b.granted_at
+      })),
+      questions: (data.questions || []).map(q => ({
+        question_id: q.question_id,
+        title: q.title,
+        summary: q.summary,
+        votes: q.votes,
+        answers: q.answers,
+        views: q.views,
+        tags: q.tags,
+        is_closed: q.is_closed,
+        created_at: q.created_at,
+        createdAt: q.createdAt,
+        url: `../questions/index.html?id=${q.question_id}`
+      })),
+      answers: (data.answers || []).map(a => ({
+        answer_id: a.answer_id,
+        snippet: a.snippet,
+        excerpt: a.excerpt,
+        body: a.body,
+        question_id: a.question_id,
+        questionTitle: a.questionTitle,
+        votes: a.votes,
+        is_accepted: a.is_accepted,
+        created_at: a.created_at,
+        createdAt: a.createdAt,
+        url: `../questions/index.html?id=${a.question_id}#answer-${a.answer_id}`
+      })),
+      tagCards: (data.followedTags || []).map(t => ({
+        tag_id: t.tag_id,
+        name: t.tag_name,
+        posts: t.posts,
+        description: t.description,
+        url: `../tages/index.html?tag=${t.tag_name}`
+      })),
+      posts: (data.questionTitles || []).map(q => ({
+        title: q.title,
+        username: user.username,
+        url: q.url
+      }))
+    };
+  } catch (error) {
+    console.error('Error fetching complete profile:', error);
+    throw error;
+  }
+}

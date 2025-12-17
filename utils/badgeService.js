@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { createNotification } from './notificationService.js';
-const prisma = new PrismaClient();
 
 export const awardBadge = async (userId, badgeName) => {
     try {

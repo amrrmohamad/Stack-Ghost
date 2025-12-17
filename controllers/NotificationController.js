@@ -2,8 +2,8 @@
  * @file NotificationController.js
  * @description Controller responsible for handling Notification CRUD operations.
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
 import {
@@ -16,8 +16,16 @@ import {
     deleteAllNotifications,
     createBulkNotifications
 } from '../utils/notificationService.js';
+import { ERRORS } from '../lib/errors.js';
 
 class NotificationController {
+    /**
+     * Helper to check if user can access notifications
+     */
+    _canAccessNotifications(requestUserId, targetUserId, userRole) {
+        return requestUserId === targetUserId || userRole === 'admin' || userRole === 'moderator';
+    }
+
     /**
      * Get all notifications for the authenticated user
      * @param {import('express').Request} req - Express request object
@@ -26,9 +34,16 @@ class NotificationController {
     async getNotifications(req, res) {
         try {
             const userId = parseInt(req.params.userId);
+            const requestUserId = req.user?.user_id;
+            const userRole = req.user?.Roles?.role_name;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const isRead = req.query.is_read !== undefined ? req.query.is_read === 'true' : null;
+
+            // Authorization check
+            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+                return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
+            }
 
             const skip = (page - 1) * limit;
 
@@ -65,6 +80,14 @@ class NotificationController {
     async getUnreadCount(req, res) {
         try {
             const userId = parseInt(req.params.userId);
+            const requestUserId = req.user?.user_id;
+            const userRole = req.user?.Roles?.role_name;
+
+            // Authorization check
+            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+                return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
+            }
+
             const unreadCount = await getUnreadCount(userId);
 
             res.status(200).json({
@@ -117,6 +140,7 @@ class NotificationController {
     async markAsRead(req, res) {
         try {
             const notificationId = parseInt(req.params.notificationId);
+            const requestUserId = req.user?.user_id;
 
             if (!notificationId) {
                 return res.status(400).json({
@@ -125,7 +149,8 @@ class NotificationController {
                 });
             }
 
-            const notification = await markAsRead(notificationId);
+            // Verify ownership in service layer
+            const notification = await markAsRead(notificationId, requestUserId);
 
             res.status(200).json({
                 success: true,
@@ -147,12 +172,19 @@ class NotificationController {
     async markAllAsRead(req, res) {
         try {
             const userId = parseInt(req.params.userId);
+            const requestUserId = req.user?.user_id;
+            const userRole = req.user?.Roles?.role_name;
 
             if (!userId) {
                 return res.status(400).json({
                     success: false,
                     message: "User ID is required"
                 });
+            }
+
+            // Authorization check
+            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+                return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 
             const result = await markAllAsRead(userId);
@@ -177,6 +209,7 @@ class NotificationController {
     async deleteNotification(req, res) {
         try {
             const notificationId = parseInt(req.params.notificationId);
+            const requestUserId = req.user?.user_id;
 
             if (!notificationId) {
                 return res.status(400).json({
@@ -185,7 +218,8 @@ class NotificationController {
                 });
             }
 
-            const notification = await deleteNotification(notificationId);
+            // Verify ownership in service layer
+            const notification = await deleteNotification(notificationId, requestUserId);
 
             res.status(200).json({
                 success: true,
@@ -207,12 +241,19 @@ class NotificationController {
     async deleteAllNotifications(req, res) {
         try {
             const userId = parseInt(req.params.userId);
+            const requestUserId = req.user?.user_id;
+            const userRole = req.user?.Roles?.role_name;
 
             if (!userId) {
                 return res.status(400).json({
                     success: false,
                     message: "User ID is required"
                 });
+            }
+
+            // Authorization check
+            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+                return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 
             const result = await deleteAllNotifications(userId);

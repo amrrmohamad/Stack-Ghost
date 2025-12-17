@@ -2,9 +2,12 @@
  * @file FollowController.js
  * @description Controller for handling User Follow/Unfollow relationships.
  * @author M-Ahmd
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
 import * as followService from '../utils/followService.js';
+import { ERRORS } from '../lib/errors.js';
 
 class FollowController {
 
@@ -16,17 +19,20 @@ class FollowController {
     async toggleFollow(req, res) {
         try {
             const { id } = req.params;
-            const { current_user_id } = req.body;
+            const currentUserId = req.user?.user_id; // Get from JWT token, not body
 
             const targetUserId = parseInt(id);
-            const currentUserId = parseInt(current_user_id);
 
-            if (isNaN(targetUserId) || isNaN(currentUserId)) {
-                return res.status(400).json({ success: false, message: "Invalid IDs" });
+            if (!currentUserId) {
+                return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
+            }
+
+            if (isNaN(targetUserId)) {
+                return res.status(400).json({ success: false, message: ERRORS.INVALID_ID });
             }
 
             if (targetUserId === currentUserId) {
-                return res.status(400).json({ success: false, message: "You cannot follow yourself" });
+                return res.status(400).json({ success: false, message: ERRORS.CANNOT_FOLLOW_SELF });
             }
 
             const result = await followService.toggleFollowUser(targetUserId, currentUserId);
@@ -113,14 +119,17 @@ class FollowController {
      */
     async toggleTagFollow(req, res) {
         try {
-            const { id } = req.params; 
-            const { user_id } = req.body; 
+            const { id } = req.params;
+            const userId = req.user?.user_id; // Get from JWT token, not body
 
             const tagId = parseInt(id);
-            const userId = parseInt(user_id);
 
-            if (isNaN(tagId) || isNaN(userId)) {
-                return res.status(400).json({ success: false, message: "Invalid IDs" });
+            if (!userId) {
+                return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
+            }
+
+            if (isNaN(tagId)) {
+                return res.status(400).json({ success: false, message: ERRORS.INVALID_ID });
             }
 
             const result = await followService.toggleTagFollow(tagId, userId);

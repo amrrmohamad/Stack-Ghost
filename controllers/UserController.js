@@ -17,12 +17,15 @@ class UserController {
      * @param {import('express').Response} res - Express response object
      */
 
-    // (======JUST ADMIN USE IT======)
+    // Get all users (accessible to all authenticated users)
     async getAllUsers(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
-            const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit);
+            const limit = parseInt(req.query.limit) || 100; // Allow fetching more users
+            const userRole = req.user?.Roles?.role_name;
+            const isAdmin = userRole === 'admin' || userRole === 'moderator';
+            
+            const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit, isAdmin);
             res.status(200).json({
                 success: true,
                 count: users.length,
@@ -93,6 +96,61 @@ class UserController {
             const userId = parseInt(req.params.id);
             const user = await userService.getUserById(userId);
             res.json({ success: true, data: user });
+        } catch (err) {
+            if (err.message === 'User not found') {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+            console.error(err);
+            res.status(500).json({ success: false, message: 'Server error' });
+        }
+    }
+
+    /**
+     * Get complete user profile with badges, questions, answers, tags
+     */
+    async getCompleteProfile(req, res) {
+        try {
+            const userId = parseInt(req.params.id);
+            const { include } = req.query;
+            const includes = include ? include.split(',') : ['badges', 'questions', 'answers', 'tags', 'stats'];
+
+            const profileData = {
+                user: await userService.getUserById(userId)
+            };
+
+            // Import profile service
+            const profileService = await import('../utils/profileService.js');
+
+            if (includes.includes('badges')) {
+                profileData.badges = await profileService.getUserBadges(userId);
+            }
+
+            if (includes.includes('questions')) {
+                const questionsData = await profileService.getUserQuestions(userId, 1, 50);
+                profileData.questions = questionsData.questions;
+                profileData.totalQuestions = questionsData.total;
+            }
+
+            if (includes.includes('answers')) {
+                const answersData = await profileService.getUserAnswers(userId, 1, 50);
+                profileData.answers = answersData.answers;
+                profileData.totalAnswers = answersData.total;
+            }
+
+            if (includes.includes('tags')) {
+                profileData.followedTags = await profileService.getUserFollowedTags(userId);
+            }
+
+            if (includes.includes('stats')) {
+                const followService = await import('../utils/followService.js');
+                profileData.followStats = await followService.getFollowStats(userId);
+            }
+
+            if (includes.includes('titles')) {
+                profileData.questionTitles = await profileService.getUserQuestionTitles(userId, 10);
+            }
+
+            res.json({ success: true, data: profileData });
         } catch (err) {
             if (err.message === 'User not found') {
                 return res.status(404).json({ success: false, message: 'User not found' });

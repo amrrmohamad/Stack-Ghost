@@ -2,14 +2,13 @@
  * @file questionService.js
  * @description Service layer for Question operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { awardBadge } from './badgeService.js';
-
-const prisma = new PrismaClient();
+import { ERRORS } from '../lib/errors.js';
 
 /**
  * Create a new question
@@ -17,6 +16,19 @@ const prisma = new PrismaClient();
 export const createQuestion = async (title, body, userId, tagIds = []) => {
     if (!title || !body || !userId) {
         throw new Error('Title, Body, and User ID are required');
+    }
+
+    // Input validation
+    if (title.length > 300) {
+        throw new Error(ERRORS.TITLE_TOO_LONG);
+    }
+    
+    if (body.length > 30000) {
+        throw new Error(ERRORS.BODY_TOO_LONG);
+    }
+    
+    if (tagIds && tagIds.length > 5) {
+        throw new Error(ERRORS.TOO_MANY_TAGS);
     }
 
     let tagsData = {};

@@ -15,55 +15,59 @@ class VoteController {
      * @param {import('express').Response} res - Express response object
      */
     async handleVote(req, res) {
-        const { user_id, question_id, answer_id, vote_type } = req.body;
-
-        if (!user_id || (!question_id && !answer_id) || ![1, -1].includes(vote_type)) {
-            return res.status(400).json({ success: false, message: "Invalid vote data provided." });
-        }
-
         try {
-            const { actionType } = await voteService.handleVote(user_id, question_id, answer_id, vote_type);
+            const { question_id, answer_id, vote_type } = req.body;
+            const userId = req.user?.user_id;
 
-            let message = "";
-            if (actionType === "unvote") message = `Vote on ${question_id ? 'question' : 'answer'} removed.`;
-            else if (actionType === "flip") message = `Vote on ${question_id ? 'question' : 'answer'} flipped.`;
-            else message = `New ${vote_type === 1 ? 'Upvote' : 'Downvote'} recorded.`;
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Unauthorized' });
+            }
+
+            if ((!question_id && !answer_id) || ![1, -1].includes(vote_type)) {
+                return res.status(400).json({ success: false, message: "Invalid vote data provided." });
+            }
+
+            const result = await voteService.handleVote(userId, question_id, answer_id, vote_type);
 
             return res.status(200).json({ 
                 success: true, 
-                message: message, 
-                action: actionType 
+                message: result.message, 
+                action: result.action
             });
 
         } catch (error) {
-            console.error(error);
             if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: error.message });
             }
             if (error.message.includes("own post")) {
                 return res.status(403).json({ success: false, message: error.message });
             }
-            if (error.message.includes("Invalid")) {
+            if (error.message.includes("Invalid") || error.message.includes("Missing")) {
                 return res.status(400).json({ success: false, message: error.message });
             }
+            console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
     /**
-     * check if you make a vote in this question before
+     * Check if user has voted on a question or answer
      * @param {import('express').Request} req - Express request object
      * @param {import('express').Response} res - Express response object
-     * @returns void
      */
     async checkVoteStatus(req, res) {
         try {
-            const { user_id, question_id, answer_id } = req.query;
+            const { question_id, answer_id } = req.query;
+            const userId = req.user?.user_id;
 
-            if (!user_id || (!question_id && !answer_id)) {
-                return res.status(400).json({ success: false, message: "Missing params" });
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Unauthorized' });
             }
 
-            const voteType = await voteService.checkVoteStatus(user_id, question_id, answer_id);
+            if (!question_id && !answer_id) {
+                return res.status(400).json({ success: false, message: "Missing question_id or answer_id" });
+            }
+
+            const voteType = await voteService.checkVoteStatus(userId, question_id, answer_id);
 
             res.status(200).json({
                 success: true,
@@ -71,25 +75,30 @@ class VoteController {
             });
 
         } catch (error) {
+            if (error.message.includes("Missing") || error.message.includes("Invalid")) {
+                return res.status(400).json({ success: false, message: error.message });
+            }
             console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
 
     /**
-     * 3. Get User Votes History
-     * Method: GET
+     * Get authenticated user's voting history
      * @param {import('express').Request} req - Express request object
      * @param {import('express').Response} res - Express response object
      */
     async getUserVotesHistory(req, res) {
         try {
-            const { user_id } = req.params;
-
+            const userId = req.user?.user_id;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
 
-            const { votes, totalVotes, totalPages } = await voteService.getUserVotesHistory(user_id, page, limit);
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Unauthorized' });
+            }
+
+            const { votes, totalVotes, totalPages } = await voteService.getUserVotesHistory(userId, page, limit);
 
             res.status(200).json({
                 success: true,

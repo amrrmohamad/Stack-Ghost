@@ -2,13 +2,11 @@
  * @file followService.js
  * @description Service layer for Follow operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 /**
  * Toggle follow/unfollow a user

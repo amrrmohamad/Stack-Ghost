@@ -28,8 +28,9 @@ router.put('/me', auth, UserController.updateProfile);
  * ========== ADMIN ROUTES ==========
  */
 
-// Get all users (dashboard admin)
-router.get('/', auth, checkPermission('manage_users'), UserController.getAllUsers);
+// Get all users (public for user listing page, but with limited data)
+// Admin gets full access, regular users get public data
+router.get('/', auth, UserController.getAllUsers);
 
 // Update user state (activate/deactivate)
 router.patch('/:id/state', auth, checkPermission('manage_users'), UserController.updateUserState);
@@ -37,6 +38,10 @@ router.patch('/:id/state', auth, checkPermission('manage_users'), UserController
 /**
  * ========== PUBLIC USER ROUTES ==========
  */
+
+// Get complete profile with all data (badges, questions, answers, tags, stats)
+// MUST come before /:id to avoid route conflicts
+router.get('/:id/profile', auth, UserController.getCompleteProfile);
 
 // Get public profile of another user
 router.get('/:id', auth, UserController.getUserProfile);

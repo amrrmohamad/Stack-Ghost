@@ -1,20 +1,27 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
 /**
  * @file userService.js
  * @description Service layer for User operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
+import prisma from '../lib/prisma.js';
+
 /**
- * Retrieves all users from the database (admin dashboard)
+ * Retrieves all users from the database
+ * If admin: shows all data including is_active
+ * If regular user: shows only public profile data
  */
-const getAllUsers = async (page = 1, limit = 20) => {
+const getAllUsers = async (page = 1, limit = 100, isAdmin = false) => {
     const skip = (page - 1) * limit;
-    const totalUsers = await prisma.users.count();
+    
+    // Only show active users to non-admins
+    const where = isAdmin ? {} : { is_active: true };
+    
+    const totalUsers = await prisma.users.count({ where });
     const users = await prisma.users.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { reputation: 'desc' },
@@ -23,8 +30,9 @@ const getAllUsers = async (page = 1, limit = 20) => {
             username: true,
             profile_image: true,
             reputation: true,
-            is_active: true,
             created_at: true,
+            // Only show is_active to admins
+            ...(isAdmin && { is_active: true }),
             _count: {
                 select: {
                     AuthoredQuestions: true,
@@ -130,9 +138,44 @@ const updateProfile = async (userId, updates) => {
         throw err;
     }
 };
+
+/**
+ * Get user by ID (public profile view)
+ */
+const getUserById = async (userId) => {
+    const user = await prisma.users.findUnique({
+        where: { user_id: userId },
+        select: {
+            user_id: true,
+            username: true,
+            bio: true,
+            profile_image: true,
+            reputation: true,
+            created_at: true,
+            is_active: true,
+            Roles: {
+                select: { role_name: true }
+            },
+            _count: {
+                select: {
+                    Answers: true,
+                    AuthoredQuestions: true
+                }
+            }
+        }
+    });
+    
+    if (!user) {
+        throw new Error('User not found');
+    }
+    
+    return user;
+};
+
 export {
     getAllUsers,
     updateUserState,
     getCurrentUser,
-    updateProfile
+    updateProfile,
+    getUserById
 };

@@ -1,0 +1,102 @@
+/**
+ * Custom styles for users page
+ */
+
+/* Toast animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* User card enhancements */
+.user-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(133, 103, 186, 0.2);
+}
+
+.user-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-card__follow-btn {
+  transition: all 0.2s ease;
+}
+
+.user-card__follow-btn:hover {
+  transform: scale(1.05);
+}
+
+.user-card__follow-btn--checked {
+  background: #51cf66 !important;
+  color: white !important;
+}
+
+/* Loading state */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Role badges */
+.user-card__role {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Empty state */
+.tag-empty {
+  text-align: center;
+  padding: 60px 20px;
+  opacity: 0.6;
+  font-size: 16px;
+}
+
+/* Suggestions dropdown */
+.suggestions {
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.suggestion:hover {
+  background: rgba(133, 103, 186, 0.2);
+}

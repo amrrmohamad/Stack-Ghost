@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="globals.css" />
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
-    <script type="module" src="app.js" defer></script>
+    <script src="../js/imageHandler.js"></script>
+    <script type="module" src="app.js"></script>
   </head>
   <body>
     <div class="page">
@@ -20,16 +21,17 @@
       <header class="topbar">
         <div class="brand">
           <!-- logo ghost icon goes here -->
-          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
+          <span style="font-size: 24px; margin-right: 8px;">👻</span>
           <span class="brand__name">Stack Ghost</span>
         </div>
         <div class="search">
           <span class="search__icon">
             <!-- search icon goes here -->
-            <img src="img/vector-4.svg" alt="" />
+            <span style="opacity: 0.6;">🔍</span>
           </span>
           <input
             type="search"
+            id="search-input"
             placeholder="Search for questions, users, tags"
             aria-label="Search for questions, users, tags"
           />
@@ -44,7 +46,7 @@
               data-notifications-toggle
             >
               <!-- bell icon goes here -->
-              <img src="img/vector-13.svg" alt="" />
+              <span style="font-size: 20px;">🔔</span>
             </button>
             <div class="notifications__dropdown glass" data-notifications-panel>
               <div class="notifications__header">
@@ -57,8 +59,9 @@
           </div>
           <div class="avatar avatar--sm">
             <!-- profile image goes here -->
-            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+            <img id="profile-image" src="../signin,login/ghost.png" alt="Profile" onerror="this.style.display='none'" />
           </div>
+          <button id="logout-btn" class="btn btn--ghost" style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
         </div>
       </header>
 
@@ -66,42 +69,37 @@
         <aside class="sidebar sidebar--left">
           <nav class="nav">
             <div class="nav__section">
-              <a class="nav__link nav__link--active" href="#">
-                <!-- sidebar icon #1 -->
-                <img class="nav__icon" src="img/vector.svg" alt="" />
+              <a class="nav__link nav__link--active" href="index.html">
+                <span>🏠</span>
                 <span>Home</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section nav__section--cluster">
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #2 -->
-                <img class="nav__icon" src="img/vector-3.svg" alt="" />
+              <a class="nav__link" href="../questions/index.html">
+                <span>❓</span>
                 <span>Questions</span>
               </a>
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #3 -->
-                <img class="nav__icon" src="img/vector-7.svg" alt="" />
+              <a class="nav__link" href="../users/index.html">
+                <span>👥</span>
                 <span>Users</span>
               </a>
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #4 -->
-                <img class="nav__icon" src="img/vector-8.svg" alt="" />
+              <a class="nav__link" href="../tages/index.html">
+                <span>🏷️</span>
                 <span>Tags</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section">
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #5 -->
-                <img class="nav__icon" src="img/vector-11.svg" alt="" />
-                <span>Badges</span>
+              <a class="nav__link" href="../profile/index.html">
+                <span>🏆</span>
+                <span>My Profile</span>
               </a>
             </div>
           </nav>
           <div class="sidebar__ghost">
             <!-- sidebar ghost illustration goes here -->
-            <img src="img/ghost.png" alt="" />
+            <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
           </div>
         </aside>
 
@@ -114,147 +112,26 @@
                 Hello <span class="accent" data-username>Amr</span>, what’s your plan for today?
               </h1>
               <div class="hero__actions">
-                <button class="btn btn--primary">Explore Questions</button>
-                <button class="btn btn--ghost">Ask Question</button>
+                <button class="btn btn--primary" data-nav="questions">Explore Questions</button>
+                <button class="btn btn--ghost" data-nav="ask">Ask Question</button>
               </div>
             </div>
             <div class="hero__art">
               <!-- hero illustration goes here -->
-              <img src="img/rafiki.png" alt="Ghost thinking" />
+              <img src="../signin,login/ghost.png" alt="Ghost thinking" onerror="this.style.display='none'" />
             </div>
           </section>
 
           <section class="cards">
             <header class="section-header">
-              <h2>Interesting posts for you</h2>
-              <span class="section-pill">Curated for you</span>
+              <h2>Recent Questions</h2>
+              <span class="section-pill">From the community</span>
             </header>
             <div class="card-list">
-              <article class="question-card glass">
-                <div class="question-card__stats">
-                  <div class="question-card__stat question-card__stat--votes">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">votes</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--answers">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">answers</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--views">
-                    <span class="question-card__stat-number">7</span>
-                    <span class="question-card__stat-label">views</span>
-                  </div>
-                </div>
-                <div class="question-card__body">
-                  <h3>Problem with WebGL and unity input system [closed]</h3>
-                  <p>
-                    I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development
-                    platform with Maven. All dependencies were generated automatically by
-                  </p>
-                </div>
-              </article>
-
-              <article class="question-card glass">
-                <div class="question-card__stats">
-                  <div class="question-card__stat question-card__stat--votes">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">votes</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--answers">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">answers</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--views">
-                    <span class="question-card__stat-number">7</span>
-                    <span class="question-card__stat-label">views</span>
-                  </div>
-                </div>
-                <div class="question-card__body">
-                  <h3>Java UUID generation (name-based, predictable)</h3>
-                  <p>
-                    I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development
-                    platform with Maven. All dependencies were generated automatically by
-                  </p>
-                </div>
-              </article>
-
-              <article class="question-card glass">
-                <div class="question-card__stats">
-                  <div class="question-card__stat question-card__stat--votes">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">votes</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--answers">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">answers</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--views">
-                    <span class="question-card__stat-number">7</span>
-                    <span class="question-card__stat-label">views</span>
-                  </div>
-                </div>
-                <div class="question-card__body">
-                  <h3>Can System.Text.Json.Serialization detect long reference cycles?</h3>
-                  <p>
-                    I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development
-                    platform with Maven. All dependencies were generated automatically by
-                  </p>
-                </div>
-              </article>
-
-              <article class="question-card glass">
-                <div class="question-card__stats">
-                  <div class="question-card__stat question-card__stat--votes">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">votes</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--answers">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">answers</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--views">
-                    <span class="question-card__stat-number">7</span>
-                    <span class="question-card__stat-label">views</span>
-                  </div>
-                </div>
-                <div class="question-card__body">
-                  <h3>
-                    Avoiding duplicated Spring Bean classes that just have different field-level
-                    <code>@Value</code> annotations
-                  </h3>
-                  <p>
-                    I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development
-                    platform with Maven. All dependencies were generated automatically by
-                  </p>
-                </div>
-              </article>
-
-              <article class="question-card glass">
-                <div class="question-card__stats">
-                  <div class="question-card__stat question-card__stat--votes">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">votes</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--answers">
-                    <span class="question-card__stat-number">10</span>
-                    <span class="question-card__stat-label">answers</span>
-                  </div>
-                  <div class="question-card__stat question-card__stat--views">
-                    <span class="question-card__stat-number">7</span>
-                    <span class="question-card__stat-label">views</span>
-                  </div>
-                </div>
-                <div class="question-card__body">
-                  <h3>
-                    Can I have a reference to a variable while still allowing that variable to be
-                    mutated in Rust?
-                  </h3>
-                  <p>
-                    I'm learning to use jeuclid-core-3.1.9 in java using the Netbeans development
-                    platform with Maven. All dependencies were generated automatically by
-                  </p>
-                </div>
-              </article>
+              <!-- Questions will be dynamically loaded here -->
+              <div style="grid-column: 1 / -1; text-align: center; padding: 40px; opacity: 0.6;">
+                <p>Loading questions...</p>
+              </div>
             </div>
           </section>
         </main>
@@ -264,49 +141,44 @@
             <div class="profile-card__header">
               <div class="avatar avatar--lg">
                 <!-- profile image goes here -->
-                <img id="profile-image-side" src="img/rafiki.png" alt="User avatar" />
+                <img id="profile-image-side" src="../signin,login/ghost.png" alt="User avatar" onerror="this.style.display='none'" />
               </div>
               <div>
-                <p class="profile-card__name" data-username>Amr</p>
-                <p class="profile-card__role">Ghost explorer</p>
+                <p class="profile-card__name" data-username>Loading...</p>
+                <p class="profile-card__role" data-email>Ghost explorer</p>
               </div>
             </div>
             <div class="stats">
               <div class="stat">
                 <p class="stat__label">Reputation</p>
-                <p class="stat__value" data-reputation>5,000</p>
+                <p class="stat__value" data-reputation>0</p>
               </div>
               <div class="stat">
-                <p class="stat__label">Asked</p>
-                <p class="stat__value" data-asked>100</p>
+                <p class="stat__label">Questions</p>
+                <p class="stat__value" data-asked>0</p>
               </div>
               <div class="stat">
-                <p class="stat__label">Answered</p>
-                <p class="stat__value" data-answered>50</p>
+                <p class="stat__label">Answers</p>
+                <p class="stat__value" data-answered>0</p>
               </div>
             </div>
           </div>
 
           <div class="card glass">
             <header class="section-header">
-              <h3>Notifications</h3>
+              <h3>Recent Notifications</h3>
             </header>
             <ul class="list" data-notifications>
-              <li class="list__item">your answer has been accepted..</li>
-              <li class="list__item">your question has been accepte..</li>
-              <li class="list__item">you clamed a silver ghost badg..</li>
+              <li class="list__item">Loading notifications...</li>
             </ul>
           </div>
 
           <div class="card glass">
             <header class="section-header">
-              <h3>Tags</h3>
+              <h3>Your Tags</h3>
             </header>
             <div class="tags" data-tags>
-              <span class="tag">c++</span>
-              <span class="tag">php</span>
-              <span class="tag">sql</span>
-              <span class="tag">html</span>
+              <span class="tag">Loading...</span>
             </div>
           </div>
 
@@ -320,7 +192,7 @@
               </div>
               <div class="illustration-card__img">
                 <!-- card image #1 goes here -->
-                <img src="img/cuate.png" alt="Ghost floating" />
+                <img src="../signin,login/ghost.png" alt="Ghost floating" onerror="this.style.display='none'" />
               </div>
             </div>
           </div>

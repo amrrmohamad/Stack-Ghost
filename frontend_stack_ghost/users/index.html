@@ -12,7 +12,9 @@
     <link rel="stylesheet" href="globals.css" />
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
-    <script type="module" src="app.js" defer></script>
+    <link rel="stylesheet" href="custom.css" />
+    <script src="../js/imageHandler.js"></script>
+    <script type="module" src="app.js"></script>
   </head>
   <body>
     <div class="page">
@@ -20,16 +22,16 @@
       <header class="topbar">
         <div class="brand">
           <!-- logo ghost icon goes here -->
-          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
+          <span style="font-size: 24px; margin-right: 8px;">👻</span>
           <span class="brand__name">Stack Ghost</span>
         </div>
         <div class="search">
           <span class="search__icon">
-            <!-- search icon goes here -->
-            <img src="img/vector-4.svg" alt="" />
+            <span style="opacity: 0.6;">🔍</span>
           </span>
           <input
             type="search"
+            id="global-search"
             placeholder="Search for questions, users, tags"
             aria-label="Search for questions, users, tags"
           />
@@ -43,8 +45,7 @@
               aria-haspopup="true"
               data-notifications-toggle
             >
-              <!-- bell icon goes here -->
-              <img src="img/vector-13.svg" alt="" />
+              <span style="font-size: 20px;">🔔</span>
             </button>
             <div class="notifications__dropdown glass" data-notifications-panel>
               <div class="notifications__header">
@@ -56,9 +57,9 @@
             </div>
           </div>
           <div class="avatar avatar--sm">
-            <!-- profile image goes here -->
-            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+            <img id="profile-image" src="../signin,login/ghost.png" alt="Profile" onerror="this.style.display='none'" />
           </div>
+          <button id="logout-btn" class="btn btn--ghost" style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
         </div>
       </header>
 
@@ -66,42 +67,36 @@
         <aside class="sidebar sidebar--left">
           <nav class="nav">
             <div class="nav__section">
-              <a class="nav__link nav__link--active" href="#">
-                <!-- sidebar icon #1 -->
-                <img class="nav__icon" src="img/vector.svg" alt="" />
+              <a class="nav__link" href="../home/index.html" data-nav="home">
+                <span>🏠</span>
                 <span>Home</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section nav__section--cluster">
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #2 -->
-                <img class="nav__icon" src="img/vector-3.svg" alt="" />
+              <a class="nav__link" href="../questions/index.html">
+                <span>❓</span>
                 <span>Questions</span>
               </a>
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #3 -->
-                <img class="nav__icon" src="img/vector-7.svg" alt="" />
+              <a class="nav__link nav__link--active" href="index.html">
+                <span>👥</span>
                 <span>Users</span>
               </a>
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #4 -->
-                <img class="nav__icon" src="img/vector-8.svg" alt="" />
+              <a class="nav__link" href="../tages/index.html">
+                <span>🏷️</span>
                 <span>Tags</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section">
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #5 -->
-                <img class="nav__icon" src="img/vector-11.svg" alt="" />
-                <span>Badges</span>
+              <a class="nav__link" href="../profile/index.html">
+                <span>🏆</span>
+                <span>My Profile</span>
               </a>
             </div>
           </nav>
           <div class="sidebar__ghost">
-            <!-- sidebar ghost illustration goes here -->
-            <img src="img/ghost.png" alt="" />
+            <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
           </div>
         </aside>
 
@@ -111,26 +106,30 @@
             <div class="tags-panel__top">
               <div class="search tags-panel__search">
                 <span class="search__icon">
-                  <img src="img/vector-4.svg" alt="" />
+                  <span style="opacity: 0.6;">🔍</span>
                 </span>
                 <input
                   type="search"
-                  placeholder="Search for users"
+                  placeholder="Search users by name or ID"
                   aria-label="Search for users"
                   data-user-search
                 />
                 <ul class="suggestions" data-user-suggestions></ul>
               </div>
               <div class="tags-panel__filters" data-users-filter>
-                <button class="filter-chip filter-chip--active" type="button" data-filter="name">Name</button>
-                <button class="filter-chip" type="button" data-filter="moderator">Moderator</button>
-                <button class="filter-chip" type="button" data-filter="admin">Admin</button>
+                <button class="filter-chip filter-chip--active" type="button" data-filter="name">All Users</button>
+                <button class="filter-chip" type="button" data-filter="moderator">Moderators</button>
+                <button class="filter-chip" type="button" data-filter="admin">Admins</button>
               </div>
             </div>
 
             <div class="tags-panel__bottom">
-              <div class="tag-grid user-grid" data-user-grid></div>
-              <p class="tag-empty hidden" data-user-empty>No users found for this search.</p>
+              <div class="tag-grid user-grid" data-user-grid>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                  Loading users...
+                </div>
+              </div>
+              <p class="tag-empty hidden" data-user-empty>No users found.</p>
               <div class="pagination" data-user-pagination></div>
             </div>
           </section>

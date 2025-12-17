@@ -1,22 +1,16 @@
 import express from 'express';
 import FollowController from '../controllers/FollowController.js';
+import auth from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/:id/toggle', FollowController.toggleFollow);
-
+// Public: view followers/following
 router.get('/:id/followers', FollowController.getFollowers);
-
 router.get('/:id/following', FollowController.getFollowing);
-
-router.post('/tags/:id/toggle', FollowController.toggleTagFollow);
 router.get('/:id/tags', FollowController.getFollowedTags);
 
+// Authenticated: toggle follow
+router.post('/:id/toggle', auth, FollowController.toggleFollow);
+router.post('/tags/:id/toggle', auth, FollowController.toggleTagFollow);
 
-// URL: /api/users/tags/5/toggle 
-// Body: { "user_id": 1 }
-router.post('/tags/:id/toggle', FollowController.toggleTagFollow);
-
-// URL: /api/users/1/tags 
-router.get('/:id/tags', FollowController.getFollowedTags);
 export default router;

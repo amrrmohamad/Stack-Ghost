@@ -2,11 +2,12 @@
  * @file CommentController.js
  * @description Controller responsible for handling Comment CRUD operations on Questions and Answers.
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-12
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
 import * as commentService from '../utils/commentService.js';
+import { ERRORS } from '../lib/errors.js';
 
 class CommentController {
 
@@ -17,12 +18,20 @@ class CommentController {
      */
     async createComment(req, res) {
         try {
-            const { body, user_id, question_id, answer_id } = req.body;
+            const { body, question_id, answer_id } = req.body;
+            const userId = req.user?.user_id; // Get from JWT token, not body
 
-            if (!body || !user_id) {
+            if (!body) {
                 return res.status(400).json({
                     success: false,
-                    message: "Body and User ID are required"
+                    message: "Comment body is required"
+                });
+            }
+            
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: ERRORS.UNAUTHORIZED
                 });
             }
 
@@ -33,7 +42,7 @@ class CommentController {
                 });
             }
 
-            const newComment = await commentService.createComment(body, user_id, question_id, answer_id);
+            const newComment = await commentService.createComment(body, userId, question_id, answer_id);
 
             res.status(201).json({
                 success: true,
@@ -90,18 +99,23 @@ class CommentController {
     async updateComment(req, res) {
         try {
             const { id } = req.params;
-            const { body, user_id } = req.body; 
+            const { body } = req.body;
+            const userId = req.user?.user_id; // Get from JWT token, not body
             const commentId = parseInt(id);
 
             if (isNaN(commentId)) {
-                return res.status(400).json({ success: false, message: "Invalid Comment ID" });
+                return res.status(400).json({ success: false, message: ERRORS.INVALID_ID });
             }
 
             if (!body) {
                 return res.status(400).json({ success: false, message: "Comment body is required" });
             }
+            
+            if (!userId) {
+                return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
+            }
 
-            const updatedComment = await commentService.updateComment(commentId, body, user_id);
+            const updatedComment = await commentService.updateComment(commentId, body, userId);
 
             res.status(200).json({
                 success: true,
@@ -128,14 +142,18 @@ class CommentController {
     async deleteComment(req, res) {
         try {
             const { id } = req.params;
-            const { user_id } = req.body;
+            const userId = req.user?.user_id; // Get from JWT token, not body
             const commentId = parseInt(id);
 
             if (isNaN(commentId)) {
-                return res.status(400).json({ success: false, message: "Invalid Comment ID" });
+                return res.status(400).json({ success: false, message: ERRORS.INVALID_ID });
+            }
+            
+            if (!userId) {
+                return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
             }
 
-            await commentService.deleteComment(commentId, user_id);
+            await commentService.deleteComment(commentId, userId);
 
             res.status(200).json({
                 success: true,

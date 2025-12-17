@@ -2,26 +2,23 @@
  * @file voteService.js
  * @description Service layer for Vote operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { awardBadge } from './badgeService.js';
-
-const prisma = new PrismaClient();
+import { ERRORS } from '../lib/errors.js';
 
 const REPUTATION_GAINS = {
-    UPVOTE_QUESTION: 10,
-    UPVOTE_ANSWER: 10,
-    DOWNVOTE_QUESTION: -2,
-    DOWNVOTE_ANSWER: -2,
-    RECEIVED_DOWNVOTE: -2,
-    UNVOTE: 0
+    UPVOTE_RECEIVED: 10,      // Post owner receives +10 for upvote
+    DOWNVOTE_RECEIVED: -2,    // Post owner receives -2 for downvote
+    DOWNVOTE_COST: -1         // Voter pays -1 to downvote (anti-abuse)
 };
 
 /**
  * Handle vote action (create, update, or remove)
+ * FIXED: Race condition resolved by moving all logic inside transaction
  */
 export const handleVote = async (userId, questionId, answerId, voteType) => {
     if (!userId || (!questionId && !answerId) || ![1, -1].includes(voteType)) {
@@ -41,102 +38,112 @@ export const handleVote = async (userId, questionId, answerId, voteType) => {
     }
 
     try {
-        const post = await ownerModel.findUnique({
-            where: { [targetEntity + '_id']: questionId || answerId },
-            select: { [ownerIdField]: true }
-        });
+        // Move ALL logic inside transaction to prevent race conditions
+        return await prisma.$transaction(async (tx) => {
+            // Get post info
+            const post = await (targetEntity === 'question' 
+                ? tx.questions.findUnique({
+                    where: { question_id: parseInt(questionId) },
+                    select: { user_id: true, is_closed: true }
+                })
+                : tx.answers.findUnique({
+                    where: { answer_id: parseInt(answerId) },
+                    select: { user_id: true }
+                })
+            );
 
-        if (!post) {
-            throw new Error(`${targetEntity} not found`);
-        }
-
-        const postOwnerId = post[ownerIdField];
-
-        if (postOwnerId === parseInt(userId)) {
-            throw new Error('You cannot vote on your own post');
-        }
-
-        const existingVote = await prisma.votes.findFirst({
-            where: { 
-                user_id: parseInt(userId), 
-                question_id: questionId ? parseInt(questionId) : null,
-                answer_id: answerId ? parseInt(answerId) : null
+            if (!post) {
+                throw new Error(`${targetEntity} not found`);
             }
-        });
 
-        let reputationChangeForOwner = 0;
-        let actionType = '';
+            const postOwnerId = post[ownerIdField];
 
-        if (existingVote) {
-            if (existingVote.vote_type === voteType) {
-                // Unvote
-                if (existingVote.vote_type === 1) {
-                    reputationChangeForOwner = -REPUTATION_GAINS.UPVOTE_QUESTION;
-                } else {
-                    reputationChangeForOwner = -REPUTATION_GAINS.RECEIVED_DOWNVOTE;
+            // Check if question is closed
+            if (targetEntity === 'question' && post.is_closed) {
+                throw new Error('Cannot vote on closed question');
+            }
+
+            if (postOwnerId === parseInt(userId)) {
+                throw new Error(ERRORS.CANNOT_VOTE_OWN_POST);
+            }
+
+            // Find existing vote INSIDE transaction
+            const existingVote = await tx.votes.findFirst({
+                where: { 
+                    user_id: parseInt(userId), 
+                    question_id: questionId ? parseInt(questionId) : null,
+                    answer_id: answerId ? parseInt(answerId) : null
                 }
+            });
 
-                await prisma.$transaction([
-                    prisma.votes.delete({ where: { vote_id: existingVote.vote_id } }),
-                    prisma.users.update({
+            let reputationChangeForOwner = 0;
+            let actionType = '';
+
+            if (existingVote) {
+                if (existingVote.vote_type === voteType) {
+                    // Unvote
+                    if (existingVote.vote_type === 1) {
+                        reputationChangeForOwner = -REPUTATION_GAINS.UPVOTE_RECEIVED;
+                    } else {
+                        reputationChangeForOwner = -REPUTATION_GAINS.DOWNVOTE_RECEIVED;
+                    }
+
+                    await tx.votes.delete({ where: { vote_id: existingVote.vote_id } });
+                    await tx.users.update({
                         where: { user_id: postOwnerId },
                         data: { reputation: { increment: reputationChangeForOwner } }
-                    })
-                ]);
-                actionType = 'unvote';
+                    });
+                    actionType = 'unvote';
 
-            } else {
-                // Flip vote
-                const oldVoteReputationEffect = existingVote.vote_type === 1
-                    ? -REPUTATION_GAINS.UPVOTE_QUESTION
-                    : -REPUTATION_GAINS.RECEIVED_DOWNVOTE;
+                } else {
+                    // Flip vote
+                    const oldVoteReputationEffect = existingVote.vote_type === 1
+                        ? -REPUTATION_GAINS.UPVOTE_RECEIVED
+                        : -REPUTATION_GAINS.DOWNVOTE_RECEIVED;
 
-                const newVoteReputationEffect = voteType === 1
-                    ? REPUTATION_GAINS.UPVOTE_QUESTION
-                    : REPUTATION_GAINS.RECEIVED_DOWNVOTE;
+                    const newVoteReputationEffect = voteType === 1
+                        ? REPUTATION_GAINS.UPVOTE_RECEIVED
+                        : REPUTATION_GAINS.DOWNVOTE_RECEIVED;
 
-                reputationChangeForOwner = oldVoteReputationEffect + newVoteReputationEffect;
+                    reputationChangeForOwner = oldVoteReputationEffect + newVoteReputationEffect;
 
-                await prisma.$transaction([
-                    prisma.votes.update({
+                    await tx.votes.update({
                         where: { vote_id: existingVote.vote_id },
                         data: { vote_type: voteType }
-                    }),
-                    prisma.users.update({
+                    });
+                    
+                    await tx.users.update({
                         where: { user_id: postOwnerId },
                         data: { reputation: { increment: reputationChangeForOwner } }
-                    })
-                ]);
-                actionType = 'flip';
-            }
-        } else {
-            // New vote
-            reputationChangeForOwner = voteType === 1
-                ? REPUTATION_GAINS.UPVOTE_QUESTION
-                : REPUTATION_GAINS.RECEIVED_DOWNVOTE;
+                    });
+                    actionType = 'flip';
+                }
+            } else {
+                // New vote
+                reputationChangeForOwner = voteType === 1
+                    ? REPUTATION_GAINS.UPVOTE_RECEIVED
+                    : REPUTATION_GAINS.DOWNVOTE_RECEIVED;
 
-            await prisma.$transaction([
-                prisma.votes.create({
+                await tx.votes.create({
                     data: {
                         user_id: parseInt(userId),
                         question_id: questionId ? parseInt(questionId) : null,
                         answer_id: answerId ? parseInt(answerId) : null,
                         vote_type: voteType
                     }
-                }),
-                prisma.users.update({
+                });
+                
+                await tx.users.update({
                     where: { user_id: postOwnerId },
                     data: { reputation: { increment: reputationChangeForOwner } }
-                })
-            ]);
-            actionType = 'new_vote';
-        }
+                });
+                actionType = 'new_vote';
+            }
 
-        // Award badges for answers
-        if (targetEntity === 'answer') {
-            (async () => {
+            // Award badges for answers (inside transaction is better)
+            if (targetEntity === 'answer') {
                 try {
-                    const aggregation = await prisma.votes.aggregate({
+                    const aggregation = await tx.votes.aggregate({
                         where: { answer_id: parseInt(answerId) },
                         _sum: { vote_type: true }
                     });
@@ -154,15 +161,15 @@ export const handleVote = async (userId, questionId, answerId, voteType) => {
                 } catch (badgeError) {
                     console.error("Badge Check Error:", badgeError);
                 }
-            })();
-        }
+            }
 
-        let message = '';
-        if (actionType === 'unvote') message = `Vote on ${targetEntity} removed`;
-        else if (actionType === 'flip') message = `Vote on ${targetEntity} flipped`;
-        else message = `New ${voteType === 1 ? 'Upvote' : 'Downvote'} recorded`;
+            let message = '';
+            if (actionType === 'unvote') message = `Vote on ${targetEntity} removed`;
+            else if (actionType === 'flip') message = `Vote on ${targetEntity} flipped`;
+            else message = `New ${voteType === 1 ? 'Upvote' : 'Downvote'} recorded`;
 
-        return { action: actionType, message };
+            return { action: actionType, message };
+        });
 
     } catch (error) {
         if (error.code === 'P2002') {

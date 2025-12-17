@@ -2,14 +2,13 @@
  * @file answerService.js
  * @description Service layer for Answer operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { awardBadge } from './badgeService.js';
-
-const prisma = new PrismaClient();
+import { ERRORS } from '../lib/errors.js';
 
 /**
  * Create a new answer
@@ -94,7 +93,7 @@ export const getQuestionAnswers = async (questionId, page = 1, limit = 10) => {
 
     const answersWithCounts = answers.map(answer => {
         const voteCount = answer.Votes.reduce((acc, vote) => {
-            return acc + (vote.value ?? 0);
+            return acc + (vote.vote_type ?? 0); // FIXED: was vote.value, should be vote.vote_type
         }, 0);
 
         const { Votes, ...rest } = answer;
@@ -191,64 +190,78 @@ export const deleteAnswer = async (answerId, userId) => {
 
 /**
  * Accept / switch accepted answer and update reputations
+ * FIXED: Race condition resolved by moving all logic inside transaction
  */
 export const acceptAnswer = async (answerId, userId) => {
-    const answerToAccept = await prisma.answers.findUnique({
-        where: { answer_id: answerId },
-        include: { Questions: true }
-    });
+    return await prisma.$transaction(async (tx) => {
+        // Get answer and question info
+        const answerToAccept = await tx.answers.findUnique({
+            where: { answer_id: answerId },
+            include: { Questions: true }
+        });
 
-    if (!answerToAccept) {
-        throw new Error('Answer not found');
-    }
-
-    const questionId = answerToAccept.question_id;
-    const questionOwnerId = answerToAccept.Questions.user_id;
-
-    if (questionOwnerId !== parseInt(userId)) {
-        throw new Error('Only the question owner can accept an answer.');
-    }
-
-    if (answerToAccept.is_accepted) {
-        throw new Error('This answer is already accepted.');
-    }
-
-    const oldAcceptedAnswer = await prisma.answers.findFirst({
-        where: {
-            question_id: questionId,
-            is_accepted: true
+        if (!answerToAccept) {
+            throw new Error('Answer not found');
         }
-    });
 
-    const transactionOps = [];
+        const questionId = answerToAccept.question_id;
+        const questionOwnerId = answerToAccept.Questions.user_id;
 
-    if (oldAcceptedAnswer) {
-        transactionOps.push(
-            prisma.answers.update({
+        if (questionOwnerId !== parseInt(userId)) {
+            throw new Error(ERRORS.ONLY_OWNER_CAN_ACCEPT);
+        }
+
+        // FIXED: Prevent accepting own answer
+        if (answerToAccept.user_id === questionOwnerId) {
+            throw new Error(ERRORS.CANNOT_ACCEPT_OWN_ANSWER);
+        }
+
+        if (answerToAccept.is_accepted) {
+            throw new Error(ERRORS.ALREADY_ACCEPTED);
+        }
+
+        // Find and unaccept old answer (inside transaction to prevent race condition)
+        const oldAcceptedAnswer = await tx.answers.findFirst({
+            where: {
+                question_id: questionId,
+                is_accepted: true
+            }
+        });
+
+        if (oldAcceptedAnswer) {
+            // Unaccept old answer
+            await tx.answers.update({
                 where: { answer_id: oldAcceptedAnswer.answer_id },
                 data: { is_accepted: false }
-            }),
-            prisma.users.update({
+            });
+            
+            // Deduct reputation from old answerer
+            await tx.users.update({
                 where: { user_id: oldAcceptedAnswer.user_id },
                 data: { reputation: { decrement: 15 } }
-            })
-        );
-    }
+            });
+        }
 
-    transactionOps.push(
-        prisma.answers.update({
+        // Accept new answer
+        await tx.answers.update({
             where: { answer_id: answerId },
             data: { is_accepted: true }
-        }),
-        prisma.users.update({
+        });
+        
+        // Give reputation to answer author (+15)
+        await tx.users.update({
             where: { user_id: answerToAccept.user_id },
             data: { reputation: { increment: 15 } }
-        })
-    );
+        });
+        
+        // Give reputation to question owner for accepting (+2)
+        await tx.users.update({
+            where: { user_id: questionOwnerId },
+            data: { reputation: { increment: 2 } }
+        });
 
-    await prisma.$transaction(transactionOps);
-
-    return { success: true };
+        return { success: true };
+    });
 };
 
 // Note: helper functions getAnswerById, markAnswerAccepted, unmarkAnswerAccepted, and getUserAnswers

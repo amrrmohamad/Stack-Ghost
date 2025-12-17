@@ -2,13 +2,12 @@
  * @file commentService.js
  * @description Service layer for Comment operations
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.0.0
- * @date 2025-12-16
+ * @version 1.1.0
+ * @date 2025-12-17
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
+import { ERRORS } from '../lib/errors.js';
 
 /**
  * Create a new comment
@@ -20,6 +19,11 @@ export const createComment = async (body, userId, questionId = null, answerId = 
 
     if (!questionId && !answerId) {
         throw new Error('Comment must belong to either a Question OR an Answer');
+    }
+    
+    // Input validation
+    if (body.length > 1000) {
+        throw new Error('Comment must be less than 1000 characters');
     }
 
     try {

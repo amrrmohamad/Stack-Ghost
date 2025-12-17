@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -13,7 +13,8 @@
     <link rel="stylesheet" href="globals.css" />
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
-    <script src="app.js" defer></script>
+    <script src="../js/imageHandler.js"></script>
+    <script type="module" src="app.js"></script>
   </head>
   <body>
     <div class="page">
@@ -109,15 +110,15 @@
             <!-- LOGIN FORM – Backend will handle POST /auth/login -->
             <form class="auth-form is-active" data-form="login" data-auth-form="login" novalidate>
               <div class="input-field">
-                <label for="login-email">Email or username</label>
-                <!-- USER IDENTIFIER (email or username) -->
+                <label for="login-email">Email</label>
+                <!-- USER EMAIL -->
                 <input
                   id="login-email"
-                  name="identifier"
-                  type="text"
+                  name="email"
+                  type="email"
                   placeholder="you@stackghost.dev"
-                  autocomplete="username"
-                  data-auth-field="identifier"
+                  autocomplete="email"
+                  data-auth-field="email"
                   required
                 />
               </div>
@@ -148,26 +149,26 @@
             <!-- SIGNUP FORM – Backend will handle POST /auth/signup -->
             <form class="auth-form" data-form="signup" data-auth-form="signup" novalidate>
               <div class="input-field">
-                <label for="signup-name">Full name</label>
-                <!-- USER FULL NAME -->
+                <label for="signup-username">Username</label>
+                <!-- USERNAME -->
                 <input
-                  id="signup-name"
-                  name="full_name"
+                  id="signup-username"
+                  name="username"
                   type="text"
-                  placeholder="Amira Ghost"
-                  autocomplete="name"
-                  data-auth-field="full_name"
+                  placeholder="Your username"
+                  autocomplete="username"
+                  data-auth-field="username"
                   required
                 />
               </div>
               <div class="input-field">
-                <label for="signup-email">Work email</label>
+                <label for="signup-email">Email</label>
                 <!-- USER EMAIL -->
                 <input
                   id="signup-email"
                   name="email"
                   type="email"
-                  placeholder="team@stackghost.dev"
+                  placeholder="you@stackghost.dev"
                   autocomplete="email"
                   data-auth-field="email"
                   required
