@@ -19,6 +19,8 @@ import followRoutes from './routes/followRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import swaggerDocument from './swagger-output.json' with { type: "json" };
 const PORT = 3000;
 
 const app = express();
@@ -47,6 +49,7 @@ app.use('/api/notifications', notificationRoutes);
 
 app.use('/api/reports', reportRoutes);
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
