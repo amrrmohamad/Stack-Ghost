@@ -119,20 +119,34 @@ class FollowController {
      */
     async toggleTagFollow(req, res) {
         try {
+            console.log('=== toggleTagFollow controller called ===');
+            console.log('Request method:', req.method);
+            console.log('Request URL:', req.url);
+            console.log('Request path:', req.path);
+            console.log('Request params:', req.params);
+            console.log('Request user:', req.user);
+            console.log('Request headers authorization:', req.headers.authorization ? 'Present' : 'Missing');
+            
             const { id } = req.params;
             const userId = req.user?.user_id; // Get from JWT token, not body
+
+            console.log('Extracted values:', { id, userId, tagId: parseInt(id) });
 
             const tagId = parseInt(id);
 
             if (!userId) {
+                console.error('❌ No userId found in request');
                 return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
             }
 
             if (isNaN(tagId)) {
+                console.error('❌ Invalid tagId:', id);
                 return res.status(400).json({ success: false, message: ERRORS.INVALID_ID });
             }
 
+            console.log('✅ Calling followService.toggleTagFollow with:', { tagId, userId });
             const result = await followService.toggleTagFollow(tagId, userId);
+            console.log('✅ followService.toggleTagFollow result:', result);
 
             res.status(200).json({
                 success: true,
@@ -141,11 +155,31 @@ class FollowController {
             });
 
         } catch (error) {
-            console.error(error);
+            console.error('❌❌❌ ERROR in toggleTagFollow ❌❌❌');
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error code:', error.code);
+            console.error('Error stack:', error.stack);
+            console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            
             if (error.message.includes("not found")) {
                 return res.status(404).json({ success: false, message: error.message });
             }
-            res.status(500).json({ success: false, message: "Server Error" });
+            
+            // Always return detailed error in development
+            const isDev = process.env.NODE_ENV !== 'production';
+            const errorMessage = isDev ? error.message : 'Server Error';
+            
+            res.status(500).json({ 
+                success: false, 
+                message: errorMessage,
+                error: isDev ? {
+                    message: error.message,
+                    code: error.code,
+                    name: error.name,
+                    stack: error.stack
+                } : undefined
+            });
         }
     }
 

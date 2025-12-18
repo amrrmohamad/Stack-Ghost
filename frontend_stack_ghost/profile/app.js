@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupNotificationsDropdown();
     setupTagFilterBehavior();
     setupFollowButton();
-    setupFollowingModal();
+    await setupFollowingModal(); // Ensure modal is initialized
     setupNavigation();
     setupLogout();
     // setupEditProfile is called inside setupFollowButton if isOwnProfile
@@ -500,6 +500,24 @@ function applyUserData(user) {
   // Update username
   document.querySelectorAll("[data-username]").forEach((el) => {
     el.textContent = user.username;
+  });
+
+  // Update role
+  document.querySelectorAll("[data-role]").forEach((el) => {
+    const role = user.role || 'user';
+    el.textContent = role;
+    
+    // Style based on role
+    const roleColors = {
+      admin: { bg: 'rgba(255, 107, 107, 0.2)', color: '#ff6b6b', border: 'rgba(255, 107, 107, 0.3)' },
+      moderator: { bg: 'rgba(81, 207, 102, 0.2)', color: '#51cf66', border: 'rgba(81, 207, 102, 0.3)' },
+      user: { bg: 'rgba(133, 103, 186, 0.2)', color: '#8567BA', border: 'rgba(133, 103, 186, 0.3)' }
+    };
+    
+    const roleStyle = roleColors[role.toLowerCase()] || roleColors.user;
+    el.style.background = roleStyle.bg;
+    el.style.color = roleStyle.color;
+    el.style.borderColor = roleStyle.border;
   });
 
   // Update reputation with animation

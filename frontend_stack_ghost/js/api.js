@@ -187,7 +187,12 @@ class APIClient {
                 }
             }
             
-            throw new Error(errorMessage);
+            // Include error details if available
+            const error = new Error(errorMessage);
+            if (data && data.error) {
+                error.details = data.error;
+            }
+            throw error;
         }
 
         return data;

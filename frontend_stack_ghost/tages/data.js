@@ -97,34 +97,40 @@ export const fallbackUserData = {
 };
 
 export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
+  try {
+    if (!api.isAuthenticated()) {
+      window.location.href = '../signin,login/index.html';
+      return fallbackUserData;
+    }
 
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
+    // Get current user data
+    const currentUser = await api.getCurrentUser();
+    if (currentUser.success && currentUser.data) {
+      const user = currentUser.data;
+      return {
+        username: user.username || fallbackUserData.username,
+        profileImage: user.profile_image || fallbackUserData.profileImage,
+        reputation: user.reputation || fallbackUserData.reputation,
+        asked: 0, // Will be updated from profile if needed
+        answered: 0, // Will be updated from profile if needed
+        about: user.bio || fallbackUserData.about,
+        notifications: fallbackUserData.notifications,
+        badges: fallbackUserData.badges,
+        questions: fallbackUserData.questions,
+        answers: fallbackUserData.answers,
+        tags: fallbackUserData.tags,
+      };
+    }
+    
+    return fallbackUserData;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    if (error.message?.includes('Session expired') || error.message?.includes('Unauthorized')) {
+      api.clearTokens();
+      window.location.href = '../signin,login/index.html';
+    }
+    return fallbackUserData;
   }
-
-  const payload = await response.json();
-
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    about: payload?.about ?? fallbackUserData.about,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-  };
 }
 
 // Tag data --------------------------------------------------------------
@@ -266,19 +272,42 @@ export async function fetchTags() {
 
 export async function updateFollowStatus(tagId, shouldFollow) {
   try {
+    console.log('Calling toggleFollowTag API for tag:', tagId);
     const response = await api.toggleFollowTag(tagId);
+    console.log('Toggle follow tag response:', response);
     
     if (response.success) {
+      // The API returns { success: true, status: 'followed' | 'unfollowed', message: '...' }
+      const isFollowed = response.status === 'followed';
+      
       // Return updated tag data
-      return {
+      const result = {
         tag_id: tagId,
-        isFollowed: response.status === 'followed'
+        isFollowed: isFollowed
       };
+      
+      // Include followers count if provided
+      if (response.followers !== undefined) {
+        result.followers = response.followers;
+      }
+      
+      console.log('Returning result:', result);
+      return result;
     }
     
-    return null;
+    // If not successful, log the error details
+    console.error('API response was not successful:', response);
+    if (response.error) {
+      console.error('Error details:', response.error);
+    }
+    throw new Error(response.message || 'Failed to update follow status');
   } catch (error) {
     console.error('Error updating follow status:', error);
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response,
+      data: error.data
+    });
     throw error;
   }
 }

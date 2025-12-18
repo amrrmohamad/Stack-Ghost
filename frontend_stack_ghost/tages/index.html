@@ -126,6 +126,43 @@
             </div>
           </section>
         </main>
+
+        <aside class="sidebar sidebar--right">
+          <div class="card glass profile-card">
+            <div class="profile-card__header">
+              <div class="avatar avatar--lg">
+                <img id="profile-image-side" src="../signin,login/ghost.png" alt="User avatar" onerror="this.style.display='none'" />
+              </div>
+              <div>
+                <p class="profile-card__name" data-username>Loading...</p>
+                <p class="profile-card__role">Ghost explorer</p>
+              </div>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <p class="stat__label">Reputation</p>
+                <p class="stat__value" data-reputation>0</p>
+              </div>
+              <div class="stat">
+                <p class="stat__label">Asked</p>
+                <p class="stat__value" data-asked>0</p>
+              </div>
+              <div class="stat">
+                <p class="stat__label">Answered</p>
+                <p class="stat__value" data-answered>0</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Tags</h3>
+            </header>
+            <div class="tags" data-followed-tags>
+              <span style="opacity: 0.6; padding: 10px; display: block;">Loading tags...</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   </body>

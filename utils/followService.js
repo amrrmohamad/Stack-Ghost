@@ -121,52 +121,82 @@ export const getFollowing = async (userId, page = 1, limit = 10) => {
 /**
  * Toggle follow/unfollow a tag
  */
-export const toggleFollowTag = async (tagId, userId) => {
+export const toggleTagFollow = async (tagId, userId) => {
     try {
+        console.log('toggleFollowTag called with:', { tagId, userId });
+        
+        const tagIdInt = parseInt(tagId);
+        const userIdInt = parseInt(userId);
+        
+        if (isNaN(tagIdInt) || isNaN(userIdInt)) {
+            throw new Error(`Invalid tag ID or user ID: tagId=${tagId}, userId=${userId}`);
+        }
+        
+        console.log('Parsed IDs:', { tagIdInt, userIdInt });
+        
+        // Verify tag exists
         const tagExists = await prisma.tags.findUnique({ 
-            where: { tag_id: parseInt(tagId) } 
+            where: { tag_id: tagIdInt } 
         });
         
+        console.log('Tag exists check:', !!tagExists);
+        
         if (!tagExists) {
-            throw new Error('Tag not found');
+            throw new Error(`Tag not found: ${tagIdInt}`);
         }
 
-        const existingFollow = await prisma.follow_Tags.findUnique({
+        // Check if follow relationship exists using findFirst (more reliable)
+        const existingFollow = await prisma.follow_Tags.findFirst({
             where: {
-                user_id_tag_id: {
-                    user_id: parseInt(userId),
-                    tag_id: parseInt(tagId)
-                }
+                user_id: userIdInt,
+                tag_id: tagIdInt
             }
         });
 
         if (existingFollow) {
-            await prisma.follow_Tags.delete({
+            // Delete the follow relationship using deleteMany (works with composite keys)
+            const deleteResult = await prisma.follow_Tags.deleteMany({
                 where: {
-                    user_id_tag_id: {
-                        user_id: parseInt(userId),
-                        tag_id: parseInt(tagId)
-                    }
+                    user_id: userIdInt,
+                    tag_id: tagIdInt
                 }
             });
+            
+            if (deleteResult.count === 0) {
+                throw new Error('Failed to unfollow tag - record not found');
+            }
 
             return { status: 'unfollowed', message: 'Tag unfollowed successfully' };
 
         } else {
-            await prisma.follow_Tags.create({
+            // Create the follow relationship
+            console.log('Creating follow relationship:', { userIdInt, tagIdInt });
+            const newFollow = await prisma.follow_Tags.create({
                 data: {
-                    user_id: parseInt(userId),
-                    tag_id: parseInt(tagId),
+                    user_id: userIdInt,
+                    tag_id: tagIdInt,
                     created_at: new Date()
                 }
             });
+            console.log('Follow relationship created:', newFollow);
 
             return { status: 'followed', message: 'Tag followed successfully' };
         }
 
     } catch (error) {
+        console.error('Error in toggleTagFollow:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
         if (error.code === 'P2003') {
             throw new Error('Tag or User not found');
+        }
+        if (error.code === 'P2002') {
+            throw new Error('Already following this tag');
+        }
+        if (error.code === 'P2025') {
+            throw new Error('Record not found');
         }
         throw error;
     }
