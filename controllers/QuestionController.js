@@ -214,19 +214,22 @@ class QuestionController {
             const skip = (page - 1) * limit;
 
             const totalQuestions = await prisma.questions.count();
+            
+            // ++++++++ هذا هو السطر الناقص ++++++++
+            const totalPages = Math.ceil(totalQuestions / limit);
+            // ++++++++++++++++++++++++++++++++++++
 
             const questions = await prisma.questions.findMany({
                 skip: skip,
                 take: limit,
                 orderBy: { created_at: 'desc' },
-
+                // ... باقي الكود كما هو ...
                 select: {
                     question_id: true,
                     title: true,
                     body: true,
                     views_count: true,
                     created_at: true,
-
                     Author: {
                         select: {
                             username: true,
@@ -234,7 +237,6 @@ class QuestionController {
                             reputation: true
                         }
                     },
-
                     Question_Tags: {
                         select: {
                             Tags: {
@@ -242,7 +244,6 @@ class QuestionController {
                             }
                         }
                     },
-
                     Votes: { select: { vote_type: true } },
                     _count: { select: { Answers: true } }
                 }
@@ -250,11 +251,9 @@ class QuestionController {
 
             const sanitizedQuestions = questions.map(q => {
                 const score = q.Votes.reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
-
                 const bodySnippet = q.body.length > 150
                     ? q.body.substring(0, 150) + '...'
                     : q.body;
-
                 const tags = q.Question_Tags.map(qt => qt.Tags.tag_name);
 
                 return {
@@ -274,7 +273,7 @@ class QuestionController {
                 success: true,
                 count: sanitizedQuestions.length,
                 total: totalQuestions,
-                totalPages: totalPages,
+                totalPages: totalPages, // الآن هذا المتغير أصبح معرفاً
                 currentPage: page,
                 data: sanitizedQuestions
             });

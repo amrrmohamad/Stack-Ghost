@@ -1,135 +1,54 @@
-// All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
+// data.js
 
-export const fallbackUserData = {
-  username: "Amr",
-  profileImage: "img/rafiki.png",
-  reputation: 5000,
-  asked: 100,
-  answered: 50,
-  about:
-    "Expert in distributed systems and service-oriented architectures (microservices, event-driven, CQRS).",
-  notifications: [
-    "your answer has been accepted..",
-    "your question has been accepte..",
-    "you clamed a silver ghost badg..",
-  ],
-  badges: [
-    { label: "Bronze", icon: "img/vector-5.svg" },
-    { label: "Silver", icon: "img/vector-6.svg" },
-    { label: "Gold", icon: "img/vector-7.svg" },
-  ],
-  questions: [
-    {
-      title: "How to change locale for a vbs script?",
-      votes: 3,
-      views: 12,
-      tags: ["c++"],
-      url: "#",
-      createdAt: 1733720160000,
-    },
-    {
-      title: "Delete all files and folders in a directory",
-      votes: 2,
-      views: 9,
-      tags: ["css"],
-      url: "#",
-      createdAt: 1733716560000,
-    },
-    {
-      title: "How can I auto-elevate my batch file?",
-      votes: 5,
-      views: 22,
-      tags: ["html"],
-      url: "#",
-      createdAt: 1733712960000,
-    },
-    {
-      title: "Using PowerShell to write a file in UTF-8 without the BOM",
-      votes: 6,
-      views: 28,
-      tags: ["sql"],
-      url: "#",
-      createdAt: 1733709360000,
-    },
-    {
-      title: "Creating batch script to unzip a file without additional zip tools",
-      votes: 5,
-      views: 19,
-      tags: ["php"],
-      url: "#",
-      createdAt: 1733705760000,
-    },
-  ],
-  answers: [
-    {
-      title: "How to change locale for a vbs script?",
-      excerpt: "Use SetLocale and ensure codepage matches...",
-      questionTitle: "How to change locale for a vbs script?",
-      votes: 3,
-      views: 12,
-      url: "#",
-      createdAt: 1733720160000,
-    },
-    {
-      title: "Delete all files and folders in a directory",
-      excerpt: "You can iterate the FileSystemObject...",
-      questionTitle: "Delete all files and folders in a directory",
-      votes: 2,
-      views: 9,
-      url: "#",
-      createdAt: 1733716560000,
-    },
-    {
-      title: "Batch file auto-elevate UAC",
-      excerpt: "Call powershell -Command \"Start-Process ... -Verb runAs\"",
-      questionTitle: "How can I auto-elevate my batch file?",
-      votes: 5,
-      views: 22,
-      url: "#",
-      createdAt: 1733712960000,
-    },
-    {
-      title: "UTF-8 without BOM",
-      excerpt: "Use Set-Content -Encoding utf8NoBOM ...",
-      questionTitle: "Using PowerShell to write a file in UTF-8 without the BOM",
-      votes: 6,
-      views: 28,
-      url: "#",
-      createdAt: 1733709360000,
-    },
-  ],
-  tags: ["c++", "php", "sql", "html"],
+const API_BASE = "http://localhost:3000/api";
+const ENDPOINTS = {
+    GET_PROFILE: `${API_BASE}/users/me`,
+    GET_QUESTIONS: `${API_BASE}/questions`,
 };
 
-export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
+// القيم الافتراضية البسيطة (لمنع الأخطاء فقط)
+const defaultUser = {
+    username: "Guest",
+    profileImage: "img/rafiki.png",
+    reputation: 0,
+    asked: 0,
+    answered: 0,
+    notifications: [],
+    tags: []
+};
 
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
-  }
+// 1. دالة جلب البروفايل (تحتاج Token)
+export async function getUserProfile() {
+    const token = localStorage.getItem("accessToken");
+    if (!token) throw new Error("No token");
 
-  const payload = await response.json();
+    const response = await fetch(ENDPOINTS.GET_PROFILE, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
 
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    about: payload?.about ?? fallbackUserData.about,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-  };
+    if (!response.ok) throw new Error("Failed to load profile");
+    
+    const json = await response.json();
+    return { ...defaultUser, ...json.data };
 }
 
+// 2. دالة جلب الأسئلة (عامة - لا تحتاج Token)
+export async function getQuestions(params = {}) {
+    const url = new URL(ENDPOINTS.GET_QUESTIONS);
+    
+    if (params.page) url.searchParams.append("page", params.page);
+    if (params.limit) url.searchParams.append("limit", params.limit);
+    if (params.sort) url.searchParams.append("sort", params.sort);
+    if (params.tag) url.searchParams.append("tag", params.tag);
+
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) throw new Error("Failed to load questions");
+    
+    const json = await response.json();
+    return {
+        questions: json.data || [],
+        total: json.total || 0,
+        totalPages: json.totalPages || 1
+    };
+}
