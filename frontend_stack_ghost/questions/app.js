@@ -1,4 +1,5 @@
 import { fetchUserData, fallbackUserData } from "./data.js";
+import api from '../js/api.js';
 
 const QUESTIONS_PER_PAGE = 7;
 const questionViewState = {
@@ -17,8 +18,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupNotificationDropdown();
   setupTagRemoval();
   setupQuestionsPage();
+  setupLogout();
   renderAnswers(cachedUser.answers, "newest");
 });
+
+function setupLogout() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await api.logout();
+    });
+  }
+}
 
 async function loadUser() {
   try {
@@ -44,11 +56,44 @@ function applyUserData(user) {
   });
 
   setImage("profile-image", user.profileImage);
+  setImage("profile-image-side", user.profileImage);
 
-  renderList("[data-tags]", user.tags, buildTagPill);
+  // Render followed tags in the right sidebar
+  if (user.followedTags && user.followedTags.length > 0) {
+    renderFollowedTags("[data-tags]", user.followedTags);
+  } else {
+    renderList("[data-tags]", user.tags || [], buildTagPill);
+  }
 
   renderList("[data-notifications]", user.notifications, buildNotificationItem);
   renderList("[data-notifications-dropdown]", user.notifications, buildNotificationItem);
+}
+
+function renderFollowedTags(selector, tags) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (!tags || tags.length === 0) {
+    container.innerHTML = '<span style="opacity: 0.6; padding: 10px; display: block;">No followed tags yet</span>';
+    return;
+  }
+
+  tags.forEach(tag => {
+    const pill = document.createElement("span");
+    pill.className = "tag";
+    pill.style.cursor = 'pointer';
+    pill.textContent = tag.name || tag.tag_name;
+    pill.title = tag.description || tag.name;
+    
+    pill.addEventListener('click', () => {
+      questionViewState.tag = tag.name || tag.tag_name;
+      questionViewState.page = 1;
+      renderQuestionsList();
+    });
+    
+    container.appendChild(pill);
+  });
 }
 
 function setImage(id, src) {
@@ -222,13 +267,13 @@ function updateQuestionsHero() {
   const hero = document.querySelector("[data-questions-top]");
 
   const accentCopy = {
-    newest: "Recent",
-    votes: "Popular",
-    oldest: "Previous",
+    newest: "My Recent",
+    votes: "My Popular",
+    oldest: "My Previous",
   };
 
   if (accent) {
-    accent.textContent = accentCopy[questionViewState.sort] ?? "Recent";
+    accent.textContent = accentCopy[questionViewState.sort] ?? "My Recent";
     accent.style.color = "#8567BA";
   }
 
@@ -378,6 +423,10 @@ function buildQuestionCard(question) {
   const votes = formatNumber(question.votes ?? 0);
   const answers = formatNumber(question.answers ?? 0);
   const views = formatNumber(question.views ?? 0);
+  const isClosed = question.is_closed || false;
+  const closedBadge = isClosed ? '<span class="pill pill--muted" style="background: #ff6b6b; color: white; margin-left: 8px;">[Closed]</span>' : '';
+  const summary = question.summary || '';
+  const createdDate = question.created_at ? new Date(question.created_at).toLocaleDateString() : '';
 
   card.innerHTML = `
     <div class="question-card__stats">
@@ -395,19 +444,30 @@ function buildQuestionCard(question) {
       </div>
     </div>
     <div class="question-card__body">
-      <h3>${question.title}</h3>
-      <div class="qa-card__tags">
+      <div class="question-card__title-row">
+        <h3>${question.title}</h3>
+        ${closedBadge}
+      </div>
+      ${summary ? `<p class="question-card__excerpt" style="margin: 8px 0; opacity: 0.8; font-size: 14px;">${summary}</p>` : ''}
+      <div class="qa-card__tags" style="margin-top: 8px;">
         ${(question.tags || [])
           .map((tag) => `<span class="tag tag--pill" data-tag="${tag}">${tag}</span>`)
           .join("")}
       </div>
+      ${createdDate ? `<div style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Asked on ${createdDate}</div>` : ''}
     </div>
   `;
 
   if (question.url) {
     card.addEventListener("click", (event) => {
       const isTag = event.target.closest(".tag");
-      if (isTag) return;
+      if (isTag) {
+        const tagName = isTag.dataset.tag;
+        questionViewState.tag = tagName;
+        questionViewState.page = 1;
+        renderQuestionsList();
+        return;
+      }
       window.location.href = question.url;
     });
   }

@@ -11,13 +11,22 @@ const TAB_COPY = {
   },
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   document.body.classList.add("page-ready");
   
-  // Check if already logged in
+  // Check if already logged in with valid token
   if (api.isAuthenticated()) {
-    window.location.href = '../home/index.html';
-    return;
+    try {
+      // Try to get current user to validate token
+      await api.getCurrentUser();
+      // If successful, redirect to home
+      window.location.href = '../home/index.html';
+      return;
+    } catch (error) {
+      // Token is invalid/expired, clear it
+      console.warn('Token validation failed, clearing tokens:', error.message);
+      api.clearTokens();
+    }
   }
   
   setupTabs();

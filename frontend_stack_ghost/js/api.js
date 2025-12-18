@@ -46,13 +46,57 @@ class APIClient {
         return userData ? JSON.parse(userData) : null;
     }
 
-    // Check if user is authenticated
+    // Check if user is authenticated (has token)
+    // Note: This doesn't validate if token is expired, use with caution
     isAuthenticated() {
         return !!this.getAccessToken();
+    }
+    
+    // Validate if token is still valid by checking expiration
+    isTokenValid() {
+        const token = this.getAccessToken();
+        if (!token) return false;
+        
+        try {
+            // Decode JWT without verification (just to check expiration)
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const exp = payload.exp * 1000; // Convert to milliseconds
+            const now = Date.now();
+            
+            // Check if token is expired (with 5 minute buffer)
+            return exp > (now + 5 * 60 * 1000);
+        } catch (error) {
+            // If we can't decode, assume invalid
+            return false;
+        }
+    }
+    
+    // Clear expired tokens proactively
+    clearExpiredTokens() {
+        const token = this.getAccessToken();
+        if (token && !this.isTokenValid()) {
+            console.log('Clearing expired access token');
+            // If access token is expired, try to refresh
+            // If refresh also fails, tokens will be cleared
+            const refreshToken = this.getRefreshToken();
+            if (!refreshToken) {
+                // No refresh token, clear everything
+                this.clearTokens();
+                return true;
+            }
+            // Refresh token exists, let the next request handle refresh
+            // But clear access token since it's expired
+            localStorage.removeItem('accessToken');
+            return true;
+        }
+        return false;
     }
 
     // Make HTTP request with automatic token refresh
     async request(endpoint, options = {}) {
+        // Clear expired tokens before making request
+        this.clearExpiredTokens();
+        
         const url = `${this.baseURL}${endpoint}`;
         const token = this.getAccessToken();
 
@@ -83,24 +127,67 @@ class APIClient {
                     });
                     return await this.handleResponse(retryResponse);
                 } else {
+                    // Refresh failed, clear tokens and redirect
                     this.clearTokens();
-                    window.location.href = '/signin,login/index.html';
+                    // Only redirect if not already on login page
+                    if (!window.location.pathname.includes('signin,login')) {
+                        window.location.href = '/signin,login/index.html';
+                    }
                     throw new Error('Session expired. Please login again.');
                 }
             }
 
             return await this.handleResponse(response);
         } catch (error) {
+            // If it's a network error or the error message indicates expired session
+            if (error.message && (error.message.includes('expired') || error.message.includes('Invalid credentials'))) {
+                // Clear tokens if session expired
+                if (this.getRefreshToken()) {
+                    this.clearTokens();
+                    if (!window.location.pathname.includes('signin,login')) {
+                        window.location.href = '/signin,login/index.html';
+                    }
+                }
+            }
             console.error('API Request Error:', error);
             throw error;
         }
     }
 
     async handleResponse(response) {
-        const data = await response.json();
+        // Handle empty responses
+        const contentType = response.headers.get('content-type');
+        let data;
+        
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            // If response is not JSON, try to get text or return empty object
+            const text = await response.text();
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch {
+                data = { message: text || 'API request failed' };
+            }
+        }
 
         if (!response.ok) {
-            throw new Error(data.message || 'API request failed');
+            // Check for specific error messages
+            const errorMessage = data.message || 'API request failed';
+            
+            // If it's an authentication error, clear tokens
+            if (response.status === 401 || response.status === 403) {
+                if (errorMessage.includes('Invalid credentials') || 
+                    errorMessage.includes('expired') || 
+                    errorMessage.includes('Unauthorized')) {
+                    // Clear tokens but don't redirect here (let request() handle it)
+                    if (response.status === 401 && !this.getRefreshToken()) {
+                        this.clearTokens();
+                    }
+                }
+            }
+            
+            throw new Error(errorMessage);
         }
 
         return data;
@@ -110,7 +197,10 @@ class APIClient {
     async refreshAccessToken() {
         try {
             const refreshToken = this.getRefreshToken();
-            if (!refreshToken) return false;
+            if (!refreshToken) {
+                console.warn('No refresh token available');
+                return false;
+            }
 
             const response = await fetch(`${this.baseURL}/auth/refresh-token`, {
                 method: 'POST',
@@ -120,12 +210,22 @@ class APIClient {
 
             if (response.ok) {
                 const data = await response.json();
-                this.saveTokens(data.accessToken, data.refreshToken);
-                return true;
+                if (data.success && data.accessToken) {
+                    this.saveTokens(data.accessToken, data.refreshToken);
+                    return true;
+                }
+            } else {
+                // If refresh fails, the token is invalid/expired
+                const errorData = await response.json().catch(() => ({}));
+                console.warn('Token refresh failed:', errorData.message || 'Refresh token expired');
+                // Clear tokens since refresh failed
+                this.clearTokens();
             }
             return false;
         } catch (error) {
-            console.error('Token refresh failed:', error);
+            console.error('Token refresh error:', error);
+            // Clear tokens on error
+            this.clearTokens();
             return false;
         }
     }

@@ -12,12 +12,18 @@ import prisma from '../lib/prisma.js';
  * Retrieves all users from the database
  * If admin: shows all data including is_active
  * If regular user: shows only public profile data
+ * Excludes the current logged-in user from the results
  */
-const getAllUsers = async (page = 1, limit = 100, isAdmin = false) => {
+const getAllUsers = async (page = 1, limit = 100, isAdmin = false, excludeUserId = null, currentUserId = null) => {
     const skip = (page - 1) * limit;
     
-    // Only show active users to non-admins
-    const where = isAdmin ? {} : { is_active: true };
+    // Only show active users to non-admins, and exclude current user
+    const where = isAdmin 
+        ? (excludeUserId ? { user_id: { not: excludeUserId } } : {})
+        : { 
+            is_active: true,
+            ...(excludeUserId ? { user_id: { not: excludeUserId } } : {})
+        };
     
     const totalUsers = await prisma.users.count({ where });
     const users = await prisma.users.findMany({
@@ -46,11 +52,28 @@ const getAllUsers = async (page = 1, limit = 100, isAdmin = false) => {
             }
         }
     });
+    
+    // Get follow status for each user if currentUserId is provided
+    let followedUserIds = [];
+    if (currentUserId) {
+        const followedUsers = await prisma.follow_Users.findMany({
+            where: { user_id: currentUserId },
+            select: { followed_user_id: true }
+        });
+        followedUserIds = followedUsers.map(fu => fu.followed_user_id);
+    }
+    
+    // Add follow status to each user
+    const usersWithFollowStatus = users.map(user => ({
+        ...user,
+        isFollowed: currentUserId ? followedUserIds.includes(user.user_id) : false
+    }));
+    
     return {
-        users,
+        users: usersWithFollowStatus,
         totalUsers,
         totalPages: Math.ceil(totalUsers / limit),
-        count: users.length
+        count: usersWithFollowStatus.length
     };
 }
 

@@ -39,19 +39,28 @@ async function loadQuestions() {
   try {
     const response = await api.getQuestions(1, 20);
     if (response.success && response.data) {
-      allQuestions = response.data.map(q => ({
-        question_id: q.question_id,
-        title: q.title,
-        summary: q.summary,
-        votes: q.score || 0,
-        answers: q.answers_count || 0,
-        views: q.views || 0,
-        tags: q.tags || [],
-        author: q.author,
-        is_closed: q.is_closed,
-        created_at: q.created_at,
-        url: `../questions/index.html?id=${q.question_id}`
-      }));
+      allQuestions = response.data.map(q => {
+        // Handle author object from API
+        const authorObj = q.author || q.Author || {};
+        const authorUsername = authorObj.username || 'Unknown';
+        const authorId = authorObj.user_id || null;
+        
+        return {
+          question_id: q.question_id,
+          title: q.title,
+          summary: q.summary,
+          votes: q.score || 0,
+          answers: q.answers_count || 0,
+          views: q.views || 0,
+          tags: q.tags || [],
+          author: authorUsername,
+          author_id: authorId,
+          author_username: authorUsername,
+          is_closed: q.is_closed,
+          created_at: q.created_at,
+          url: `../questions/index.html?id=${q.question_id}`
+        };
+      });
       
       renderQuestionsGrid(allQuestions);
     }
@@ -280,6 +289,9 @@ function buildQuestionCard(q) {
   card.style.cursor = 'pointer';
   
   const statusBadge = q.is_closed ? ' <span style="color: #ff6b6b; font-size: 12px;">[closed]</span>' : '';
+  const authorName = q.author_username || q.author || 'Unknown';
+  const authorLink = q.author_id ? `../profile/index.html?id=${q.author_id}` : '#';
+  const createdDate = q.created_at ? new Date(q.created_at).toLocaleDateString() : '';
   
   card.innerHTML = `
     <div class="question-card__stats">
@@ -298,16 +310,25 @@ function buildQuestionCard(q) {
     </div>
     <div class="question-card__body">
       <h3>${q.title}${statusBadge}</h3>
-      ${q.summary ? `<p>${q.summary}</p>` : ''}
+      ${q.summary ? `<p style="margin: 8px 0; opacity: 0.8;">${q.summary}</p>` : ''}
       ${q.tags && q.tags.length > 0 ? `
         <div class="qa-card__tags" style="margin-top: 12px;">
           ${q.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
         </div>
       ` : ''}
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px; font-size: 13px; opacity: 0.7;">
+        <span>👤</span>
+        <a href="${authorLink}" style="color: #8567BA; text-decoration: none; font-weight: 500;" onclick="event.stopPropagation();">${authorName}</a>
+        ${createdDate ? `<span style="margin-left: auto;">📅 ${createdDate}</span>` : ''}
+      </div>
     </div>
   `;
   
-  card.addEventListener('click', () => {
+  card.addEventListener('click', (e) => {
+    // Don't navigate if clicking on author link
+    if (e.target.closest('a')) {
+      return;
+    }
     window.location.href = q.url;
   });
   
@@ -433,19 +454,28 @@ function setupSearch() {
       try {
         const response = await api.searchQuestions(query, 1, 20);
         if (response.success && response.data) {
-          const searchResults = response.data.map(q => ({
-            question_id: q.question_id,
-            title: q.title,
-            summary: q.summary,
-            votes: q.score || 0,
-            answers: q.answers_count || 0,
-            views: q.views || 0,
-            tags: q.tags || [],
-            author: q.author,
-            is_closed: q.is_closed,
-            created_at: q.created_at,
-            url: `../questions/index.html?id=${q.question_id}`
-          }));
+          const searchResults = response.data.map(q => {
+            // Handle author object from API
+            const authorObj = q.author || q.Author || {};
+            const authorUsername = authorObj.username || 'Unknown';
+            const authorId = authorObj.user_id || null;
+            
+            return {
+              question_id: q.question_id,
+              title: q.title,
+              summary: q.summary,
+              votes: q.score || 0,
+              answers: q.answers_count || 0,
+              views: q.views || 0,
+              tags: q.tags || [],
+              author: authorUsername,
+              author_id: authorId,
+              author_username: authorUsername,
+              is_closed: q.is_closed,
+              created_at: q.created_at,
+              url: `../questions/index.html?id=${q.question_id}`
+            };
+          });
           renderQuestionsGrid(searchResults);
         }
       } catch (error) {

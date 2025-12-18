@@ -25,7 +25,10 @@ class UserController {
             const userRole = req.user?.Roles?.role_name;
             const isAdmin = userRole === 'admin' || userRole === 'moderator';
             
-            const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit, isAdmin);
+            // Get current user ID to exclude from results and check follow status
+            const currentUserId = req.user?.user_id || null;
+            
+            const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit, isAdmin, currentUserId, currentUserId);
             res.status(200).json({
                 success: true,
                 count: users.length,

@@ -1,26 +1,18 @@
-// All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
-const TAG_ENDPOINT = "/api/tags";
-const FOLLOW_ENDPOINT = (id) => `/api/tags/${encodeURIComponent(id)}/follow`;
+/**
+ * @file data.js
+ * @description Data fetching for tags page - connects to backend API
+ */
+
+import api from '../js/api.js';
 
 export const fallbackUserData = {
-  username: "Amr",
-  profileImage: "img/rafiki.png",
-  reputation: 5000,
-  asked: 100,
-  answered: 50,
-  about:
-    "Expert in distributed systems and service-oriented architectures (microservices, event-driven, CQRS).",
-  notifications: [
-    "your answer has been accepted..",
-    "your question has been accepte..",
-    "you clamed a silver ghost badg..",
-  ],
-  badges: [
-    { label: "Bronze", icon: "img/vector-5.svg" },
-    { label: "Silver", icon: "img/vector-6.svg" },
-    { label: "Gold", icon: "img/vector-7.svg" },
-  ],
+  username: "Guest",
+  profileImage: "../signin,login/ghost.png",
+  reputation: 0,
+  asked: 0,
+  answered: 0,
+  notifications: [],
+  badges: [],
   questions: [
     {
       title: "How to change locale for a vbs script?",
@@ -239,29 +231,55 @@ export const fallbackTags = [
 ];
 
 export async function fetchTags() {
-  const response = await fetch(TAG_ENDPOINT, { credentials: "include" });
+  try {
+    if (!api.isAuthenticated()) {
+      window.location.href = '../signin,login/index.html';
+      return [];
+    }
 
-  if (!response.ok) {
-    throw new Error(`Failed to load tag data: ${response.status}`);
+    // Fetch all tags with pagination (fetch more to show all)
+    const response = await api.getTags(1, 200, ''); // Fetch up to 200 tags
+    
+    if (response.success && response.tags) {
+      return response.tags.map(tag => ({
+        id: tag.tag_id,
+        tag_id: tag.tag_id,
+        name: tag.tag_name,
+        description: tag.description || '',
+        questionCount: tag.questionCount || 0,
+        followers: tag.followers || 0,
+        isFollowed: tag.isFollowed || false,
+        createdAt: tag.created_at ? new Date(tag.created_at).getTime() : Date.now()
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    if (error.message?.includes('Session expired') || error.message?.includes('Unauthorized')) {
+      api.clearTokens();
+      window.location.href = '../signin,login/index.html';
+    }
+    return [];
   }
-
-  const payload = await response.json();
-  return Array.isArray(payload?.tags) ? payload.tags : payload;
 }
 
 export async function updateFollowStatus(tagId, shouldFollow) {
-  const response = await fetch(FOLLOW_ENDPOINT(tagId), {
-    method: shouldFollow ? "POST" : "DELETE",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ follow: shouldFollow }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to update follow status: ${response.status}`);
+  try {
+    const response = await api.toggleFollowTag(tagId);
+    
+    if (response.success) {
+      // Return updated tag data
+      return {
+        tag_id: tagId,
+        isFollowed: response.status === 'followed'
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error updating follow status:', error);
+    throw error;
   }
-
-  const payload = await response.json();
-  return payload?.tag ?? null;
 }
 

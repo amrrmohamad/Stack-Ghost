@@ -7,6 +7,7 @@
  */
 
 import * as tagService from '../utils/tagService.js';
+import jwt from 'jsonwebtoken';
 
 class TagController {
 
@@ -39,10 +40,28 @@ class TagController {
     async getAllTags(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
+            const limit = parseInt(req.query.limit) || 100; // Allow fetching more tags
             const q = req.query.q || '';
+            
+            // Try to get user ID from req.user (if auth middleware was used) or from token
+            let userId = req.user?.user_id || null;
+            
+            // If not set by middleware, try to extract from token (optional auth)
+            if (!userId) {
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    try {
+                        const token = authHeader.split(' ')[1];
+                        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                        userId = decoded.user_id || null;
+                    } catch (err) {
+                        // Token invalid or expired, continue without user ID
+                        userId = null;
+                    }
+                }
+            }
 
-            const result = await tagService.getAllTags(page, limit, q);
+            const result = await tagService.getAllTags(page, limit, q, userId);
 
             res.status(200).json({
                 success: true,
@@ -51,6 +70,7 @@ class TagController {
             });
 
         } catch (error) {
+            console.error('Get all tags error:', error);
             res.status(500).json({ success: false, message: 'Server error' });
         }
     }

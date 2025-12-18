@@ -16,46 +16,107 @@ export async function fetchUserData() {
     // Fetch current user data
     const userResponse = await api.getCurrentUser();
     const user = userResponse.data;
+    const userId = user.user_id;
 
-    // Fetch all questions
-    const questionsResponse = await api.getQuestions(1, 50); // Fetch more for pagination
-    const questions = questionsResponse.data || [];
+    // Fetch logged-in user's questions with complete profile
+    let userQuestions = [];
+    let followedTags = [];
+    
+    try {
+      // Get complete profile which includes questions and followed tags
+      const profileResponse = await api.getCompleteProfile(userId);
+      
+      if (profileResponse.success && profileResponse.data) {
+        // Get user's questions
+        userQuestions = (profileResponse.data.questions || []).map(q => ({
+          question_id: q.question_id,
+          title: q.title,
+          summary: q.summary || q.body?.substring(0, 150) || '',
+          votes: q.votes || q.score || 0,
+          answers: q.answers || q.answers_count || 0,
+          views: q.views || q.views_count || 0,
+          tags: Array.isArray(q.tags) ? q.tags : (q.Question_Tags?.map(qt => qt.Tags?.tag_name) || []),
+          is_closed: q.is_closed || false,
+          created_at: q.created_at,
+          createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
+          url: `index.html?id=${q.question_id}`
+        }));
+
+        // Get followed tags
+        followedTags = (profileResponse.data.followedTags || []).map(t => ({
+          tag_id: t.tag_id,
+          name: t.tag_name || t.name,
+          description: t.description || '',
+          posts: t.posts || t.questionCount || 0
+        }));
+      }
+    } catch (error) {
+      console.warn('Could not fetch complete profile, trying alternative methods:', error);
+      
+      // Fallback: try to get questions directly
+      try {
+        const questionsResponse = await api.getQuestions(1, 100);
+        if (questionsResponse.success && questionsResponse.data) {
+          // Filter to only show logged-in user's questions
+          userQuestions = questionsResponse.data
+            .filter(q => q.user_id === userId)
+            .map(q => ({
+              question_id: q.question_id,
+              title: q.title,
+              summary: q.summary || q.body?.substring(0, 150) || '',
+              votes: q.score || q.votes || 0,
+              answers: q.answers_count || q.answers || 0,
+              views: q.views_count || q.views || 0,
+              tags: q.tags || [],
+              is_closed: q.is_closed || false,
+              created_at: q.created_at,
+              createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
+              url: `index.html?id=${q.question_id}`
+            }));
+        }
+      } catch (qError) {
+        console.error('Error fetching questions:', qError);
+      }
+    }
 
     // Fetch user's notifications
     let notifications = [];
     try {
-      const notifResponse = await api.getNotifications(user.user_id, 1, 5);
+      const notifResponse = await api.getNotifications(userId, 1, 5);
       notifications = notifResponse.data?.map(n => n.content) || [];
     } catch (error) {
       console.warn('Could not fetch notifications:', error);
     }
 
-    // Fetch tags
-    let tags = [];
-    try {
-      const tagsResponse = await api.getTags(1, 10);
-      tags = tagsResponse.tags?.map(t => t.tag_name) || [];
-    } catch (error) {
-      console.warn('Could not fetch tags:', error);
+    // If no followed tags from profile, try to get them from tags endpoint
+    if (followedTags.length === 0) {
+      try {
+        const tagsResponse = await api.getTags(1, 100);
+        if (tagsResponse.success && tagsResponse.tags) {
+          // Get tags that user is following (this would need a separate endpoint)
+          // For now, we'll show all tags as a fallback
+          followedTags = tagsResponse.tags.slice(0, 10).map(t => ({
+            tag_id: t.tag_id,
+            name: t.tag_name,
+            description: t.description || '',
+            posts: t.questionCount || 0
+          }));
+        }
+      } catch (error) {
+        console.warn('Could not fetch followed tags:', error);
+      }
     }
 
     return {
       username: user.username || 'User',
       reputation: user.reputation || 0,
-      asked: user._count?.AuthoredQuestions || 0,
+      asked: user._count?.AuthoredQuestions || userQuestions.length || 0,
       answered: user._count?.Answers || 0,
-      profileImage: user.profile_image || '../signin,login/img/rafiki.png',
+      profileImage: user.profile_image || '../signin,login/ghost.png',
       notifications: notifications.length > 0 ? notifications : ['No notifications yet'],
-      tags: tags.length > 0 ? tags : ['javascript', 'python', 'react'],
-      questions: questions.map(q => ({
-        title: q.title,
-        votes: q.score || 0,
-        answers: q.answers_count || 0,
-        views: q.views || 0,
-        tags: q.tags || [],
-        url: `../questions/index.html?id=${q.question_id}`,
-        createdAt: new Date(q.created_at).getTime()
-      })),
+      tags: followedTags.map(t => t.name),
+      followedTags: followedTags,
+      questions: userQuestions,
       answers: [],
       tagBackgrounds: {
         javascript: 'linear-gradient(135deg, #f7df1e 0%, #d4a017 100%)',

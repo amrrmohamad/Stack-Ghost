@@ -238,16 +238,42 @@ export const isFollowingTag = async (userId, tagId) => {
  * Get follow statistics for a user
  */
 export const getFollowStats = async (userId) => {
+    const userIdInt = parseInt(userId);
+    
+    if (!userIdInt || isNaN(userIdInt)) {
+        console.error('Invalid userId in getFollowStats:', userId);
+        return { followersCount: 0, followingCount: 0, followedTagsCount: 0 };
+    }
+
     const followersCount = await prisma.follow_Users.count({
-        where: { followed_user_id: parseInt(userId) }
+        where: { followed_user_id: userIdInt }
     });
 
-    const followingCount = await prisma.follow_Users.count({
-        where: { user_id: parseInt(userId) }
+    // Get actual following records to verify
+    const followingRecords = await prisma.follow_Users.findMany({
+        where: { user_id: userIdInt },
+        select: { followed_user_id: true }
+    });
+    
+    // Count unique followed users (in case there are any issues with data)
+    const uniqueFollowedUsers = new Set(followingRecords.map(r => r.followed_user_id));
+    const followingCount = uniqueFollowedUsers.size;
+    
+    // Log to debug - check if there are duplicates or issues
+    if (followingRecords.length !== uniqueFollowedUsers.size) {
+        console.warn(`⚠️ Duplicate records detected for user ${userIdInt}: total records=${followingRecords.length}, unique users=${uniqueFollowedUsers.size}`);
+    }
+    
+    console.log(`Follow stats for user ${userIdInt}:`, { 
+        followersCount, 
+        followingCount,
+        totalRecords: followingRecords.length,
+        uniqueFollowedUsers: uniqueFollowedUsers.size,
+        sampleFollowedUserIds: Array.from(uniqueFollowedUsers).slice(0, 10)
     });
 
     const followedTagsCount = await prisma.follow_Tags.count({
-        where: { user_id: parseInt(userId) }
+        where: { user_id: userIdInt }
     });
 
     return { followersCount, followingCount, followedTagsCount };

@@ -37,8 +37,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupNotificationsDropdown();
     setupTagFilterBehavior();
     setupFollowButton();
+    setupFollowingModal();
     setupNavigation();
     setupLogout();
+    // setupEditProfile is called inside setupFollowButton if isOwnProfile
     
     hideLoadingState();
   } catch (error) {
@@ -74,58 +76,404 @@ function hideLoadingState() {
   });
 }
 
+let followingModal = null;
+
+async function setupFollowingModal() {
+  // Create modal if it doesn't exist
+  if (!document.getElementById('following-modal')) {
+    const modal = document.createElement('div');
+    modal.id = 'following-modal';
+    modal.className = 'modal';
+    modal.style.display = 'none';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2>👥 Users You Follow</h2>
+          <button id="close-following-modal" class="modal-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div id="following-list" style="max-height: 60vh; overflow-y: auto;">
+          <div style="padding: 40px; text-align: center; opacity: 0.6;">Loading...</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    followingModal = modal;
+    
+    // Close button
+    const closeBtn = document.getElementById('close-following-modal');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeFollowingModal);
+    }
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeFollowingModal();
+    });
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display !== 'none') {
+        closeFollowingModal();
+      }
+    });
+  } else {
+    followingModal = document.getElementById('following-modal');
+  }
+}
+
+async function openFollowingModal() {
+  if (!followingModal) {
+    await setupFollowingModal();
+  }
+  
+  const listContainer = document.getElementById('following-list');
+  if (!listContainer) return;
+  
+  // Show loading state
+  listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">Loading users...</div>';
+  
+  // Show modal
+  followingModal.style.display = 'flex';
+  followingModal.style.position = 'fixed';
+  followingModal.style.zIndex = '99999';
+  followingModal.style.top = '0';
+  followingModal.style.left = '0';
+  followingModal.style.right = '0';
+  followingModal.style.bottom = '0';
+  followingModal.style.width = '100%';
+  followingModal.style.height = '100%';
+  document.body.classList.add('modal-open');
+  
+  try {
+    // Get current user ID
+    const loggedInUser = api.getUser();
+    if (!loggedInUser || !loggedInUser.user_id) {
+      throw new Error('Not logged in');
+    }
+    
+    // Fetch following users
+    const response = await api.getFollowing(loggedInUser.user_id, 1, 100);
+    
+    if (response.success && response.data && response.data.length > 0) {
+      renderFollowingList(response.data);
+    } else {
+      listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">You are not following any users yet.</div>';
+    }
+  } catch (error) {
+    console.error('Error loading following users:', error);
+    listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6; color: #ff6b6b;">Failed to load users. Please try again.</div>';
+  }
+}
+
+function renderFollowingList(users) {
+  const listContainer = document.getElementById('following-list');
+  if (!listContainer) return;
+  
+  listContainer.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">You are not following any users yet.</div>';
+    return;
+  }
+  
+  // Create a grid container
+  const grid = document.createElement('div');
+  grid.style.cssText = `
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 8px;
+  `;
+  
+  users.forEach(user => {
+    const card = document.createElement('div');
+    card.className = 'glass';
+    card.style.cssText = `
+      padding: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    `;
+    
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'translateY(-2px)';
+      card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'translateY(0)';
+      card.style.boxShadow = 'none';
+    });
+    
+    const profileImage = user.profile_image || '../signin,login/ghost.png';
+    const username = user.username || 'User';
+    const reputation = user.reputation || 0;
+    const role = user.Roles?.role_name || 'user';
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <img src="${profileImage}" alt="${username}" 
+             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);"
+             onerror="this.src='../signin,login/ghost.png'">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 16px; color: white; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${username}
+          </div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.6); text-transform: capitalize;">
+            ${role}
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #ffd43b; font-size: 14px;">⭐</span>
+        <span style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500;">
+          ${formatNumber(reputation)} reputation
+        </span>
+      </div>
+    `;
+    
+    // Click to view profile
+    card.addEventListener('click', () => {
+      window.location.href = `index.html?id=${user.user_id}`;
+    });
+    
+    grid.appendChild(card);
+  });
+  
+  listContainer.appendChild(grid);
+}
+
+function closeFollowingModal() {
+  if (followingModal) {
+    const content = followingModal.querySelector('.modal-content');
+    if (content) {
+      content.style.animation = 'slideOut 0.2s ease';
+      setTimeout(() => {
+        followingModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        if (content) content.style.animation = '';
+      }, 200);
+    } else {
+      followingModal.style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+  }
+}
+
 function setupFollowButton() {
   const followBtn = document.querySelector('.profile-header__follow');
-  if (!followBtn) return;
+  const editBtn = document.getElementById('edit-profile-btn');
   
   if (isOwnProfile) {
-    followBtn.style.display = 'none';
+    if (followBtn) followBtn.style.display = 'none';
+    if (editBtn) editBtn.style.display = 'block';
+    setupEditProfile();
     return;
   }
 
-  followBtn.style.display = 'block';
-  
-  // Update button state
-  if (cachedUser.isFollowing === true) {
-    followBtn.textContent = 'UNFOLLOW';
-    followBtn.classList.add('btn--primary');
-  } else {
-    followBtn.textContent = 'FOLLOW';
-    followBtn.classList.remove('btn--primary');
-  }
+  if (followBtn) {
+    followBtn.style.display = 'block';
+    
+    // Update button state
+    if (cachedUser.isFollowing === true) {
+      followBtn.textContent = 'UNFOLLOW';
+      followBtn.classList.add('btn--primary');
+    } else {
+      followBtn.textContent = 'FOLLOW';
+      followBtn.classList.remove('btn--primary');
+    }
 
-  followBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    followBtn.disabled = true;
-    followBtn.textContent = '...';
+    followBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      followBtn.disabled = true;
+      followBtn.textContent = '...';
 
-    try {
-      const response = await api.toggleFollowUser(currentUserId);
-      if (response.success) {
-        cachedUser.isFollowing = response.status === 'followed';
-        cachedUser.followers += response.status === 'followed' ? 1 : -1;
-        
-        // Update button
-        if (cachedUser.isFollowing) {
-          followBtn.textContent = 'UNFOLLOW';
-          followBtn.classList.add('btn--primary');
-        } else {
-          followBtn.textContent = 'FOLLOW';
-          followBtn.classList.remove('btn--primary');
+      try {
+        const response = await api.toggleFollowUser(currentUserId);
+        if (response.success) {
+          cachedUser.isFollowing = response.status === 'followed';
+          cachedUser.followers += response.status === 'followed' ? 1 : -1;
+          
+          // Update button
+          if (cachedUser.isFollowing) {
+            followBtn.textContent = 'UNFOLLOW';
+            followBtn.classList.add('btn--primary');
+          } else {
+            followBtn.textContent = 'FOLLOW';
+            followBtn.classList.remove('btn--primary');
+          }
+          
+          // Update followers count
+          document.querySelectorAll('[data-followers]').forEach(el => {
+            animateNumber(el, parseInt(el.textContent.replace(/,/g, '')) || 0, cachedUser.followers, 500);
+          });
         }
-        
-        // Update followers count
-        document.querySelectorAll('[data-followers]').forEach(el => {
-          animateNumber(el, parseInt(el.textContent.replace(/,/g, '')) || 0, cachedUser.followers, 500);
-        });
+      } catch (error) {
+        console.error('Error toggling follow:', error);
+        alert('Failed to update follow status');
+      } finally {
+        followBtn.disabled = false;
       }
-    } catch (error) {
-      console.error('Error toggling follow:', error);
-      alert('Failed to update follow status');
-    } finally {
-      followBtn.disabled = false;
+    });
+  }
+  
+  if (editBtn) editBtn.style.display = 'none';
+}
+
+function setupEditProfile() {
+  const editBtn = document.getElementById('edit-profile-btn');
+  const modal = document.getElementById('edit-profile-modal');
+  const closeBtn = document.getElementById('close-edit-modal');
+  const cancelBtn = document.getElementById('cancel-edit-profile');
+  const form = document.getElementById('edit-profile-form');
+  
+  if (!editBtn || !modal) return;
+  
+  // Open modal
+  editBtn.addEventListener('click', () => {
+    // First, scroll page down to the end (bottom) smoothly
+    const scrollTarget = document.documentElement.scrollHeight - window.innerHeight;
+    
+    window.scrollTo({
+      top: scrollTarget,
+      behavior: 'smooth'
+    });
+    
+    // Populate form with current data
+    document.getElementById('edit-username').value = cachedUser.username || '';
+    document.getElementById('edit-bio').value = cachedUser.bio || '';
+    document.getElementById('edit-profile-image').value = cachedUser.profileImage || '';
+    
+    // Show modal after a short delay to allow scroll animation
+    setTimeout(() => {
+      modal.style.display = 'flex';
+      modal.style.position = 'fixed';
+      modal.style.zIndex = '99999';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.right = '0';
+      modal.style.bottom = '0';
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      
+      // Prevent body scroll but allow modal scroll
+      document.body.classList.add('modal-open');
+      
+      // Scroll modal content to top
+      modal.scrollTop = 0;
+      const content = modal.querySelector('.modal-content');
+      if (content) {
+        content.scrollTop = 0;
+      }
+    }, 400); // Wait for scroll animation to complete
+  });
+  
+  // Close modal with animation
+  const closeModal = () => {
+    const content = modal.querySelector('.modal-content');
+    if (content) {
+      content.style.animation = 'slideOut 0.2s ease';
+      setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        // Reset scroll position
+        modal.scrollTop = 0;
+        if (content) content.scrollTop = 0;
+        content.style.animation = '';
+      }, 200);
+    } else {
+      modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      modal.scrollTop = 0;
+    }
+  };
+  
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  
+  // Close on outside click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'block') {
+      closeModal();
     }
   });
+  
+  // Handle form submission
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      
+      try {
+        const updates = {
+          username: document.getElementById('edit-username').value.trim(),
+          bio: document.getElementById('edit-bio').value.trim(),
+          profile_image: document.getElementById('edit-profile-image').value.trim() || null
+        };
+        
+        const response = await api.updateProfile(updates);
+        
+        if (response.success) {
+          // Update cached user data
+          cachedUser.username = updates.username;
+          cachedUser.bio = updates.bio;
+          if (updates.profile_image) {
+            cachedUser.profileImage = updates.profile_image;
+          }
+          
+          // Update UI
+          applyUserData(cachedUser);
+          
+          // Show success message
+          showToast('Profile updated successfully!', 'success');
+          
+          // Close modal
+          closeModal();
+        } else {
+          throw new Error(response.message || 'Failed to update profile');
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        showToast(error.message || 'Failed to update profile. Please try again.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+  }
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: ${type === 'error' ? '#ff6b6b' : '#51cf66'};
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function setupNavigation() {
@@ -173,7 +521,37 @@ function applyUserData(user) {
   });
 
   document.querySelectorAll("[data-following]").forEach((el) => {
-    animateNumber(el, 0, user.following, 1000);
+    // Make following count clickable only if viewing own profile
+    if (isOwnProfile) {
+      // Remove existing click listeners by cloning
+      const newEl = el.cloneNode(true);
+      el.parentNode.replaceChild(newEl, el);
+      
+      // Set up the new element
+      newEl.style.cursor = 'pointer';
+      newEl.style.textDecoration = 'underline';
+      newEl.style.textDecorationStyle = 'dotted';
+      newEl.title = 'Click to view users you follow';
+      newEl.addEventListener('click', () => {
+        openFollowingModal();
+      });
+      
+      // Parse current text as start value, or use 0
+      const currentText = newEl.textContent.trim().replace(/,/g, '');
+      const startValue = parseInt(currentText) || 0;
+      
+      // Animate the number on the NEW element
+      animateNumber(newEl, startValue, user.following, 1000);
+    } else {
+      el.style.cursor = 'default';
+      el.style.textDecoration = 'none';
+      el.title = '';
+      // Parse current text as start value, or use 0
+      const currentText = el.textContent.trim().replace(/,/g, '');
+      const startValue = parseInt(currentText) || 0;
+      // Animate the number
+      animateNumber(el, startValue, user.following, 1000);
+    }
   });
 
   // Update profile images
@@ -264,33 +642,193 @@ function renderBadges(badges) {
   if (!container) return;
   container.innerHTML = '';
 
-  if (!badges || badges.length === 0) {
-    container.innerHTML = '<p style="opacity: 0.6; padding: 20px; text-align: center;">No badges yet</p>';
-    return;
+  // Badge type configurations
+  const badgeConfigs = {
+    BRONZE: {
+      color: '#cd7f32',
+      icon: '🥉',
+      name: 'Bronze',
+      gradient: 'linear-gradient(135deg, #cd7f32 0%, #b87333 100%)',
+      shadow: '0 2px 8px rgba(205, 127, 50, 0.3)'
+    },
+    SILVER: {
+      color: '#c0c0c0',
+      icon: '🥈',
+      name: 'Silver',
+      gradient: 'linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%)',
+      shadow: '0 2px 8px rgba(192, 192, 192, 0.3)'
+    },
+    GOLD: {
+      color: '#ffd700',
+      icon: '🥇',
+      name: 'Gold',
+      gradient: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
+      shadow: '0 2px 8px rgba(255, 215, 0, 0.4)'
+    }
+  };
+
+  // Count badges by type
+  const badgeCounts = {
+    GOLD: 0,
+    SILVER: 0,
+    BRONZE: 0
+  };
+
+  if (badges && badges.length > 0) {
+    badges.forEach(badge => {
+      const type = badge.badge_type || 'BRONZE';
+      if (badgeCounts[type] !== undefined) {
+        badgeCounts[type]++;
+      } else {
+        badgeCounts.BRONZE++;
+      }
+    });
   }
 
-  badges.forEach(badge => {
+  // Always render all three badge types with counts
+  ['GOLD', 'SILVER', 'BRONZE'].forEach(type => {
+    const config = badgeConfigs[type];
+    const count = badgeCounts[type] || 0;
+    
     const wrapper = document.createElement("div");
     wrapper.className = "badge";
+    wrapper.style.cssText = `
+      border: 2px solid ${config.color};
+      background: ${count > 0 ? config.gradient : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'};
+      box-shadow: ${count > 0 ? config.shadow : '0 2px 8px rgba(0,0,0,0.1)'};
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      opacity: ${count > 0 ? '1' : '0.6'};
+    `;
+    
+    wrapper.addEventListener('mouseenter', () => {
+      wrapper.style.transform = 'scale(1.05)';
+      if (count > 0) {
+        wrapper.style.boxShadow = config.shadow.replace('0.3', '0.5').replace('0.4', '0.6');
+      }
+    });
+    
+    wrapper.addEventListener('mouseleave', () => {
+      wrapper.style.transform = 'scale(1)';
+      wrapper.style.boxShadow = count > 0 ? config.shadow : '0 2px 8px rgba(0,0,0,0.1)';
+    });
 
-    const img = document.createElement("img");
-    img.src = badge.icon || '../signin,login/ghost.png';
-    img.alt = badge.badge_name;
-    img.onerror = function() { this.style.display = 'none'; };
+    // Badge icon - honor/army style medal with stars
+    const iconEl = document.createElement("div");
+    iconEl.style.cssText = `
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      opacity: ${count > 0 ? '1' : '0.6'};
+    `;
+    
+    // Create honor medal SVG
+    const medalSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    medalSVG.setAttribute("width", "64");
+    medalSVG.setAttribute("height", "64");
+    medalSVG.setAttribute("viewBox", "0 0 64 64");
+    
+    // Medal ribbon/top part
+    const ribbon = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    ribbon.setAttribute("d", "M 20 8 Q 20 4 24 4 L 40 4 Q 44 4 44 8 L 44 16 L 20 16 Z");
+    ribbon.setAttribute("fill", config.color);
+    ribbon.setAttribute("opacity", "0.9");
+    
+    // Medal circle/body
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", "32");
+    circle.setAttribute("cy", "36");
+    circle.setAttribute("r", "18");
+    circle.setAttribute("fill", config.color);
+    circle.setAttribute("stroke", "rgba(255,255,255,0.3)");
+    circle.setAttribute("stroke-width", "2");
+    
+    // Inner circle for depth
+    const innerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    innerCircle.setAttribute("cx", "32");
+    innerCircle.setAttribute("cy", "36");
+    innerCircle.setAttribute("r", "14");
+    innerCircle.setAttribute("fill", "rgba(255,255,255,0.15)");
+    
+    // Star decoration (honor star)
+    const star = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const starPoints = [];
+    const centerX = 32;
+    const centerY = 36;
+    const outerRadius = 10;
+    const innerRadius = 5;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI) / 5;
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const x = centerX + radius * Math.cos(angle - Math.PI / 2);
+      const y = centerY + radius * Math.sin(angle - Math.PI / 2);
+      starPoints.push(`${i === 0 ? 'M' : 'L'} ${x} ${y}`);
+    }
+    star.setAttribute("d", starPoints.join(' ') + ' Z');
+    star.setAttribute("fill", "rgba(255,255,255,0.9)");
+    star.setAttribute("stroke", "rgba(255,255,255,0.5)");
+    star.setAttribute("stroke-width", "0.5");
+    
+    // Small decorative stars around
+    for (let i = 0; i < 3; i++) {
+      const smallStar = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const angle = (i * 2 * Math.PI) / 3;
+      const x = centerX + 12 * Math.cos(angle);
+      const y = centerY + 12 * Math.sin(angle);
+      const smallStarPoints = [];
+      for (let j = 0; j < 10; j++) {
+        const starAngle = (j * Math.PI) / 5;
+        const radius = j % 2 === 0 ? 2 : 1;
+        const sx = x + radius * Math.cos(starAngle - Math.PI / 2);
+        const sy = y + radius * Math.sin(starAngle - Math.PI / 2);
+        smallStarPoints.push(`${j === 0 ? 'M' : 'L'} ${sx} ${sy}`);
+      }
+      smallStar.setAttribute("d", smallStarPoints.join(' ') + ' Z');
+      smallStar.setAttribute("fill", "rgba(255,255,255,0.7)");
+      medalSVG.appendChild(smallStar);
+    }
+    
+    medalSVG.appendChild(ribbon);
+    medalSVG.appendChild(circle);
+    medalSVG.appendChild(innerCircle);
+    medalSVG.appendChild(star);
+    
+    iconEl.appendChild(medalSVG);
 
+    // Badge name
     const label = document.createElement("span");
     label.className = "badge__label";
-    label.textContent = badge.badge_name;
+    label.style.cssText = `
+      color: ${count > 0 ? 'white' : 'rgba(255,255,255,0.7)'};
+      font-weight: 600;
+      font-size: 12px;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    `;
+    label.textContent = config.name;
 
-    // Add badge type color
-    const typeColors = {
-      BRONZE: '#cd7f32',
-      SILVER: '#c0c0c0',
-      GOLD: '#ffd700'
-    };
-    wrapper.style.borderColor = typeColors[badge.badge_type] || '#8567BA';
+    // Badge count (number of badges of this type)
+    const countEl = document.createElement("span");
+    countEl.style.cssText = `
+      color: ${count > 0 ? 'white' : 'rgba(255,255,255,0.6)'};
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      margin-top: 4px;
+    `;
+    countEl.textContent = count;
 
-    wrapper.append(img, label);
+    wrapper.append(iconEl, label, countEl);
     container.appendChild(wrapper);
   });
 }

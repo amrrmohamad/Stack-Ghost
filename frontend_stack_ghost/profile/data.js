@@ -75,6 +75,10 @@ async function fetchCompleteProfile(userId) {
     const data = response.data;
     const user = data.user;
     const followStats = data.followStats || { followersCount: 0, followingCount: 0 };
+    
+    // Debug: Log the follow stats to verify
+    console.log('Follow stats from API:', followStats);
+    console.log('Following count:', followStats.followingCount);
 
     // Check if current user is following this user
     let isFollowing = false;

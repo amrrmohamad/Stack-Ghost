@@ -22,7 +22,7 @@ export const createTag = async (tag_name, description) => {
     });
 };
 
-export const getAllTags = async (page, limit, q) => {
+export const getAllTags = async (page, limit, q, userId = null) => {
     const skip = (page - 1) * limit;
 
     const where = q
@@ -34,15 +34,45 @@ export const getAllTags = async (page, limit, q) => {
             where,
             skip,
             take: limit,
-            orderBy: { tag_name: 'asc' }
+            orderBy: { tag_name: 'asc' },
+            include: {
+                _count: {
+                    select: {
+                        Question_Tags: true,
+                        Follow_Tags: true
+                    }
+                }
+            }
         }),
         prisma.tags.count({ where })
     ]);
 
+    // Get followed tags for current user if userId provided
+    let followedTagIds = [];
+    if (userId) {
+        const followedTags = await prisma.follow_Tags.findMany({
+            where: { user_id: userId },
+            select: { tag_id: true }
+        });
+        followedTagIds = followedTags.map(ft => ft.tag_id);
+    }
+
+    // Format tags with counts and follow status
+    const formattedTags = tags.map(tag => ({
+        tag_id: tag.tag_id,
+        tag_name: tag.tag_name,
+        description: tag.description || '',
+        questionCount: tag._count.Question_Tags,
+        followers: tag._count.Follow_Tags,
+        isFollowed: userId ? followedTagIds.includes(tag.tag_id) : false,
+        created_at: tag.created_at
+    }));
+
     return {
-        tags,
+        tags: formattedTags,
         totalTags,
-        totalPages: Math.ceil(totalTags / limit)
+        totalPages: Math.ceil(totalTags / limit),
+        count: formattedTags.length
     };
 };
 

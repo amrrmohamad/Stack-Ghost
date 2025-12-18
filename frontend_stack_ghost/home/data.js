@@ -70,20 +70,29 @@ export async function fetchUserData() {
       email: user.email || '',
       notifications: notifications.length > 0 ? notifications : ['No new notifications'],
       tags: followedTags.length > 0 ? followedTags : ['javascript', 'python', 'react'],
-      questions: questions.map(q => ({
-        question_id: q.question_id,
-        title: q.title,
-        summary: q.summary,
-        votes: q.score || 0,
-        answers: q.answers_count || 0,
-        views: q.views || 0,
-        tags: q.tags || [],
-        author: q.author,
-        is_closed: q.is_closed,
-        created_at: q.created_at,
-        url: `../questions/index.html?id=${q.question_id}`,
-        createdAt: new Date(q.created_at).getTime()
-      })),
+      questions: questions.map(q => {
+        // Handle author object from API
+        const authorObj = q.author || q.Author || {};
+        const authorUsername = authorObj.username || 'Unknown';
+        const authorId = authorObj.user_id || null;
+        
+        return {
+          question_id: q.question_id,
+          title: q.title,
+          summary: q.summary,
+          votes: q.score || 0,
+          answers: q.answers_count || 0,
+          views: q.views || 0,
+          tags: q.tags || [],
+          author: authorUsername,
+          author_id: authorId,
+          author_username: authorUsername,
+          is_closed: q.is_closed,
+          created_at: q.created_at,
+          url: `../questions/index.html?id=${q.question_id}`,
+          createdAt: new Date(q.created_at).getTime()
+        };
+      }),
       answers: [] // Can be populated if needed
     };
   } catch (error) {

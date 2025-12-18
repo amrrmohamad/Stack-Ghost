@@ -76,6 +76,7 @@ export async function fetchUsers() {
         return response.data.map(user => ({
           id: user.user_id,
           userId: user.user_id,
+          user_id: user.user_id,
           username: user.username,
           profileImage: user.profile_image || '../signin,login/ghost.png',
           reputation: user.reputation || 0,
@@ -84,8 +85,8 @@ export async function fetchUsers() {
           title: user.Roles?.role_name || 'user',
           questionsCount: user._count?.AuthoredQuestions || 0,
           answersCount: user._count?.Answers || 0,
-          isFollowed: false, // Will be checked separately if needed
-          isActive: user.is_active
+          isFollowed: user.isFollowed || false, // Get follow status from backend
+          isActive: user.is_active !== false
         }));
       }
     } catch (adminError) {

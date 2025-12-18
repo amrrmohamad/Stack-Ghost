@@ -1,4 +1,5 @@
 import { fetchUserData, fallbackUserData, fetchTags, fallbackTags, updateFollowStatus } from "./data.js";
+import api from '../js/api.js';
 
 let cachedUser = null;
 let allTags = [];
@@ -6,13 +7,35 @@ let activeSort = "popular";
 let searchTerm = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
-  cachedUser = await loadUser();
-  applyUserData(cachedUser);
-  setupNotificationDropdown();
+  showLoadingState();
+  
+  try {
+    cachedUser = await loadUser();
+    applyUserData(cachedUser);
+    setupNotificationDropdown();
+    setupLogout();
+    setupNavigation();
 
-  allTags = await loadTags();
-  initializeTagExperience();
+    allTags = await loadTags();
+    initializeTagExperience();
+    
+    hideLoadingState();
+  } catch (error) {
+    console.error('Error loading tags page:', error);
+    hideLoadingState();
+  }
 });
+
+function showLoadingState() {
+  const grid = document.querySelector("[data-tag-grid]");
+  if (grid) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; opacity: 0.6;">Loading tags...</div>';
+  }
+}
+
+function hideLoadingState() {
+  // Loading state will be replaced by actual tags
+}
 
 async function loadUser() {
   try {
@@ -45,13 +68,14 @@ function initializeTagExperience() {
 // -------------------------------
 function normalizeTags(tags) {
   return (tags ?? []).map((tag, index) => ({
-    id: tag.id ?? tag.name ?? `tag-${index}`,
-    name: tag.name ?? tag.id ?? "tag",
+    id: tag.id ?? tag.tag_id ?? tag.name ?? `tag-${index}`,
+    tag_id: tag.tag_id ?? tag.id,
+    name: tag.name ?? tag.tag_name ?? tag.id ?? "tag",
     description: tag.description ?? "",
     questionCount: Number(tag.questionCount ?? tag.questions ?? 0),
     followers: Number(tag.followers ?? tag.followerCount ?? 0),
     isFollowed: Boolean(tag.isFollowed ?? tag.followed ?? false),
-    createdAt: Number(tag.createdAt ?? Date.now() - index * 60000),
+    createdAt: Number(tag.createdAt ?? tag.created_at ? new Date(tag.created_at).getTime() : Date.now() - index * 60000),
   }));
 }
 
@@ -233,28 +257,28 @@ function buildTagCard(tag) {
   header.className = "tag-card__header";
   header.innerHTML = `
     <div class="tag-card__title">
-      <span class="tag-card__name">${tag.name}</span>
+      <span class="tag-card__name">🏷️ ${tag.name}</span>
       ${tag.isFollowed ? '<span class="tag-card__check" aria-hidden="true">✓</span>' : ""}
     </div>
     <div class="tag-card__meta">
-      <span class="pill pill--muted">${formatNumber(tag.questionCount)} questions</span>
-      <span class="pill pill--muted">${formatNumber(tag.followers)} followers</span>
+      <span class="pill pill--muted">❓ ${formatNumber(tag.questionCount)} questions</span>
+      <span class="pill pill--muted">👥 ${formatNumber(tag.followers)} followers</span>
     </div>
   `;
 
   const description = document.createElement("p");
   description.className = "tag-card__description";
-  description.textContent = tag.description;
+  description.textContent = tag.description || "No description available.";
 
   const follow = document.createElement("div");
   follow.className = "tag-card__actions";
 
   const followBtn = document.createElement("button");
   followBtn.type = "button";
-  followBtn.dataset.followBtn = tag.id;
+  followBtn.dataset.followBtn = tag.id ?? tag.tag_id;
   followBtn.className = `tag-card__follow-btn${tag.isFollowed ? " tag-card__follow-btn--checked" : ""}`;
   followBtn.setAttribute("aria-pressed", String(tag.isFollowed));
-  followBtn.textContent = tag.isFollowed ? "✓" : "Follow";
+  followBtn.textContent = tag.isFollowed ? "✓ Following" : "+ Follow";
 
   follow.appendChild(followBtn);
 
@@ -264,7 +288,7 @@ function buildTagCard(tag) {
 
 async function toggleFollow(tagId) {
   if (!tagId) return;
-  const current = allTags.find((tag) => tag.id === tagId);
+  const current = allTags.find((tag) => (tag.id === tagId || tag.tag_id === tagId));
   if (!current) return;
 
   const targetState = !current.isFollowed;
@@ -274,8 +298,12 @@ async function toggleFollow(tagId) {
   try {
     const updated = await updateFollowStatus(tagId, targetState);
     if (updated) {
-      const [normalized] = normalizeTags([updated]);
-      updateLocalTag(tagId, normalized);
+      // Update followers count if returned
+      const patch = { isFollowed: targetState };
+      if (updated.followers !== undefined) {
+        patch.followers = updated.followers;
+      }
+      updateLocalTag(tagId, patch);
     }
   } catch (error) {
     console.warn("Failed to update follow status, reverting", error);
@@ -287,7 +315,7 @@ async function toggleFollow(tagId) {
 
 function updateLocalTag(tagId, patch) {
   allTags = allTags.map((tag) => {
-    if (tag.id !== tagId) return tag;
+    if (tag.id !== tagId && tag.tag_id !== tagId) return tag;
     return { ...tag, ...patch };
   });
 }
@@ -319,5 +347,20 @@ function setupNotificationDropdown() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closePanel();
   });
+}
+
+function setupLogout() {
+  const logoutBtn = document.getElementById("logout-btn");
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener("click", () => {
+    api.clearTokens();
+    window.location.href = "../signin,login/index.html";
+  });
+}
+
+function setupNavigation() {
+  // Navigation links are already set in HTML
+  // This function can be used for additional navigation logic if needed
 }
 

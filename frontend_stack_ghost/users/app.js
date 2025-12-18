@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupNavigation();
   setupLogout();
 
+  // Load users after we have cachedUser so we can filter it out
   allUsers = await loadUsers();
   initializeUserExperience();
   
@@ -69,7 +70,15 @@ async function loadUser() {
 async function loadUsers() {
   try {
     const remoteUsers = await fetchUsers();
-    return normalizeUsers(remoteUsers);
+    const normalized = normalizeUsers(remoteUsers);
+    
+    // Filter out current user if still present (double check on frontend)
+    const currentUserId = cachedUser?.user_id;
+    if (currentUserId) {
+      return normalized.filter(user => user.id !== currentUserId && user.userId !== currentUserId);
+    }
+    
+    return normalized;
   } catch (error) {
     console.warn("Falling back to local user list", error);
     return normalizeUsers(fallbackUsers);
@@ -88,12 +97,17 @@ function initializeUserExperience() {
 // -------------------------------
 function normalizeUsers(users) {
   return (users ?? []).map((user, index) => ({
-    id: user.id ?? user.userId ?? `user-${index}`,
+    id: user.id ?? user.userId ?? user.user_id ?? `user-${index}`,
+    userId: user.userId ?? user.user_id ?? user.id,
+    user_id: user.user_id ?? user.userId ?? user.id,
     username: user.username ?? user.name ?? "User",
-    profileImage: user.profileImage ?? fallbackUserData.profileImage,
+    profileImage: user.profileImage ?? user.profile_image ?? fallbackUserData.profileImage,
     reputation: Number(user.reputation ?? user.reputationScore ?? 0),
-    role: user.role ?? user.title ?? "User",
+    role: user.role ?? user.title ?? user.Roles?.role_name ?? "User",
     isFollowed: Boolean(user.isFollowed ?? user.followed ?? false),
+    questionsCount: user.questionsCount ?? user._count?.AuthoredQuestions ?? 0,
+    answersCount: user.answersCount ?? user._count?.Answers ?? 0,
+    isActive: user.isActive ?? user.is_active !== false,
   }));
 }
 
@@ -196,9 +210,20 @@ function setupUserGridInteractions() {
   if (!grid) return;
 
   grid.addEventListener("click", (event) => {
+    // Check if click is on follow button or its children
     const button = event.target.closest("[data-follow-user]");
     if (!button) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
     const userId = button.dataset.followUser;
+    if (!userId) {
+      console.error('No user ID found on follow button');
+      return;
+    }
+    
+    console.log('Follow button clicked for user:', userId);
     toggleUserFollow(userId);
   });
 }
@@ -235,7 +260,19 @@ function renderUserSuggestions(container, query) {
 }
 
 function applyUserView() {
-  const filtered = filterUsers(allUsers, searchTerm, activeFilter);
+  // Filter out current user as a final safety check
+  const currentUserId = cachedUser?.user_id ?? cachedUser?.id;
+  let usersToShow = allUsers;
+  
+  if (currentUserId) {
+    usersToShow = allUsers.filter(user => 
+      user.id !== currentUserId && 
+      user.userId !== currentUserId && 
+      user.user_id !== currentUserId
+    );
+  }
+  
+  const filtered = filterUsers(usersToShow, searchTerm, activeFilter);
   const sorted = sortUsers(filtered);
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   currentPage = Math.min(currentPage, totalPages);
@@ -311,19 +348,20 @@ function buildUserCard(user) {
   };
   const roleColor = roleColors[user.role?.toLowerCase()] || roleColors.user;
   
-  // Status indicator
-  const statusBadge = user.isActive === false 
-    ? '<span style="color: #ff6b6b; font-size: 11px; margin-left: 8px;">(Inactive)</span>' 
-    : '';
+  // Status indicator dot - green for active, red for inactive
+  const isActive = user.isActive !== false; // Default to true if not specified
+  const statusDotColor = isActive ? '#51cf66' : '#ff6b6b'; // Green for active, red for inactive
+  const statusDot = `<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${statusDotColor}; margin-left: 8px; vertical-align: middle; box-shadow: 0 0 0 2px rgba(255,255,255,0.3);"></span>`;
 
   const header = document.createElement("div");
   header.className = "user-card__header";
   header.innerHTML = `
-    <div class="avatar avatar--lg user-card__avatar">
+    <div class="avatar avatar--lg user-card__avatar" style="position: relative;">
       <img src="${user.profileImage}" alt="${user.username} profile" onerror="this.src='../signin,login/ghost.png'" />
+      <span style="position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: ${statusDotColor}; border: 2px solid white; box-shadow: 0 0 0 1px rgba(0,0,0,0.1);"></span>
     </div>
     <div class="user-card__info">
-      <span class="user-card__name">${user.username}${statusBadge}</span>
+      <span class="user-card__name">${user.username}${statusDot}</span>
       <div class="user-card__row">
         <span class="user-card__reputation" style="color: #ffd43b;">⭐ ${formatNumber(user.reputation)}</span>
         <span class="user-card__role" style="background: ${roleColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: capitalize;">
@@ -331,41 +369,79 @@ function buildUserCard(user) {
         </span>
       </div>
       <span class="user-card__id" style="font-size: 12px; opacity: 0.6;">ID: #${user.id}</span>
-      ${user.questionsCount !== undefined ? `
-        <div style="font-size: 12px; margin-top: 4px; opacity: 0.8;">
-          <span>📝 ${user.questionsCount} questions</span>
-          <span style="margin-left: 12px;">💬 ${user.answersCount} answers</span>
-        </div>
-      ` : ''}
     </div>
   `;
 
   const actions = document.createElement("div");
   actions.className = "user-card__actions";
 
-  // Don't show follow button for yourself
-  if (user.id !== cachedUser?.user_id) {
+  // Follow button (current user should already be filtered out, but just in case)
+  const currentUserId = cachedUser?.user_id ?? cachedUser?.id;
+  const userId = user.id ?? user.userId ?? user.user_id;
+  
+  if (String(userId) !== String(currentUserId)) {
     const followBtn = document.createElement("button");
     followBtn.type = "button";
-    followBtn.dataset.followUser = user.id;
+    followBtn.dataset.followUser = String(userId);
     followBtn.className = `user-card__follow-btn${user.isFollowed ? " user-card__follow-btn--checked" : ""}`;
     followBtn.setAttribute("aria-pressed", String(Boolean(user.isFollowed)));
-    followBtn.textContent = user.isFollowed ? "✓ Following" : "Follow";
+    followBtn.style.cssText = `
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid ${user.isFollowed ? '#51cf66' : 'rgba(255,255,255,0.2)'};
+      background: ${user.isFollowed ? 'rgba(81, 207, 102, 0.2)' : 'rgba(255,255,255,0.05)'};
+      color: ${user.isFollowed ? '#51cf66' : 'white'};
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    `;
+    followBtn.innerHTML = user.isFollowed ? '<span style="font-size: 16px;">✓</span> Following' : '<span style="font-size: 16px;">+</span> Follow';
+    
+    // Add direct click handler as backup
+    followBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Direct click handler triggered for user:', userId);
+      toggleUserFollow(String(userId));
+    });
+    
+    followBtn.addEventListener('mouseenter', () => {
+      if (user.isFollowed && !followBtn.disabled) {
+        followBtn.style.background = 'rgba(255, 107, 107, 0.2)';
+        followBtn.style.borderColor = '#ff6b6b';
+        followBtn.style.color = '#ff6b6b';
+        followBtn.innerHTML = '<span style="font-size: 16px;">✕</span> Unfollow';
+      }
+    });
+    
+    followBtn.addEventListener('mouseleave', () => {
+      if (user.isFollowed && !followBtn.disabled) {
+        followBtn.style.background = 'rgba(81, 207, 102, 0.2)';
+        followBtn.style.borderColor = '#51cf66';
+        followBtn.style.color = '#51cf66';
+        followBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
+      }
+    });
+    
     actions.appendChild(followBtn);
-  } else {
-    const youBadge = document.createElement("span");
-    youBadge.style.cssText = 'background: #8567BA; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px;';
-    youBadge.textContent = 'You';
-    actions.appendChild(youBadge);
   }
 
   card.append(header, actions);
   
   // Click card to view user profile
   card.addEventListener('click', (e) => {
-    // Don't navigate if clicking the follow button
-    if (e.target.closest('[data-follow-user]')) return;
-    window.location.href = `../profile/index.html?id=${user.id}`;
+    // Don't navigate if clicking the follow button or its children
+    if (e.target.closest('[data-follow-user]')) {
+      e.stopPropagation();
+      return;
+    }
+    window.location.href = `../profile/index.html?id=${user.id ?? user.userId ?? user.user_id}`;
   });
   
   return card;
@@ -393,28 +469,157 @@ function renderPagination(totalPages) {
 }
 
 async function toggleUserFollow(userId) {
-  if (!userId) return;
-  const current = allUsers.find((user) => user.id === userId);
-  if (!current) return;
+  if (!userId) {
+    console.error('toggleUserFollow: No userId provided');
+    return;
+  }
+  
+  const userIdStr = String(userId);
+  console.log('toggleUserFollow called with userId:', userIdStr);
+  console.log('All users before update:', allUsers.map(u => ({ id: u.id, userId: u.userId, user_id: u.user_id, isFollowed: u.isFollowed })));
+  
+  const current = allUsers.find((user) => 
+    String(user.id) === userIdStr || 
+    String(user.userId) === userIdStr || 
+    String(user.user_id) === userIdStr
+  );
+  
+  if (!current) {
+    console.error('User not found in allUsers:', userIdStr, 'Available IDs:', allUsers.map(u => ({ id: u.id, userId: u.userId, user_id: u.user_id })));
+    showToast('User not found', 'error');
+    return;
+  }
 
   const targetState = !current.isFollowed;
+  console.log('Found user:', { id: current.id, userId: current.userId, user_id: current.user_id, currentState: current.isFollowed, targetState });
+  
+  // Optimistically update local state immediately
+  updateLocalUser(userIdStr, { isFollowed: targetState });
+  console.log('Updated local user state. All users after update:', allUsers.map(u => ({ id: u.id, userId: u.userId, user_id: u.user_id, isFollowed: u.isFollowed })));
+  
+  // Update button immediately (before API call) - find it first
+  const followBtn = document.querySelector(`[data-follow-user="${userIdStr}"]`);
+  if (followBtn) {
+    console.log('Found button for user:', userIdStr);
+    followBtn.disabled = true;
+    followBtn.innerHTML = '<span style="opacity: 0.6;">...</span>';
+  } else {
+    console.warn('Button not found for user:', userIdStr, 'Available buttons:', Array.from(document.querySelectorAll('[data-follow-user]')).map(b => b.dataset.followUser));
+  }
+  
+  // Re-render the view with updated state
+  applyUserView();
+  
+  // Find the button again after re-render and update it immediately with optimistic state
+  // Use requestAnimationFrame to ensure DOM is updated
+  requestAnimationFrame(() => {
+    const updatedBtn = document.querySelector(`[data-follow-user="${userIdStr}"]`);
+    if (updatedBtn) {
+      console.log('Found updated button for user:', userIdStr);
+      updatedBtn.disabled = true;
+      if (targetState) {
+        updatedBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
+        updatedBtn.style.background = 'rgba(81, 207, 102, 0.2)';
+        updatedBtn.style.borderColor = '#51cf66';
+        updatedBtn.style.color = '#51cf66';
+      } else {
+        updatedBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
+        updatedBtn.style.background = 'rgba(255,255,255,0.05)';
+        updatedBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+        updatedBtn.style.color = 'white';
+      }
+      
+      // Re-attach hover handlers with current state
+      const currentFollowState = targetState;
+      updatedBtn.addEventListener('mouseenter', function hoverEnter() {
+        if (currentFollowState && !updatedBtn.disabled) {
+          updatedBtn.style.background = 'rgba(255, 107, 107, 0.2)';
+          updatedBtn.style.borderColor = '#ff6b6b';
+          updatedBtn.style.color = '#ff6b6b';
+          updatedBtn.innerHTML = '<span style="font-size: 16px;">✕</span> Unfollow';
+        }
+      });
+      
+      updatedBtn.addEventListener('mouseleave', function hoverLeave() {
+        if (currentFollowState && !updatedBtn.disabled) {
+          updatedBtn.style.background = 'rgba(81, 207, 102, 0.2)';
+          updatedBtn.style.borderColor = '#51cf66';
+          updatedBtn.style.color = '#51cf66';
+          updatedBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
+        }
+      });
+    }
+  });
   
   try {
+    console.log('Calling API to toggle follow for user:', userIdStr);
     // Call API to follow/unfollow
-    const response = await api.toggleFollowUser(userId);
+    const response = await api.toggleFollowUser(userIdStr);
+    console.log('API response:', response);
     
     if (response.success) {
-      // Update local state
-      updateLocalUser(userId, { isFollowed: targetState });
+      // Update local state with actual response
+      const actualState = response.status === 'followed';
+      updateLocalUser(userIdStr, { isFollowed: actualState });
+      console.log('Updated local user after API response. All users:', allUsers.map(u => ({ id: u.id, userId: u.userId, user_id: u.user_id, isFollowed: u.isFollowed })));
       applyUserView();
       
+      // Update button after API response
+      requestAnimationFrame(() => {
+        const finalBtn = document.querySelector(`[data-follow-user="${userIdStr}"]`);
+        if (finalBtn) {
+          console.log('Found final button for user:', userIdStr);
+          finalBtn.disabled = false;
+          if (actualState) {
+            finalBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
+            finalBtn.style.background = 'rgba(81, 207, 102, 0.2)';
+            finalBtn.style.borderColor = '#51cf66';
+            finalBtn.style.color = '#51cf66';
+          } else {
+            finalBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
+            finalBtn.style.background = 'rgba(255,255,255,0.05)';
+            finalBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+            finalBtn.style.color = 'white';
+          }
+        }
+      });
+      
       // Show feedback
-      const message = response.status === 'followed' ? 'Now following!' : 'Unfollowed';
+      const message = actualState ? 'Now following!' : 'Unfollowed';
       showToast(message);
+    } else {
+      // Revert on failure
+      updateLocalUser(userIdStr, { isFollowed: !targetState });
+      applyUserView();
+      throw new Error(response.message || 'Failed to update follow status');
     }
   } catch (error) {
     console.error('Error toggling follow:', error);
-    showToast('Failed to update follow status', 'error');
+    // Revert optimistic update
+    updateLocalUser(userIdStr, { isFollowed: !targetState });
+    applyUserView();
+    
+    // Revert button on error
+    requestAnimationFrame(() => {
+      const errorBtn = document.querySelector(`[data-follow-user="${userIdStr}"]`);
+      if (errorBtn) {
+        errorBtn.disabled = false;
+        const revertedState = !targetState;
+        if (revertedState) {
+          errorBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
+          errorBtn.style.background = 'rgba(81, 207, 102, 0.2)';
+          errorBtn.style.borderColor = '#51cf66';
+          errorBtn.style.color = '#51cf66';
+        } else {
+          errorBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
+          errorBtn.style.background = 'rgba(255,255,255,0.05)';
+          errorBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+          errorBtn.style.color = 'white';
+        }
+      }
+    });
+    
+    showToast(error.message || 'Failed to update follow status', 'error');
   }
 }
 
@@ -442,8 +647,15 @@ function showToast(message, type = 'success') {
 }
 
 function updateLocalUser(userId, patch) {
+  const userIdStr = String(userId);
   allUsers = allUsers.map((user) => {
-    if (user.id !== userId) return user;
+    // Check all possible ID fields to find the correct user
+    const userMatches = 
+      String(user.id) === userIdStr || 
+      String(user.userId) === userIdStr || 
+      String(user.user_id) === userIdStr;
+    
+    if (!userMatches) return user;
     return { ...user, ...patch };
   });
 }
