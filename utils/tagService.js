@@ -48,10 +48,16 @@ export const getAllTags = async (page = 1, limit = 20, searchQuery = null) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: { tag_name: 'asc' },
+        orderBy: { 
+            // ترتيب حسب الأكثر شعبية (أسئلة)
+            Question_Tags: { _count: 'desc' } 
+        },
         include: {
             _count: {
-                select: { Question_Tags: true }
+                select: { 
+                    Question_Tags: true, // عدد الأسئلة
+                    Follow_Tags: true    // <--- التصحيح: هنا الاسم الصحيح حسب الخطأ
+                }
             }
         }
     });
@@ -61,12 +67,14 @@ export const getAllTags = async (page = 1, limit = 20, searchQuery = null) => {
         tag_name: tag.tag_name,
         description: tag.description,
         created_at: tag.created_at,
-        questions_count: tag._count.Question_Tags
+        
+        // قراءة الأرقام من الأسماء الصحيحة
+        questions_count: tag._count.Question_Tags,
+        followers_count: tag._count.Follow_Tags // <--- التصحيح هنا أيضاً
     }));
 
     return { tags: formattedTags, totalTags, totalPages: Math.ceil(totalTags / limit) };
 };
-
 /**
  * Get tag by ID
  */

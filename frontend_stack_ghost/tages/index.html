@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stack Ghost - Tags</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,46 +18,27 @@
   <body>
     <div class="page">
       <div class="background-glow"></div>
+      
       <header class="topbar">
         <div class="brand">
-          <!-- logo ghost icon goes here -->
           <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
           <span class="brand__name">Stack Ghost</span>
         </div>
         <div class="search">
-          <span class="search__icon">
-            <!-- search icon goes here -->
-            <img src="img/vector-4.svg" alt="" />
-          </span>
-          <input
-            type="search"
-            placeholder="Search for questions, users, tags"
-            aria-label="Search for questions, users, tags"
-          />
+          <span class="search__icon"><img src="img/vector-4.svg" alt="" /></span>
+          <input type="search" placeholder="Search..." aria-label="Search" />
         </div>
         <div class="topbar__actions">
           <div class="notifications">
-            <button
-              class="icon-button notifications__toggle"
-              aria-label="Notifications"
-              aria-expanded="false"
-              aria-haspopup="true"
-              data-notifications-toggle
-            >
-              <!-- bell icon goes here -->
+            <button class="icon-button notifications__toggle" data-notifications-toggle>
               <img src="img/vector-13.svg" alt="" />
             </button>
             <div class="notifications__dropdown glass" data-notifications-panel>
-              <div class="notifications__header">
-                <span>Notifications</span>
-              </div>
-              <ul class="list notifications__list" data-notifications-dropdown>
-                <!-- filled by data -->
-              </ul>
+              <div class="notifications__header"><span>Notifications</span></div>
+              <ul class="list notifications__list" data-notifications-dropdown></ul>
             </div>
           </div>
           <div class="avatar avatar--sm">
-            <!-- profile image goes here -->
             <img id="profile-image" src="img/rafiki.png" alt="Profile" />
           </div>
         </div>
@@ -66,71 +48,54 @@
         <aside class="sidebar sidebar--left">
           <nav class="nav">
             <div class="nav__section">
-              <a class="nav__link nav__link--active" href="../home/index.html">
-                <!-- sidebar icon #1 -->
-                <img class="nav__icon" src="img/vector.svg" alt="" />
-                <span>Home</span>
+              <a class="nav__link" href="../home/index.html">
+                <img class="nav__icon" src="img/vector.svg" alt="" /> <span>Home</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section nav__section--cluster">
               <a class="nav__link" href="../questions/index.html">
-                <!-- sidebar icon #2 -->
-                <img class="nav__icon" src="img/vector-3.svg" alt="" />
-                <span>Questions</span>
+                <img class="nav__icon" src="img/vector-3.svg" alt="" /> <span>Questions</span>
               </a>
               <a class="nav__link" href="../users/index.html">
-                <!-- sidebar icon #3 -->
-                <img class="nav__icon" src="img/vector-7.svg" alt="" />
-                <span>Users</span>
+                <img class="nav__icon" src="img/vector-7.svg" alt="" /> <span>Users</span>
               </a>
-              <a class="nav__link" href="#">
-                <!-- sidebar icon #4 -->
-                <img class="nav__icon" src="img/vector-8.svg" alt="" />
-                <span>Tags</span>
+              <a class="nav__link nav__link--active" href="#">
+                <img class="nav__icon" src="img/vector-8.svg" alt="" /> <span>Tags</span>
               </a>
             </div>
             <hr class="sidebar-divider" />
             <div class="nav__section">
               <a class="nav__link" href="../badges/index.html">
-                <!-- sidebar icon #5 -->
-                <img class="nav__icon" src="img/vector-11.svg" alt="" />
-                <span>Badges</span>
+                <img class="nav__icon" src="img/vector-11.svg" alt="" /> <span>Badges</span>
               </a>
             </div>
           </nav>
           <div class="sidebar__ghost">
-            <!-- sidebar ghost illustration goes here -->
             <img src="img/ghost.png" alt="" />
           </div>
         </aside>
 
         <main class="content content--tags">
-          <div class="breadcrumb">Tages &gt;</div>
+          <div class="breadcrumb">Tags &gt;</div>
           <section class="tags-panel glass">
             <div class="tags-panel__top">
               <div class="search tags-panel__search">
-                <span class="search__icon">
-                  <img src="img/vector-4.svg" alt="" />
-                </span>
-                <input
-                  type="search"
-                  placeholder="Search for tags"
-                  aria-label="Search for tags"
-                  data-tag-search
-                />
+                <span class="search__icon"><img src="img/vector-4.svg" alt="" /></span>
+                <input type="search" placeholder="Search for tags" data-tag-search />
                 <ul class="suggestions" data-tag-suggestions></ul>
               </div>
               <div class="tags-panel__filters" data-tags-filter>
                 <button class="filter-chip filter-chip--active" type="button" data-sort="popular">Popular</button>
-                <button class="filter-chip" type="button" data-sort="new">New</button>
                 <button class="filter-chip" type="button" data-sort="name">Name</button>
               </div>
             </div>
 
             <div class="tags-panel__bottom">
-              <div class="tag-grid" data-tag-grid></div>
-              <p class="tag-empty hidden" data-tag-empty>No tags found for this search.</p>
+              <div class="tag-grid" data-tag-grid>
+                 <div style="grid-column: 1/-1; text-align:center; padding:40px; color:#888;">Loading Tags...</div>
+              </div>
+              <p class="tag-empty hidden" data-tag-empty>No tags found.</p>
             </div>
           </section>
         </main>
@@ -138,4 +103,3 @@
     </div>
   </body>
 </html>
-

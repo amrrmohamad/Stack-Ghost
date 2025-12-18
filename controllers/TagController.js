@@ -52,8 +52,9 @@ class TagController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20; 
-            const { q } = req.query;
+            const { q } = req.query; // البحث
 
+            // استدعاء السيرفس المعدلة
             const { tags, totalTags, totalPages } = await tagService.getAllTags(page, limit, q);
 
             res.status(200).json({
@@ -62,7 +63,7 @@ class TagController {
                 total: totalTags,
                 totalPages: totalPages,
                 currentPage: page,
-                data: tags
+                data: tags // الداتا دي دلوقتي فيها followers_count
             });
 
         } catch (error) {

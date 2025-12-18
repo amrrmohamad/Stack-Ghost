@@ -1,26 +1,23 @@
-import { fetchUserData, fallbackUserData, fetchTags, fallbackTags, updateFollowStatus } from "./data.js";
+// app.js
+import { fetchUserData, fallbackUserData, fetchTags, updateFollowStatus } from "./data.js";
 
-let cachedUser = null;
 let allTags = [];
 let activeSort = "popular";
 let searchTerm = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
-  cachedUser = await loadUser();
-  applyUserData(cachedUser);
+  // تحميل اليوزر
+  const user = await loadUser();
+  applyUserData(user);
   setupNotificationDropdown();
 
+  // تحميل التاجات
   allTags = await loadTags();
   initializeTagExperience();
 });
 
 async function loadUser() {
-  try {
-    return await fetchUserData();
-  } catch (error) {
-    console.warn("Falling back to local user data", error);
-    return fallbackUserData;
-  }
+  return await fetchUserData();
 }
 
 async function loadTags() {
@@ -28,9 +25,26 @@ async function loadTags() {
     const remoteTags = await fetchTags();
     return normalizeTags(remoteTags);
   } catch (error) {
-    console.warn("Falling back to local tag data", error);
-    return normalizeTags(fallbackTags);
+    console.error("Error loading tags:", error);
+    return [];
   }
+}
+
+// ==========================================
+// ** أهم دالة: توحيد شكل البيانات **
+// ==========================================
+function normalizeTags(tags) {
+  return (tags ?? []).map((tag) => ({
+    id: tag.tag_id,
+    name: tag.tag_name,
+    description: tag.description || "No description available.",
+    
+    // قراءة الأرقام من الحقول القادمة من الباك إند
+    questionCount: Number(tag.questions_count || 0),
+    followers: Number(tag.followers_count || 0), // <--- قراءة العدد الصحيح هنا
+    
+    isFollowed: false // سنتركها false حالياً (تتطلب منطق إضافي للتحقق من المستخدم)
+  }));
 }
 
 function initializeTagExperience() {
@@ -40,172 +54,7 @@ function initializeTagExperience() {
   applyTagView();
 }
 
-// -------------------------------
-// Data helpers
-// -------------------------------
-function normalizeTags(tags) {
-  return (tags ?? []).map((tag, index) => ({
-    id: tag.id ?? tag.name ?? `tag-${index}`,
-    name: tag.name ?? tag.id ?? "tag",
-    description: tag.description ?? "",
-    questionCount: Number(tag.questionCount ?? tag.questions ?? 0),
-    followers: Number(tag.followers ?? tag.followerCount ?? 0),
-    isFollowed: Boolean(tag.isFollowed ?? tag.followed ?? false),
-    createdAt: Number(tag.createdAt ?? Date.now() - index * 60000),
-  }));
-}
-
-function applyUserData(user) {
-  document.querySelectorAll("[data-username]").forEach((el) => {
-    el.textContent = user.username;
-  });
-  document.querySelectorAll("[data-reputation]").forEach((el) => {
-    el.textContent = formatNumber(user.reputation);
-  });
-  document.querySelectorAll("[data-asked]").forEach((el) => {
-    el.textContent = formatNumber(user.asked);
-  });
-  document.querySelectorAll("[data-answered]").forEach((el) => {
-    el.textContent = formatNumber(user.answered);
-  });
-
-  setImage("profile-image", user.profileImage);
-
-  renderList("[data-notifications]", user.notifications, buildNotificationItem);
-  renderList("[data-notifications-dropdown]", user.notifications, buildNotificationItem);
-}
-
-function setImage(id, src) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.src = src;
-  }
-}
-
-function renderList(selector, items, builder) {
-  const container = document.querySelector(selector);
-  if (!container) return;
-  container.innerHTML = "";
-  items.forEach((item) => container.appendChild(builder(item)));
-}
-
-function buildNotificationItem(note) {
-  const li = document.createElement("li");
-  li.className = "list__item";
-  li.textContent = note;
-  return li;
-}
-
-function formatNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toLocaleString() : value;
-}
-
-// -------------------------------
-// Tag page interactions
-// -------------------------------
-function setupTagFilters() {
-  const container = document.querySelector("[data-tags-filter]");
-  if (!container) return;
-
-  container.querySelectorAll("button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      container.querySelectorAll("button").forEach((b) => b.classList.remove("filter-chip--active"));
-      btn.classList.add("filter-chip--active");
-      activeSort = btn.dataset.sort || "popular";
-      applyTagView();
-    });
-  });
-}
-
-function setupTagSearch() {
-  const input = document.querySelector("[data-tag-search]");
-  const suggestions = document.querySelector("[data-tag-suggestions]");
-  if (!input || !suggestions) return;
-
-  input.addEventListener("input", () => {
-    searchTerm = input.value.trim();
-    renderSuggestions(suggestions, searchTerm);
-    applyTagView();
-  });
-
-  suggestions.addEventListener("click", (event) => {
-    const option = event.target.closest("[data-suggestion]");
-    if (!option) return;
-    const value = option.dataset.suggestion || "";
-    searchTerm = value;
-    input.value = value;
-    renderSuggestions(suggestions, "");
-    applyTagView();
-  });
-
-  document.addEventListener("click", (event) => {
-    if (suggestions.contains(event.target) || input.contains(event.target)) return;
-    renderSuggestions(suggestions, "");
-  });
-}
-
-function setupTagGridInteractions() {
-  const grid = document.querySelector("[data-tag-grid]");
-  if (!grid) return;
-
-  grid.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-follow-btn]");
-    if (!button) return;
-    const tagId = button.dataset.followBtn;
-    await toggleFollow(tagId);
-  });
-}
-
-function renderSuggestions(container, query) {
-  const normalized = query.toLowerCase();
-  if (!normalized) {
-    container.innerHTML = "";
-    return;
-  }
-
-  const matches = allTags
-    .filter((tag) => tag.name.toLowerCase().includes(normalized))
-    .slice(0, 6);
-
-  if (!matches.length) {
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = "";
-  matches.forEach((tag) => {
-    const item = document.createElement("li");
-    item.className = "suggestion";
-    item.dataset.suggestion = tag.name;
-    item.textContent = tag.name;
-    container.appendChild(item);
-  });
-}
-
-function applyTagView() {
-  const filtered = filterTags(allTags, searchTerm);
-  const sorted = sortTags(filtered, activeSort);
-  renderTagGrid(sorted);
-}
-
-function filterTags(tags, query) {
-  const normalized = (query || "").toLowerCase();
-  if (!normalized) return [...tags];
-  return tags.filter((tag) => tag.name.toLowerCase().includes(normalized));
-}
-
-function sortTags(tags, sortKey) {
-  const copy = [...tags];
-  if (sortKey === "name") {
-    return copy.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  if (sortKey === "new") {
-    return copy.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-  }
-  // default popular
-  return copy.sort((a, b) => (b.questionCount ?? 0) - (a.questionCount ?? 0));
-}
+// --- دوال العرض (Rendering) ---
 
 function renderTagGrid(tags) {
   const grid = document.querySelector("[data-tag-grid]");
@@ -213,6 +62,7 @@ function renderTagGrid(tags) {
   if (!grid) return;
 
   grid.innerHTML = "";
+  
   if (!tags.length) {
     if (emptyState) emptyState.classList.remove("hidden");
     return;
@@ -234,7 +84,7 @@ function buildTagCard(tag) {
   header.innerHTML = `
     <div class="tag-card__title">
       <span class="tag-card__name">${tag.name}</span>
-      ${tag.isFollowed ? '<span class="tag-card__check" aria-hidden="true">✓</span>' : ""}
+      ${tag.isFollowed ? '<span class="tag-card__check">✓</span>' : ""}
     </div>
     <div class="tag-card__meta">
       <span class="pill pill--muted">${formatNumber(tag.questionCount)} questions</span>
@@ -242,6 +92,7 @@ function buildTagCard(tag) {
     </div>
   `;
 
+  // ... (باقي كود الدالة كما هو: description و buttons)
   const description = document.createElement("p");
   description.className = "tag-card__description";
   description.textContent = tag.description;
@@ -253,71 +104,141 @@ function buildTagCard(tag) {
   followBtn.type = "button";
   followBtn.dataset.followBtn = tag.id;
   followBtn.className = `tag-card__follow-btn${tag.isFollowed ? " tag-card__follow-btn--checked" : ""}`;
-  followBtn.setAttribute("aria-pressed", String(tag.isFollowed));
-  followBtn.textContent = tag.isFollowed ? "✓" : "Follow";
+  followBtn.textContent = tag.isFollowed ? "Following" : "Follow";
 
   follow.appendChild(followBtn);
-
   card.append(header, description, follow);
+  
   return card;
+}
+// --- دوال الفلترة والبحث ---
+
+function applyTagView() {
+  const filtered = filterTags(allTags, searchTerm);
+  const sorted = sortTags(filtered, activeSort);
+  renderTagGrid(sorted);
+}
+
+function filterTags(tags, query) {
+  const normalized = (query || "").toLowerCase();
+  if (!normalized) return [...tags];
+  return tags.filter((tag) => tag.name.toLowerCase().includes(normalized));
+}
+
+function sortTags(tags, sortKey) {
+  const copy = [...tags];
+  if (sortKey === "name") {
+    return copy.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  // Default: Sort by Question Count
+  return copy.sort((a, b) => b.questionCount - a.questionCount);
+}
+
+// --- التفاعلات (Events) ---
+
+function setupTagFilters() {
+  const container = document.querySelector("[data-tags-filter]");
+  if (!container) return;
+
+  container.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      container.querySelectorAll("button").forEach((b) => b.classList.remove("filter-chip--active"));
+      btn.classList.add("filter-chip--active");
+      activeSort = btn.dataset.sort || "popular";
+      applyTagView();
+    });
+  });
+}
+
+function setupTagSearch() {
+  const input = document.querySelector("[data-tag-search]");
+  const suggestions = document.querySelector("[data-tag-suggestions]");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    searchTerm = input.value.trim();
+    if(suggestions) renderSuggestions(suggestions, searchTerm);
+    applyTagView();
+  });
+  
+  // إخفاء الاقتراحات عند الضغط خارجها
+  document.addEventListener("click", (e) => {
+      if(suggestions && !input.contains(e.target) && !suggestions.contains(e.target)) {
+          suggestions.innerHTML = "";
+      }
+  });
+}
+
+function renderSuggestions(container, query) {
+    if (!query) { container.innerHTML = ""; return; }
+    const matches = allTags.filter(t => t.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5);
+    container.innerHTML = matches.map(t => `<li class="suggestion" data-suggestion="${t.name}">${t.name}</li>`).join("");
+    
+    // تفعيل الضغط على الاقتراح
+    container.querySelectorAll(".suggestion").forEach(li => {
+        li.addEventListener("click", () => {
+            const val = li.dataset.suggestion;
+            document.querySelector("[data-tag-search]").value = val;
+            searchTerm = val;
+            container.innerHTML = "";
+            applyTagView();
+        });
+    });
+}
+
+function setupTagGridInteractions() {
+  const grid = document.querySelector("[data-tag-grid]");
+  if (!grid) return;
+
+  grid.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-follow-btn]");
+    if (!button) return;
+    
+    const tagId = button.dataset.followBtn;
+    await toggleFollow(tagId);
+  });
 }
 
 async function toggleFollow(tagId) {
-  if (!tagId) return;
-  const current = allTags.find((tag) => tag.id === tagId);
-  if (!current) return;
+    // تحديث وهمي سريع (Optimistic UI)
+    const index = allTags.findIndex(t => t.id == tagId);
+    if(index === -1) return;
+    
+    const oldState = allTags[index].isFollowed;
+    allTags[index].isFollowed = !oldState;
+    applyTagView();
 
-  const targetState = !current.isFollowed;
-  updateLocalTag(tagId, { isFollowed: targetState });
-  applyTagView();
-
-  try {
-    const updated = await updateFollowStatus(tagId, targetState);
-    if (updated) {
-      const [normalized] = normalizeTags([updated]);
-      updateLocalTag(tagId, normalized);
+    // إرسال للباك إند
+    try {
+        await updateFollowStatus(tagId, !oldState);
+    } catch (e) {
+        console.warn("Reverting follow status");
+        allTags[index].isFollowed = oldState; // تراجع لو حصل خطأ
+        applyTagView();
     }
-  } catch (error) {
-    console.warn("Failed to update follow status, reverting", error);
-    updateLocalTag(tagId, { isFollowed: !targetState });
-  }
-
-  applyTagView();
 }
 
-function updateLocalTag(tagId, patch) {
-  allTags = allTags.map((tag) => {
-    if (tag.id !== tagId) return tag;
-    return { ...tag, ...patch };
-  });
+// --- دوال مساعدة عامة ---
+
+function applyUserData(user) {
+  if(!user) return;
+  // ممكن تستخدم نفس كود البروفايل اللي في الصفحات التانية هنا
+  const img = document.getElementById("profile-image");
+  if(img) img.src = user.profileImage || "img/rafiki.png";
 }
 
-// -------------------------------
-// Shared UI helpers
-// -------------------------------
 function setupNotificationDropdown() {
-  const toggle = document.querySelector("[data-notifications-toggle]");
-  const panel = document.querySelector("[data-notifications-panel]");
-  if (!toggle || !panel) return;
-
-  const closePanel = () => {
-    panel.classList.remove("notifications__dropdown--open");
-    toggle.setAttribute("aria-expanded", "false");
-  };
-
-  toggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const isOpen = panel.classList.toggle("notifications__dropdown--open");
-    toggle.setAttribute("aria-expanded", String(isOpen));
-  });
-
-  document.addEventListener("click", (e) => {
-    if (panel.contains(e.target) || toggle.contains(e.target)) return;
-    closePanel();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePanel();
-  });
+    const toggle = document.querySelector("[data-notifications-toggle]");
+    const panel = document.querySelector("[data-notifications-panel]");
+    if(!toggle || !panel) return;
+    
+    toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        panel.classList.toggle("notifications__dropdown--open");
+    });
+    document.addEventListener("click", () => panel.classList.remove("notifications__dropdown--open"));
 }
 
+function formatNumber(value) {
+  return Number(value).toLocaleString();
+}
