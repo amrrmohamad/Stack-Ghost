@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="question.css" />
+    
+    <script type="module" src="question.js" defer></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="background-glow"></div>
+      <header class="topbar">
+        <div class="brand">
+          <!-- logo ghost icon goes here -->
+          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
+          <span class="brand__name">Stack Ghost</span>
+        </div>
+        <div class="search">
+          <span class="search__icon">
+            <!-- search icon goes here -->
+            <img src="img/vector-4.svg" alt="" />
+          </span>
+          <input
+            type="search"
+            placeholder="Search for questions, users, tags"
+            aria-label="Search for questions, users, tags"
+          />
+        </div>
+        <div class="topbar__actions">
+          <div class="notifications">
+            <button
+              class="icon-button notifications__toggle"
+              aria-label="Notifications"
+              aria-expanded="false"
+              aria-haspopup="true"
+              data-notifications-toggle
+            >
+              <!-- bell icon goes here -->
+              <img src="img/vector-13.svg" alt="" />
+            </button>
+            <div class="notifications__dropdown glass" data-notifications-panel>
+              <div class="notifications__header">
+                <span>Notifications</span>
+              </div>
+              <ul class="list notifications__list" data-notifications-dropdown>
+                <!-- filled by data -->
+              </ul>
+            </div>
+          </div>
+          <div class="avatar avatar--sm">
+            <!-- profile image goes here -->
+            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
+          </div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar sidebar--left">
+          <nav class="nav">
+            <div class="nav__section">
+              <a class="nav__link" href="index.html">
+                <!-- sidebar icon #1 -->
+                <img class="nav__icon" src="img/vector.svg" alt="" />
+                <span>Home</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section nav__section--cluster">
+              <a class="nav__link nav__link--active" href="#">
+                <!-- sidebar icon #2 -->
+                <img class="nav__icon" src="img/vector-3.svg" alt="" />
+                <span>Questions</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #3 -->
+                <img class="nav__icon" src="img/vector-7.svg" alt="" />
+                <span>Users</span>
+              </a>
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #4 -->
+                <img class="nav__icon" src="img/vector-8.svg" alt="" />
+                <span>Tags</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" />
+            <div class="nav__section">
+              <a class="nav__link" href="#">
+                <!-- sidebar icon #5 -->
+                <img class="nav__icon" src="img/vector-11.svg" alt="" />
+                <span>Badges</span>
+              </a>
+            </div>
+          </nav>
+          <div class="sidebar__ghost">
+            <!-- sidebar ghost illustration goes here -->
+            <img src="img/ghost.png" alt="" />
+          </div>
+        </aside>
+
+        <main class="content">
+          <div class="breadcrumb">Home &gt; Questions &gt; Review Question</div>
+
+          <!-- Question Section -->
+          <section class="question-section glass">
+            <article class="question-card-detailed">
+              <div class="question-votes">
+                <button class="vote-btn vote-btn--up" aria-label="Upvote" data-question-upvote>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 5L15 10H12V15H8V10H5L10 5Z" fill="currentColor"/>
+                  </svg>
+                </button>
+                <span class="vote-count" data-question-votes>0</span>
+                <button class="vote-btn vote-btn--down" aria-label="Downvote" data-question-downvote>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 15L5 10H8V5H12V10H15L10 15Z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="question-content">
+                <h1 class="question-title" data-question-title>
+                  <!-- Data loaded from backend -->
+                </h1>
+                <div class="question-body" data-question-body>
+                  <!-- Data loaded from backend -->
+                </div>
+                <div class="question-tags" data-question-tags>
+                  <!-- Data loaded from backend -->
+                </div>
+                <div class="question-author">
+                  <div class="author-info">
+                    <div class="avatar avatar--sm">
+                      <img src="" alt="Author" data-question-author-image />
+                    </div>
+                    <div class="author-details">
+                      <span class="author-name" data-question-author-name>
+                        <!-- Data loaded from backend -->
+                      </span>
+                      <div class="author-meta">
+                        <span class="author-reputation" data-question-author-reputation>
+                          <!-- Data loaded from backend -->
+                        </span>
+                        <span class="author-role" data-question-author-role>
+                          <!-- Data loaded from backend -->
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="question-comments">
+                  <div class="comments-header">
+                    <span class="comments-count" data-question-comments-count>0 Comments</span>
+                    <button class="btn btn--ghost btn--sm" data-show-all-comments style="display: none;">Show all</button>
+                  </div>
+                  <div class="comments-list" data-question-comments>
+                    <!-- Data loaded from backend -->
+                  </div>
+                  <div class="add-comment-form">
+                    <input 
+                      type="text" 
+                      class="comment-input" 
+                      placeholder="Add a comment..." 
+                      data-question-comment-input
+                    />
+                    <button class="btn btn--primary btn--sm" data-submit-question-comment>Add</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <!-- Answers Section -->
+          <section class="answers-section">
+            <header class="section-header">
+              <h2 data-answers-count>0 Answers</h2>
+            </header>
+            <div class="answers-list" data-answers-list>
+              <!-- Data loaded from backend -->
+            </div>
+          </section>
+
+          <!-- Add Answer Section -->
+          <section class="add-answer-section">
+            <button class="btn btn--primary btn--large" data-add-answer-toggle>
+              Add Answer
+            </button>
+            <div class="add-answer-form glass" data-add-answer-form>
+              <div class="form-toolbar">
+                <button class="toolbar-btn" data-format="bold" aria-label="Bold" title="Bold">
+                  <strong>B</strong>
+                </button>
+                <button class="toolbar-btn" data-format="underline" aria-label="Underline" title="Underline">
+                  <u>U</u>
+                </button>
+                <button class="toolbar-btn" data-format="code" aria-label="Code" title="Code">
+                  &lt;/&gt;
+                </button>
+              </div>
+              <textarea 
+                class="answer-input" 
+                placeholder="Write your answer here..."
+                data-answer-input
+                rows="8"
+              ></textarea>
+              <div class="form-actions">
+                <button class="btn btn--primary" data-submit-answer>Submit Answer</button>
+                <button class="btn btn--ghost" data-cancel-answer>Cancel</button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <aside class="sidebar sidebar--right">
+          <!-- Popular Questions -->
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Popular Questions</h3>
+            </header>
+            <div class="popular-questions" data-popular-questions>
+              <!-- Data loaded from backend -->
+            </div>
+          </div>
+
+          <!-- Answering Rules -->
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Answering Rules</h3>
+            </header>
+            <ul class="rules-list">
+              <li class="rule-item">Be respectful and professional.</li>
+              <li class="rule-item">Answer clearly and concisely.</li>
+              <li class="rule-item">Provide examples or references when possible.</li>
+              <li class="rule-item">Avoid plagiarism.</li>
+              <li class="rule-item">Use proper formatting for code and lists.</li>
+            </ul>
+          </div>
+
+          <!-- Tags -->
+          <div class="card glass">
+            <header class="section-header">
+              <h3>Tags</h3>
+            </header>
+            <div class="tags" data-question-sidebar-tags>
+              <!-- Data loaded from backend -->
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </body>
+</html>
+
