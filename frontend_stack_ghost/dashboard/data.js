@@ -1,5 +1,8 @@
 // All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
+const API_BASE = "http://localhost:3000";
+const USER_ENDPOINT = `${API_BASE}/api/users/me`;
+const QUESTIONS_ENDPOINT = `${API_BASE}/api/questions`;
+const REPORTS_ENDPOINT = `${API_BASE}/api/reports`;
 
 export const fallbackUserData = {
   username: "Amr",
@@ -103,34 +106,47 @@ export const fallbackUserData = {
 };
 
 export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(USER_ENDPOINT, { 
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Failed to load user data: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const payload = result.data || result;
+
+    return {
+      username: payload?.username ?? fallbackUserData.username,
+      profileImage: payload?.profile_image_url ?? payload?.profileImage ?? fallbackUserData.profileImage,
+      reputation: payload?.reputation ?? fallbackUserData.reputation,
+      asked: payload?.asked ?? fallbackUserData.asked,
+      answered: payload?.answered ?? fallbackUserData.answered,
+      about: payload?.bio ?? payload?.about ?? fallbackUserData.about,
+      notifications:
+        Array.isArray(payload?.notifications) && payload.notifications.length
+          ? payload.notifications
+          : fallbackUserData.notifications,
+      badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
+      questions:
+        Array.isArray(payload?.questions) && payload.questions.length
+          ? payload.questions
+          : fallbackUserData.questions,
+      answers:
+        Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
+      tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
+    };
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    return fallbackUserData;
   }
-
-  const payload = await response.json();
-
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    about: payload?.about ?? fallbackUserData.about,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-  };
 }
 
 // Question data structure
@@ -275,29 +291,35 @@ Set a reasonable expiration time and handle token refresh automatically.`,
 
 export async function fetchQuestionData(questionId) {
   try {
-    const response = await fetch(`${QUESTION_ENDPOINT}/${questionId}`, {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${QUESTIONS_ENDPOINT}/${questionId}`, {
       credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {
       throw new Error(`Failed to load question data: ${response.status}`);
     }
 
-    const payload = await response.json();
+    const result = await response.json();
+    const payload = result.data || result;
 
     return {
-      id: payload?.id ?? fallbackQuestionData.id,
+      id: payload?.question_id ?? payload?.id ?? fallbackQuestionData.id,
       title: payload?.title ?? fallbackQuestionData.title,
       body: payload?.body ?? fallbackQuestionData.body,
-      votes: payload?.votes ?? fallbackQuestionData.votes,
+      votes: payload?.vote_count ?? payload?.votes ?? fallbackQuestionData.votes,
       tags: Array.isArray(payload?.tags) && payload.tags.length
         ? payload.tags
         : fallbackQuestionData.tags,
       author: {
-        name: payload?.author?.name ?? fallbackQuestionData.author.name,
-        image: payload?.author?.image ?? fallbackQuestionData.author.image,
+        name: payload?.author?.username ?? payload?.author?.name ?? fallbackQuestionData.author.name,
+        image: payload?.author?.profile_image_url ?? payload?.author?.image ?? fallbackQuestionData.author.image,
         reputation: payload?.author?.reputation ?? fallbackQuestionData.author.reputation,
-        role: payload?.author?.role ?? fallbackQuestionData.author.role,
+        role: payload?.author?.role_name ?? payload?.author?.role ?? fallbackQuestionData.author.role,
       },
       comments: Array.isArray(payload?.comments) && payload.comments.length
         ? payload.comments
@@ -312,6 +334,140 @@ export async function fetchQuestionData(questionId) {
   } catch (error) {
     console.warn("Falling back to local question data", error);
     return fallbackQuestionData;
+  }
+}
+
+/**
+ * Fetch all questions from backend
+ */
+export async function fetchAllQuestions() {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${QUESTIONS_ENDPOINT}?limit=100`, {
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load questions: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Questions API response:', result);
+    
+    const questions = result.data || result.questions || [];
+    console.log('Questions array:', questions);
+    
+    return questions.map(q => ({
+      id: q.question_id || q.id,
+      title: q.title,
+      body: q.body,
+      userId: q.Author?.user_id || q.user_id || 0,
+      username: q.Author?.username || q.username || 'Unknown',
+      userImage: q.Author?.profile_image || q.userImage || '../signin,login/ghost.png',
+      is_closed: q.is_closed || false,
+      created_at: q.created_at
+    }));
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch all reports from backend
+ */
+export async function fetchAllReports() {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${REPORTS_ENDPOINT}?limit=100`, {
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load reports: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Reports API response:', result);
+    
+    const reports = result.data || result.reports || [];
+    console.log('Reports array:', reports);
+    
+    return reports.map(r => ({
+      id: r.report_id || r.id,
+      questionId: r.question_id,
+      answerId: r.answer_id,
+      reportingUser: r.Users?.username || 'Unknown',
+      reportedUser: 'Reported User', // We need to get this from the question/answer author
+      reason: r.reason,
+      body: r.description || r.body || '',
+      status: r.status || 'pending',
+      created_at: r.created_at
+    }));
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    return [];
+  }
+}
+
+/**
+ * Close a question (admin/moderator only)
+ */
+export async function closeQuestion(questionId) {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${QUESTIONS_ENDPOINT}/${questionId}/close`, {
+      method: 'PATCH',
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to close question: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error closing question:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update report status (admin/moderator only)
+ */
+export async function updateReportStatus(reportId, status) {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${REPORTS_ENDPOINT}/${reportId}/status`, {
+      method: 'PUT',
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update report status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating report status:', error);
+    throw error;
   }
 }
 

@@ -26,7 +26,8 @@ export const fallbackUserData = {
  */
 function getUserIdFromURL() {
   const urlParams = new URLSearchParams(window.location.search);
-  const id = urlParams.get('id');
+  // Check both 'userId' and 'id' parameters for compatibility
+  const id = urlParams.get('userId') || urlParams.get('id');
   return id ? parseInt(id) : null;
 }
 

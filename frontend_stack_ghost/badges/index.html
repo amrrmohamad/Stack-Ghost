@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js" defer></script>
+    <script type="module" src="../js/dashboard-visibility.js" defer></script>
   </head>
   <body>
     <div class="page">
@@ -95,6 +96,13 @@
               <a class="nav__link" href="../profile/index.html">
                 <span>👤</span>
                 <span>My Profile</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
+            <div class="nav__section" id="dashboard-section" style="display: none;">
+              <a class="nav__link" href="../dashboard/dashboard.html">
+                <span>⚙️</span>
+                <span>Dashboard</span>
               </a>
             </div>
           </nav>

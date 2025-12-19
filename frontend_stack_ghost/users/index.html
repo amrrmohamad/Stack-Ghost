@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="custom.css" />
     <script src="../js/imageHandler.js"></script>
     <script type="module" src="app.js"></script>
+    <script type="module" src="../js/dashboard-visibility.js"></script>
   </head>
   <body>
     <div class="page">
@@ -94,8 +95,15 @@
             <hr class="sidebar-divider" />
             <div class="nav__section">
               <a class="nav__link" href="../profile/index.html">
-                <span>🏆</span>
+                <span>👤</span>
                 <span>My Profile</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
+            <div class="nav__section" id="dashboard-section" style="display: none;">
+              <a class="nav__link" href="../dashboard/dashboard.html">
+                <span>⚙️</span>
+                <span>Dashboard</span>
               </a>
             </div>
           </nav>

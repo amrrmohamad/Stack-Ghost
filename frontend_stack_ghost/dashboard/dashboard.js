@@ -1,6 +1,7 @@
 // Dashboard Page JavaScript
 
-import { fetchUserData, fallbackUserData } from "./data.js";
+import { fetchUserData, fallbackUserData, fetchAllQuestions, fetchAllReports, closeQuestion, updateReportStatus } from "./data.js";
+import { showToast, showConfirm } from "../js/toast.js";
 
 let cachedUser = null;
 
@@ -14,22 +15,81 @@ const ROUTES = {
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("Loading user data...");
+    
+    // Check if user has access (Admin or Moderator only)
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('You must be logged in to access the dashboard.');
+      window.location.href = '../signin,login/index.html';
+      return;
+    }
+    
+    // Fetch user and check role
+    try {
+      const userResponse = await fetch('http://localhost:3000/api/users/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      
+      const userData = await userResponse.json();
+      const user = userData.data || userData;
+      
+      // Handle nested Roles object or direct role properties
+      const userRole = user.Roles?.role_name || user.role_name || user.role || '';
+      
+      console.log('Dashboard access check - User:', user);
+      console.log('Dashboard access check - Role:', userRole);
+      
+      // Only allow Admin and Moderator (case-insensitive)
+      const roleLower = userRole.toLowerCase();
+      if (roleLower !== 'admin' && roleLower !== 'moderator') {
+        showToast('Access denied. This page is only accessible to Admins and Moderators.', 'error');
+        setTimeout(() => {
+          window.location.href = '../home/index.html';
+        }, 2000);
+        return;
+      }
+      
+      console.log('✅ Access granted for role:', userRole);
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      showToast('Failed to verify access permissions.', 'error');
+      setTimeout(() => {
+        window.location.href = '../home/index.html';
+      }, 2000);
+      return;
+    }
+    
+    console.log('Loading user data...');
     cachedUser = await loadUser();
+    console.log('User data loaded:', cachedUser);
+    
+    console.log('Applying user data to UI...');
     applyUserData(cachedUser);
+    
+    console.log('Setting up notification dropdown...');
     setupNotificationDropdown();
     
-    // Setup tabs
+    console.log('Setting up tabs...');
     setupTabs();
     
-    // Render question queue
-    renderQuestionQueue();
+    console.log('Rendering question queue...');
+    await renderQuestionQueue();
     
-    // Render reports
-    renderReports();
+    console.log('Rendering reports...');
+    await renderReports();
     
-    console.log("Dashboard initialized successfully");
+    console.log("✅ Dashboard initialized successfully");
   } catch (error) {
-    console.error("Error initializing dashboard:", error);
+    console.error("❌ Error initializing dashboard:", error);
+    console.error("Error stack:", error.stack);
+    alert(`Failed to initialize dashboard: ${error.message}`);
   }
 });
 
@@ -192,18 +252,61 @@ function generateMockQuestions(count = 12) {
 }
 
 /**
+ * Fetch questions from backend
+ */
+async function fetchQuestions() {
+  try {
+    const questions = await fetchAllQuestions();
+    console.log('Fetched questions from backend:', questions.length);
+    return questions;
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch reports from backend
+ */
+async function fetchReports() {
+  try {
+    const reports = await fetchAllReports();
+    console.log('Fetched reports from backend:', reports.length);
+    return reports;
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    return [];
+  }
+}
+
+/**
  * Render question queue
  */
 let questionsCurrentPage = 1;
 let questionsData = [];
 
-function renderQuestionQueue(page = 1) {
+async function renderQuestionQueue(page = 1) {
   const container = document.querySelector("[data-questions-list]");
   const paginationContainer = document.querySelector("[data-questions-pagination]");
+  const headerElement = document.querySelector("[data-tab-content='queue'] .section-header h2");
+  
   if (!container) return;
 
+  // Show loading state
+  container.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.6;">Loading questions...</div>';
+
   if (questionsData.length === 0) {
-    questionsData = generateMockQuestions(12);
+    questionsData = await fetchQuestions();
+  }
+
+  // Update header with count
+  if (headerElement) {
+    headerElement.textContent = `${questionsData.length} Questions`;
+  }
+
+  if (questionsData.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.6;">No questions found.</div>';
+    return;
   }
 
   const itemsPerPage = 10;
@@ -230,20 +333,22 @@ function renderQuestionQueue(page = 1) {
 function createQuestionCard(question) {
   const card = document.createElement("div");
   card.className = "question-card glass";
+  
+  // Add closed status indicator
+  const closedBadge = question.is_closed ? '<span style="color: #ff6b6b; font-size: 12px; margin-left: 10px;">[CLOSED]</span>' : '';
+  
   card.addEventListener("click", () => {
-    window.location.href = ROUTES.questionDetails(question.id);
+    window.location.href = `../question_review/question.html?id=${question.id}`;
   });
 
+  const bodyText = question.body || 'No description available';
+  const bodyPreview = bodyText.length > 200 ? bodyText.substring(0, 200) + '...' : bodyText;
+  
   card.innerHTML = `
     <div class="question-card__header">
-      <h3 class="question-card__title">${escapeHtml(question.title)}</h3>
+      <h3 class="question-card__title">${escapeHtml(question.title || 'Untitled')}${closedBadge}</h3>
       <div class="question-card__actions">
-        <button class="card-action-btn card-action-btn--accept" aria-label="Accept">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 4.5L6.75 12.75L3 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <button class="card-action-btn card-action-btn--reject" aria-label="Reject">
+        <button class="card-action-btn card-action-btn--reject" aria-label="Close Question" data-action="close" data-question-id="${question.id}" ${question.is_closed ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.5 4.5L4.5 13.5M4.5 4.5L13.5 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -251,30 +356,47 @@ function createQuestionCard(question) {
       </div>
     </div>
     <div class="question-card__body">
-      ${escapeHtml(question.body)}
+      ${escapeHtml(bodyPreview)}
     </div>
     <div class="question-card__user">
-      <a href="${ROUTES.userProfile(question.userId)}" class="question-card__user-avatar question-card__user-link" onclick="event.stopPropagation()">
-        <img src="${question.userImage}" alt="${escapeHtml(question.username)}" />
+      <a href="../profile/index.html?userId=${question.userId}" class="question-card__user-avatar question-card__user-link" onclick="event.stopPropagation()">
+        <img src="${question.userImage || '../signin,login/ghost.png'}" alt="${escapeHtml(question.username || 'Unknown')}" onerror="this.src='../signin,login/ghost.png'" />
       </a>
       <div class="question-card__user-info">
-        <span class="question-card__user-id">ID: ${escapeHtml(question.userId)}</span>
-        <a href="${ROUTES.userProfile(question.userId)}" class="question-card__username question-card__user-link" onclick="event.stopPropagation()">${escapeHtml(question.username)}</a>
+        <span class="question-card__user-id">User ID: ${question.userId || 'N/A'}</span>
+        <a href="../profile/index.html?userId=${question.userId}" class="question-card__username question-card__user-link" onclick="event.stopPropagation()">${escapeHtml(question.username || 'Unknown')}</a>
       </div>
     </div>
   `;
 
-  // Prevent card click when clicking action buttons or user links
-  const actionBtns = card.querySelectorAll(".card-action-btn");
-  actionBtns.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+  // Handle close button click
+  const closeBtn = card.querySelector("[data-action='close']");
+  if (closeBtn && !question.is_closed) {
+    closeBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      // Visual only - no real logic
+      
+      showConfirm(
+        `Are you sure you want to close this question: "${question.title}"?`,
+        async () => {
+          try {
+            closeBtn.disabled = true;
+            closeBtn.style.opacity = '0.5';
+            await closeQuestion(question.id);
+            showToast('Question closed successfully! 🔒', 'success');
+            // Refresh questions list
+            questionsData = [];
+            await renderQuestionQueue(questionsCurrentPage);
+          } catch (error) {
+            showToast('Failed to close question. Please try again.', 'error');
+            closeBtn.disabled = false;
+            closeBtn.style.opacity = '1';
+          }
+        }
+      );
     });
-  });
+  }
 
   // User links already have onclick="event.stopPropagation()" in HTML
-  // But add it here too for safety
   const userLinks = card.querySelectorAll(".question-card__user-link");
   userLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
@@ -286,55 +408,33 @@ function createQuestionCard(question) {
 }
 
 /**
- * Generate mock report data
- */
-function generateMockReports(count = 12) {
-  const reports = [];
-  const reasons = [
-    "Inappropriate content",
-    "Spam or promotional content",
-    "Harassment or bullying",
-    "Plagiarism",
-    "Off-topic or irrelevant",
-    "Duplicate question",
-    "Low quality or unclear",
-    "Violates community guidelines",
-    "Contains personal information",
-    "Misleading or false information",
-    "Copyright violation",
-    "Other violation",
-  ];
-
-  const reportingUsers = ["moderator1", "admin_user", "community_mod", "staff_member", "supervisor", "reviewer1", "moderator2", "admin2", "community_staff", "reviewer2", "moderator3", "admin3"];
-  const reportedUsers = ["user123", "spammer_99", "troll_user", "violator_1", "bad_actor", "problem_user", "rule_breaker", "inappropriate_user", "spam_account", "harasser_1", "plagiarizer", "fake_account"];
-
-  for (let i = 0; i < count; i++) {
-    reports.push({
-      id: `r${i + 1}`,
-      questionId: `q${i + 1}`,
-      reportingUser: reportingUsers[i % reportingUsers.length],
-      reportedUser: reportedUsers[i % reportedUsers.length],
-      reason: reasons[i % reasons.length],
-      body: `This content violates our community guidelines. ${reasons[i % reasons.length]}. Please review and take appropriate action.`,
-    });
-  }
-
-  return reports;
-}
-
-/**
  * Render reports
  */
 let reportsCurrentPage = 1;
 let reportsData = [];
 
-function renderReports(page = 1) {
+async function renderReports(page = 1) {
   const container = document.querySelector("[data-reports-list]");
   const paginationContainer = document.querySelector("[data-reports-pagination]");
+  const headerElement = document.querySelector("[data-tab-content='reports'] .section-header h2");
+  
   if (!container) return;
 
+  // Show loading state
+  container.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.6;">Loading reports...</div>';
+
   if (reportsData.length === 0) {
-    reportsData = generateMockReports(12);
+    reportsData = await fetchReports();
+  }
+
+  // Update header with count
+  if (headerElement) {
+    headerElement.textContent = `${reportsData.length} Reports`;
+  }
+
+  if (reportsData.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 40px; opacity: 0.6;">No reports found.</div>';
+    return;
   }
 
   const itemsPerPage = 10;
@@ -361,8 +461,25 @@ function renderReports(page = 1) {
 function createReportCard(report) {
   const card = document.createElement("div");
   card.className = "report-card glass";
+  
+  // Determine status badge color
+  const statusColors = {
+    'pending': '#ffa500',
+    'reviewed': '#4caf50',
+    'resolved': '#2196f3',
+    'dismissed': '#9e9e9e'
+  };
+  const statusColor = statusColors[report.status] || '#ffa500';
+  const statusBadge = `<span style="color: ${statusColor}; font-size: 12px; margin-left: 10px;">[${report.status.toUpperCase()}]</span>`;
+  
+  const targetUrl = report.questionId 
+    ? `../question_review/question.html?id=${report.questionId}`
+    : '#';
+  
   card.addEventListener("click", () => {
-    window.location.href = ROUTES.questionDetails(report.questionId);
+    if (targetUrl !== '#') {
+      window.location.href = targetUrl;
+    }
   });
 
   card.innerHTML = `
@@ -370,15 +487,19 @@ function createReportCard(report) {
       <div class="report-card__users">
         <div class="report-card__user-row">
           <span class="report-card__user-label">Reporting:</span>
-          <a href="${ROUTES.userProfile(report.reportingUser)}" class="report-card__user-value report-card__user-link" onclick="event.stopPropagation()">${escapeHtml(report.reportingUser)}</a>
+          <span class="report-card__user-value">${escapeHtml(report.reportingUser)}</span>
         </div>
         <div class="report-card__user-row">
           <span class="report-card__user-label">Reported:</span>
-          <a href="${ROUTES.userProfile(report.reportedUser)}" class="report-card__user-value report-card__user-link" onclick="event.stopPropagation()">${escapeHtml(report.reportedUser)}</a>
+          <span class="report-card__user-value">${escapeHtml(report.reportedUser)}</span>
+        </div>
+        <div class="report-card__user-row">
+          <span class="report-card__user-label">Status:</span>
+          ${statusBadge}
         </div>
       </div>
       <div class="report-card__action">
-        <button class="card-action-btn card-action-btn--seen" aria-label="Mark as Seen">
+        <button class="card-action-btn card-action-btn--seen" aria-label="Mark as Reviewed" data-action="review" data-report-id="${report.id}" ${report.status !== 'pending' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M15 4.5L6.75 12.75L3 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -387,21 +508,38 @@ function createReportCard(report) {
     </div>
     <div class="report-card__body">
       <strong>Reason:</strong> ${escapeHtml(report.reason)}<br />
-      ${escapeHtml(report.body)}
+      ${escapeHtml(report.body || 'No additional details provided.')}
     </div>
   `;
 
-  // Prevent card click when clicking action button or user links
-  const actionBtn = card.querySelector(".card-action-btn");
-  if (actionBtn) {
-    actionBtn.addEventListener("click", (e) => {
+  // Handle review button click
+  const reviewBtn = card.querySelector("[data-action='review']");
+  if (reviewBtn && report.status === 'pending') {
+    reviewBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      // Visual only - no real logic
+      
+      showConfirm(
+        'Mark this report as reviewed?',
+        async () => {
+          try {
+            reviewBtn.disabled = true;
+            reviewBtn.style.opacity = '0.5';
+            await updateReportStatus(report.id, 'reviewed');
+            showToast('Report marked as reviewed! ✓', 'success');
+            // Refresh reports list
+            reportsData = [];
+            await renderReports(reportsCurrentPage);
+          } catch (error) {
+            showToast('Failed to update report status. Please try again.', 'error');
+            reviewBtn.disabled = false;
+            reviewBtn.style.opacity = '1';
+          }
+        }
+      );
     });
   }
 
-  // User links already have onclick="event.stopPropagation()" in HTML
-  // But add it here too for safety
+  // User links
   const userLinks = card.querySelectorAll(".report-card__user-link");
   userLinks.forEach((link) => {
     link.addEventListener("click", (e) => {

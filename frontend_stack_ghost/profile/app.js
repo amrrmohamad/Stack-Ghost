@@ -165,6 +165,153 @@ async function openFollowingModal() {
   }
 }
 
+// Followers Modal Functions
+let followersModal = null;
+
+async function setupFollowersModal() {
+  followersModal = document.createElement('div');
+  followersModal.id = 'followers-modal';
+  followersModal.className = 'modal';
+  followersModal.innerHTML = `
+    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 style="margin: 0; font-size: 24px; color: white;">Your Followers</h2>
+        <button class="modal-close" onclick="closeFollowersModal()" style="background: none; border: none; font-size: 28px; color: white; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
+      </div>
+      <div id="followers-list" style="padding: 20px;"></div>
+    </div>
+  `;
+  document.body.appendChild(followersModal);
+  
+  // Close on background click
+  followersModal.addEventListener('click', (e) => {
+    if (e.target === followersModal) {
+      closeFollowersModal();
+    }
+  });
+  
+  // Make closeFollowersModal globally accessible
+  window.closeFollowersModal = closeFollowersModal;
+}
+
+async function openFollowersModal() {
+  if (!followersModal) {
+    await setupFollowersModal();
+  }
+  
+  const listContainer = document.getElementById('followers-list');
+  if (!listContainer) return;
+  
+  // Show loading state
+  listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">Loading followers...</div>';
+  
+  // Show modal
+  followersModal.style.display = 'flex';
+  followersModal.style.position = 'fixed';
+  followersModal.style.zIndex = '99999';
+  followersModal.style.top = '0';
+  followersModal.style.left = '0';
+  followersModal.style.right = '0';
+  followersModal.style.bottom = '0';
+  followersModal.style.width = '100%';
+  followersModal.style.height = '100%';
+  document.body.classList.add('modal-open');
+  
+  try {
+    // Get current user ID
+    const loggedInUser = api.getUser();
+    if (!loggedInUser || !loggedInUser.user_id) {
+      throw new Error('Not logged in');
+    }
+    
+    // Fetch followers
+    const response = await api.getFollowers(loggedInUser.user_id, 1, 100);
+    
+    if (response.success && response.data && response.data.length > 0) {
+      renderFollowersList(response.data);
+    } else {
+      listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">You don\'t have any followers yet.</div>';
+    }
+  } catch (error) {
+    console.error('Error loading followers:', error);
+    listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6; color: #ff6b6b;">Failed to load followers. Please try again.</div>';
+  }
+}
+
+function renderFollowersList(users) {
+  const listContainer = document.getElementById('followers-list');
+  if (!listContainer) return;
+  
+  listContainer.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    listContainer.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.6;">No followers found.</div>';
+    return;
+  }
+  
+  users.forEach(user => {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      padding: 16px;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    `;
+    
+    card.addEventListener('click', () => {
+      window.location.href = `index.html?userId=${user.user_id}`;
+    });
+    
+    card.addEventListener('mouseenter', () => {
+      card.style.background = 'rgba(255, 255, 255, 0.08)';
+      card.style.transform = 'translateY(-2px)';
+      card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'translateY(0)';
+      card.style.boxShadow = 'none';
+      card.style.background = 'rgba(255, 255, 255, 0.05)';
+    });
+    
+    const profileImage = user.profile_image || '../signin,login/ghost.png';
+    const username = user.username || 'User';
+    const reputation = user.reputation || 0;
+    const role = user.Roles?.role_name || 'user';
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <img src="${profileImage}" alt="${username}" 
+             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2);"
+             onerror="this.src='../signin,login/ghost.png'">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 16px; color: white; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${username}
+          </div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.6); text-transform: capitalize;">
+            ${role}
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #ffd43b; font-size: 14px;">⭐</span>
+        <span style="color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500;">${reputation.toLocaleString()} reputation</span>
+      </div>
+    `;
+    
+    listContainer.appendChild(card);
+  });
+}
+
+function closeFollowersModal() {
+  if (followersModal) {
+    followersModal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+  }
+}
+
 function renderFollowingList(users) {
   const listContainer = document.getElementById('following-list');
   if (!listContainer) return;
@@ -235,7 +382,9 @@ function renderFollowingList(users) {
     
     // Click to view profile
     card.addEventListener('click', () => {
-      window.location.href = `index.html?id=${user.user_id}`;
+      // Close modal and navigate to user's profile
+      closeFollowingModal();
+      window.location.href = `index.html?userId=${user.user_id}`;
     });
     
     grid.appendChild(card);
@@ -535,7 +684,37 @@ function applyUserData(user) {
   });
 
   document.querySelectorAll("[data-followers]").forEach((el) => {
-    animateNumber(el, 0, user.followers, 1000);
+    // Make followers count clickable only if viewing own profile
+    if (isOwnProfile) {
+      // Remove existing click listeners by cloning
+      const newEl = el.cloneNode(true);
+      el.parentNode.replaceChild(newEl, el);
+      
+      // Set up the new element
+      newEl.style.cursor = 'pointer';
+      newEl.style.textDecoration = 'underline';
+      newEl.style.textDecorationStyle = 'dotted';
+      newEl.title = 'Click to view your followers';
+      newEl.addEventListener('click', () => {
+        openFollowersModal();
+      });
+      
+      // Parse current text as start value, or use 0
+      const currentText = newEl.textContent.trim().replace(/,/g, '');
+      const startValue = parseInt(currentText) || 0;
+      
+      // Animate the number on the NEW element
+      animateNumber(newEl, startValue, user.followers, 1000);
+    } else {
+      el.style.cursor = 'default';
+      el.style.textDecoration = 'none';
+      el.title = '';
+      // Parse current text as start value, or use 0
+      const currentText = el.textContent.trim().replace(/,/g, '');
+      const startValue = parseInt(currentText) || 0;
+      // Animate the number
+      animateNumber(el, startValue, user.followers, 1000);
+    }
   });
 
   document.querySelectorAll("[data-following]").forEach((el) => {
@@ -702,44 +881,42 @@ function renderBadges(badges) {
     const wrapper = document.createElement("div");
     wrapper.className = "badge badge-card";
     
-    // Enhanced lighting for badges with count > 0
+    // Subtle lighting for badges with count > 0
     const hasBadges = count > 0;
-    const glowColor = type === 'DIAMOND' ? 'rgba(133, 103, 186, 0.4)' :
-                      type === 'GOLD' ? 'rgba(255, 215, 0, 0.4)' : 
-                      'rgba(192, 192, 192, 0.4)'; // SILVER
+    const glowColor = type === 'DIAMOND' ? 'rgba(133, 103, 186, 0.3)' :
+                      type === 'GOLD' ? 'rgba(255, 215, 0, 0.3)' : 
+                      'rgba(192, 192, 192, 0.3)'; // SILVER
     
-    // Enhanced lighting effects for badges with count > 0
+    // Subtle lighting effects for badges with count > 0
     const baseGlow = hasBadges ? 
-      `drop-shadow(0 0 20px ${glowColor}) drop-shadow(0 0 40px ${glowColor}80) drop-shadow(0 12px 32px rgba(133, 103, 186, 0.6))` :
+      `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 12px 32px rgba(133, 103, 186, 0.4))` :
       `drop-shadow(0 12px 32px rgba(133, 103, 186, 0.4))`;
     
     wrapper.style.cssText = `
-      background: ${hasBadges ? `radial-gradient(circle at center, ${glowColor} 0%, transparent 70%)` : 'transparent'};
+      background: transparent;
       border: none;
       border-radius: 50%;
-      padding: ${hasBadges ? '20px' : '0'};
+      padding: 0;
       text-align: center;
-      box-shadow: ${hasBadges ? `0 0 40px ${glowColor}, 0 0 80px ${glowColor}40` : 'none'};
+      box-shadow: ${hasBadges ? `0 0 15px ${glowColor}40` : 'none'};
       transition: transform 0.3s ease, filter 0.3s ease, box-shadow 0.3s ease;
       opacity: ${hasBadges ? '1' : '0.6'};
       cursor: pointer;
       position: relative;
-      animation: ${hasBadges ? 'badgeGlow 3s ease-in-out infinite' : 'none'};
+      animation: none;
     `;
     
-    // Hover effects matching landing page - enhanced for clarity
+    // Hover effects - no blur, just subtle glow
     wrapper.addEventListener('mouseenter', () => {
-      wrapper.style.transform = 'translateY(-12px) rotate(-2deg)';
+      wrapper.style.transform = 'translateY(-8px) rotate(-2deg)';
       if (hasBadges) {
-        wrapper.style.boxShadow = `0 0 60px ${glowColor}, 0 0 120px ${glowColor}80, 0 0 180px ${glowColor}40`;
+        wrapper.style.boxShadow = `0 0 20px ${glowColor}50`;
       }
       const img = wrapper.querySelector('img');
       if (img) {
-        const hoverGlow = hasBadges ?
-          `drop-shadow(0 0 30px ${glowColor}) drop-shadow(0 0 60px ${glowColor}) drop-shadow(0 24px 60px rgba(133, 103, 186, 0.8))` :
-          'drop-shadow(0 24px 60px rgba(133, 103, 186, 0.7))';
-        img.style.filter = `${hoverGlow} brightness(${hasBadges ? '1.5' : '1.2'}) contrast(${hasBadges ? '1.2' : '1'})`;
-        img.style.transform = 'scale(1.08)';
+        // Remove drop-shadow to eliminate blur effect
+        img.style.filter = hasBadges ? 'brightness(1.15)' : 'brightness(1.1)';
+        img.style.transform = 'scale(1.05)';
         img.style.opacity = '1';
       }
     });
@@ -747,11 +924,12 @@ function renderBadges(badges) {
     wrapper.addEventListener('mouseleave', () => {
       wrapper.style.transform = 'translateY(0) rotate(0deg)';
       if (hasBadges) {
-        wrapper.style.boxShadow = `0 0 40px ${glowColor}, 0 0 80px ${glowColor}40`;
+        wrapper.style.boxShadow = `0 0 15px ${glowColor}40`;
       }
       const img = wrapper.querySelector('img');
       if (img) {
-        img.style.filter = `${baseGlow} brightness(${hasBadges ? '1.3' : '1.1'}) contrast(${hasBadges ? '1.1' : '1'})`;
+        // Keep it clean without drop-shadow blur
+        img.style.filter = hasBadges ? 'brightness(1.05)' : 'brightness(1)';
         img.style.transform = 'scale(1)';
         img.style.opacity = hasBadges ? '1' : '0.5';
       }
@@ -778,7 +956,7 @@ function renderBadges(badges) {
       display: block;
       margin: 0 auto;
       background: transparent;
-      filter: ${baseGlow} brightness(${hasBadges ? '1.3' : '1.1'}) contrast(${hasBadges ? '1.1' : '1'});
+      filter: ${baseGlow} brightness(${hasBadges ? '1.1' : '1.1'});
       transition: filter 0.3s ease, transform 0.3s ease;
       opacity: ${hasBadges ? '1' : '0.5'};
       position: relative;
@@ -813,7 +991,7 @@ function renderBadges(badges) {
       text-align: center;
       display: block;
       margin-top: 6px;
-      text-shadow: ${hasBadges ? `0 0 10px ${glowColor}, 0 0 20px ${glowColor}80, 0 2px 6px rgba(0, 0, 0, 0.5)` : '0 2px 6px rgba(133, 103, 186, 0.5)'};
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
       letter-spacing: 1px;
       position: relative;
       z-index: 1;

@@ -209,158 +209,340 @@ function setupVoting() {
   const questionDownvote = document.querySelector("[data-question-downvote]");
   const questionVotes = document.querySelector("[data-question-votes]");
   
+  // Prevent multiple rapid clicks
+  let isVotingInProgress = false;
+  
   if (questionUpvote && questionDownvote && questionVotes) {
-    questionUpvote.addEventListener("click", () => {
-      // If already upvoted, do nothing
-      if (voteStates.question === 'up') return;
+    questionUpvote.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       
-      // If downvoted, remove downvote first
-      if (voteStates.question === 'down') {
-        const current = parseInt(questionVotes.textContent) || 0;
-        questionVotes.textContent = current + 1; // Remove downvote (+1) and add upvote (+1) = +2 total
-        questionDownvote.classList.remove("vote-btn--active");
-      } else {
-        // New upvote
-        const current = parseInt(questionVotes.textContent) || 0;
-        questionVotes.textContent = current + 1;
+      // Check if already upvoted
+      if (voteStates.question === 'up') {
+        alert('You already voted up on this question');
+        return;
       }
       
-      // Set state and highlight
-      voteStates.question = 'up';
-      questionUpvote.classList.add("vote-btn--active");
-      questionDownvote.classList.remove("vote-btn--active");
-      questionDownvote.disabled = false;
+      // Prevent multiple rapid clicks
+      if (isVotingInProgress || questionUpvote.disabled) {
+        return;
+      }
+      
+      // Disable both buttons immediately
+      isVotingInProgress = true;
+      questionUpvote.disabled = true;
+      questionDownvote.disabled = true;
+      
+      const previousState = voteStates.question;
       
       // Backend: Send upvote request
       try {
         await api.vote(currentQuestionId, null, 1);
+        
+        // Fetch updated vote count from backend after voting
+        const questionResponse = await api.getQuestionById(currentQuestionId);
+        if (questionResponse.success && questionResponse.data) {
+          const newVoteCount = questionResponse.data.vote_count || 0;
+          questionVotes.textContent = newVoteCount;
+          
+          // Update vote state - now upvoted
+          voteStates.question = 'up';
+          questionUpvote.classList.add("vote-btn--active");
+          questionDownvote.classList.remove("vote-btn--active");
+        }
       } catch (error) {
         console.error('Error voting:', error);
-        // Revert UI on error
-        const current = parseInt(questionVotes.textContent) || 0;
-        questionVotes.textContent = current - 1;
-        voteStates.question = null;
-        questionUpvote.classList.remove("vote-btn--active");
+        alert('Failed to vote. Please try again.');
+        
+        // Restore previous state on error
+        voteStates.question = previousState;
+        if (previousState === 'up') {
+          questionUpvote.classList.add("vote-btn--active");
+          questionDownvote.classList.remove("vote-btn--active");
+        } else if (previousState === 'down') {
+          questionDownvote.classList.add("vote-btn--active");
+          questionUpvote.classList.remove("vote-btn--active");
+        } else {
+          questionUpvote.classList.remove("vote-btn--active");
+          questionDownvote.classList.remove("vote-btn--active");
+        }
+        
+        // Reload vote count from backend on error
+        try {
+          const questionResponse = await api.getQuestionById(currentQuestionId);
+          if (questionResponse.success && questionResponse.data) {
+            questionVotes.textContent = questionResponse.data.vote_count || 0;
+          }
+        } catch (reloadError) {
+          console.error('Error reloading vote count:', reloadError);
+        }
+      } finally {
+        isVotingInProgress = false;
+        questionUpvote.disabled = false;
+        questionDownvote.disabled = false;
       }
     });
     
-    questionDownvote.addEventListener("click", () => {
-      // If already downvoted, do nothing
-      if (voteStates.question === 'down') return;
+    questionDownvote.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       
-      // If upvoted, remove upvote first
-      if (voteStates.question === 'up') {
-        const current = parseInt(questionVotes.textContent) || 0;
-        questionVotes.textContent = current - 1; // Remove upvote (-1) and add downvote (-1) = -2 total
-        questionUpvote.classList.remove("vote-btn--active");
-      } else {
-        // New downvote
-        const current = parseInt(questionVotes.textContent) || 0;
-        questionVotes.textContent = Math.max(0, current - 1);
+      // Check if already downvoted
+      if (voteStates.question === 'down') {
+        alert('You already voted down on this question');
+        return;
       }
       
-      // Set state and highlight
-      voteStates.question = 'down';
-      questionDownvote.classList.add("vote-btn--active");
-      questionUpvote.classList.remove("vote-btn--active");
-      questionUpvote.disabled = false;
+      // Prevent multiple rapid clicks
+      if (isVotingInProgress || questionDownvote.disabled) {
+        return;
+      }
       
-      // Backend: Send downvote request for question ID
-      // Example: fetch(`/api/questions/${currentQuestionId}/downvote`, { method: 'POST' })
+      // Disable both buttons immediately
+      isVotingInProgress = true;
+      questionUpvote.disabled = true;
+      questionDownvote.disabled = true;
+      
+      const previousState = voteStates.question;
+      
+      // Backend: Send downvote request
+      try {
+        await api.vote(currentQuestionId, null, -1);
+        
+        // Fetch updated vote count from backend after voting
+        const questionResponse = await api.getQuestionById(currentQuestionId);
+        if (questionResponse.success && questionResponse.data) {
+          const newVoteCount = questionResponse.data.vote_count || 0;
+          questionVotes.textContent = newVoteCount;
+          
+          // Update vote state - now downvoted
+          voteStates.question = 'down';
+          questionDownvote.classList.add("vote-btn--active");
+          questionUpvote.classList.remove("vote-btn--active");
+        }
+      } catch (error) {
+        console.error('Error voting:', error);
+        alert('Failed to vote. Please try again.');
+        
+        // Restore previous state on error
+        voteStates.question = previousState;
+        if (previousState === 'up') {
+          questionUpvote.classList.add("vote-btn--active");
+          questionDownvote.classList.remove("vote-btn--active");
+        } else if (previousState === 'down') {
+          questionDownvote.classList.add("vote-btn--active");
+          questionUpvote.classList.remove("vote-btn--active");
+        } else {
+          questionUpvote.classList.remove("vote-btn--active");
+          questionDownvote.classList.remove("vote-btn--active");
+        }
+        
+        // Reload vote count from backend on error
+        try {
+          const questionResponse = await api.getQuestionById(currentQuestionId);
+          if (questionResponse.success && questionResponse.data) {
+            questionVotes.textContent = questionResponse.data.vote_count || 0;
+          }
+        } catch (reloadError) {
+          console.error('Error reloading vote count:', reloadError);
+        }
+      } finally {
+        isVotingInProgress = false;
+        questionUpvote.disabled = false;
+        questionDownvote.disabled = false;
+      }
     });
   }
   
   // Answer voting - use event delegation on answers container for dynamic elements
   const answersContainer = document.querySelector("[data-answers-list]");
   if (answersContainer) {
+    // Track voting in progress per answer to prevent multiple rapid clicks
+    const answerVotingInProgress = {};
+    
     // Use event delegation for answer voting (works with dynamically created elements)
-    answersContainer.addEventListener("click", (e) => {
+    answersContainer.addEventListener("click", async (e) => {
       const upvoteBtn = e.target.closest("[data-answer-upvote]");
       const downvoteBtn = e.target.closest("[data-answer-downvote]");
       
       if (upvoteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const answerId = upvoteBtn.getAttribute("data-answer-upvote");
-        const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
         const downvoteBtnForAnswer = document.querySelector(`[data-answer-downvote="${answerId}"]`);
         
+        // Prevent multiple rapid clicks
+        if (answerVotingInProgress[answerId] || upvoteBtn.disabled) {
+          return;
+        }
+        
+        // Disable buttons immediately
+        answerVotingInProgress[answerId] = true;
+        upvoteBtn.disabled = true;
+        if (downvoteBtnForAnswer) {
+          downvoteBtnForAnswer.disabled = true;
+        }
+        
+        const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
+        
         if (votesEl) {
-          // If already upvoted, do nothing
-          if (voteStates.answers[answerId] === 'up') return;
+          const current = parseInt(votesEl.textContent) || 0;
+          const previousState = voteStates.answers[answerId];
+          let newCount = current;
+          let newState = null;
           
-          // If downvoted, remove downvote first
-          if (voteStates.answers[answerId] === 'down') {
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = current + 1; // Remove downvote (+1) and add upvote (+1) = +2 total
+          // If already upvoted, unvote (remove the vote)
+          if (voteStates.answers[answerId] === 'up') {
+            newCount = current - 1;
+            newState = null;
+            upvoteBtn.classList.remove("vote-btn--active");
+          } 
+          // If downvoted, flip to upvote (+2 total: remove -1, add +1)
+          else if (voteStates.answers[answerId] === 'down') {
+            newCount = current + 2;
+            newState = 'up';
             if (downvoteBtnForAnswer) {
               downvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
-          } else {
-            // New upvote
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = current + 1;
+            upvoteBtn.classList.add("vote-btn--active");
+          } 
+          // New upvote
+          else {
+            newCount = current + 1;
+            newState = 'up';
+            upvoteBtn.classList.add("vote-btn--active");
+            if (downvoteBtnForAnswer) {
+              downvoteBtnForAnswer.classList.remove("vote-btn--active");
+            }
           }
           
-          // Set state and highlight
-          voteStates.answers[answerId] = 'up';
-          upvoteBtn.classList.add("vote-btn--active");
-          if (downvoteBtnForAnswer) {
-            downvoteBtnForAnswer.classList.remove("vote-btn--active");
-          }
+          // Optimistic UI update
+          votesEl.textContent = newCount;
+          voteStates.answers[answerId] = newState;
           
-          // Backend: Send upvote request
+          // Backend: Send upvote request (backend handles unvote if same vote type)
           try {
             await api.vote(null, answerId, 1);
           } catch (error) {
             console.error('Error voting on answer:', error);
             // Revert UI on error
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = current - 1;
-            voteStates.answers[answerId] = null;
-            upvoteBtn.classList.remove("vote-btn--active");
+            votesEl.textContent = current;
+            voteStates.answers[answerId] = previousState;
+            if (previousState === 'up') {
+              upvoteBtn.classList.add("vote-btn--active");
+              if (downvoteBtnForAnswer) {
+                downvoteBtnForAnswer.classList.remove("vote-btn--active");
+              }
+            } else if (previousState === 'down') {
+              if (downvoteBtnForAnswer) {
+                downvoteBtnForAnswer.classList.add("vote-btn--active");
+              }
+              upvoteBtn.classList.remove("vote-btn--active");
+            } else {
+              upvoteBtn.classList.remove("vote-btn--active");
+              if (downvoteBtnForAnswer) {
+                downvoteBtnForAnswer.classList.remove("vote-btn--active");
+              }
+            }
+          } finally {
+            answerVotingInProgress[answerId] = false;
+            upvoteBtn.disabled = false;
+            if (downvoteBtnForAnswer) {
+              downvoteBtnForAnswer.disabled = false;
+            }
           }
+        }
       }
       
       if (downvoteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const answerId = downvoteBtn.getAttribute("data-answer-downvote");
-        const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
+        
+        // Prevent multiple rapid clicks
+        if (answerVotingInProgress[answerId] || downvoteBtn.disabled) {
+          return;
+        }
+        
+        // Disable buttons immediately
+        answerVotingInProgress[answerId] = true;
+        downvoteBtn.disabled = true;
         const upvoteBtnForAnswer = document.querySelector(`[data-answer-upvote="${answerId}"]`);
+        if (upvoteBtnForAnswer) {
+          upvoteBtnForAnswer.disabled = true;
+        }
+        
+        const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
         
         if (votesEl) {
-          // If already downvoted, do nothing
-          if (voteStates.answers[answerId] === 'down') return;
+          const current = parseInt(votesEl.textContent) || 0;
+          const previousState = voteStates.answers[answerId];
+          let newCount = current;
+          let newState = null;
           
-          // If upvoted, remove upvote first
-          if (voteStates.answers[answerId] === 'up') {
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = current - 1; // Remove upvote (-1) and add downvote (-1) = -2 total
+          // If already downvoted, unvote (remove the vote)
+          if (voteStates.answers[answerId] === 'down') {
+            newCount = Math.max(0, current + 1); // Remove downvote = +1
+            newState = null;
+            downvoteBtn.classList.remove("vote-btn--active");
+          } 
+          // If upvoted, flip to downvote (-2 total: remove +1, add -1)
+          else if (voteStates.answers[answerId] === 'up') {
+            newCount = Math.max(0, current - 2);
+            newState = 'down';
             if (upvoteBtnForAnswer) {
               upvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
-          } else {
-            // New downvote
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = Math.max(0, current - 1);
+            downvoteBtn.classList.add("vote-btn--active");
+          } 
+          // New downvote
+          else {
+            newCount = Math.max(0, current - 1);
+            newState = 'down';
+            downvoteBtn.classList.add("vote-btn--active");
+            if (upvoteBtnForAnswer) {
+              upvoteBtnForAnswer.classList.remove("vote-btn--active");
+            }
           }
           
-          // Set state and highlight
-          voteStates.answers[answerId] = 'down';
-          downvoteBtn.classList.add("vote-btn--active");
-          if (upvoteBtnForAnswer) {
-            upvoteBtnForAnswer.classList.remove("vote-btn--active");
-          }
+          // Optimistic UI update
+          votesEl.textContent = newCount;
+          voteStates.answers[answerId] = newState;
           
-          // Backend: Send downvote request for answer ID
-          // Backend: Send downvote request
+          // Backend: Send downvote request (backend handles unvote if same vote type)
           try {
             await api.vote(null, answerId, -1);
           } catch (error) {
             console.error('Error voting on answer:', error);
             // Revert UI on error
-            const current = parseInt(votesEl.textContent) || 0;
-            votesEl.textContent = current + 1;
-            voteStates.answers[answerId] = null;
-            downvoteBtn.classList.remove("vote-btn--active");
+            votesEl.textContent = current;
+            voteStates.answers[answerId] = previousState;
+            if (previousState === 'up') {
+              if (upvoteBtnForAnswer) {
+                upvoteBtnForAnswer.classList.add("vote-btn--active");
+              }
+              downvoteBtn.classList.remove("vote-btn--active");
+            } else if (previousState === 'down') {
+              downvoteBtn.classList.add("vote-btn--active");
+              if (upvoteBtnForAnswer) {
+                upvoteBtnForAnswer.classList.remove("vote-btn--active");
+              }
+            } else {
+              downvoteBtn.classList.remove("vote-btn--active");
+              if (upvoteBtnForAnswer) {
+                upvoteBtnForAnswer.classList.remove("vote-btn--active");
+              }
+            }
+          } finally {
+            answerVotingInProgress[answerId] = false;
+            downvoteBtn.disabled = false;
+            if (upvoteBtnForAnswer) {
+              upvoteBtnForAnswer.disabled = false;
+            }
           }
+        }
       }
     });
   }
@@ -782,7 +964,7 @@ function renderQuestionData(data) {
     console.log('Vote count set to:', voteCount, 'formatted:', formatNumber(voteCount));
   } else {
     console.error('Vote count element [data-question-votes] not found in DOM!');
-  
+  }
 
   // Update vote button states
   if (data.voteStatus) {

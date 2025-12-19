@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="../js/imageHandler.js"></script>
+    <script type="module" src="../js/dashboard-visibility.js"></script>
     <style>
       .modal {
         position: fixed !important;
@@ -393,8 +394,15 @@
             <hr class="sidebar-divider" />
             <div class="nav__section">
               <a class="nav__link nav__link--active" href="index.html">
-                <span>🏆</span>
+                <span>👤</span>
                 <span>My Profile</span>
+              </a>
+            </div>
+            <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
+            <div class="nav__section" id="dashboard-section" style="display: none;">
+              <a class="nav__link" href="../dashboard/dashboard.html">
+                <span>⚙️</span>
+                <span>Dashboard</span>
               </a>
             </div>
           </nav>
