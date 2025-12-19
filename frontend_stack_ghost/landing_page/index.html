@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stack Ghost | Dark Q&A Landing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="particles-container" id="particles"></div>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <i data-lucide="ghost" class="icon"></i>
+        </div>
+        <span class="brand-name">Stack Ghost</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#hero"><i data-lucide="home" class="nav-icon"></i> Home</a>
+        <a href="#knowledge"><i data-lucide="help-circle" class="nav-icon"></i> Questions</a>
+        <a href="#features"><i data-lucide="sparkles" class="nav-icon"></i> Features</a>
+        <a href="#badges"><i data-lucide="award" class="nav-icon"></i> Badges</a>
+        <a href="#footer"><i data-lucide="mail" class="nav-icon"></i> Contact</a>
+      </nav>
+      <div class="auth-buttons">
+        <button class="auth-btn login-btn">Log in</button>
+        <button class="auth-btn signup-btn">Sign up</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="section hero" id="hero">
+        <div class="hero-container">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="eyebrow reveal">Daily plan · Crafted for developers</p>
+              <h1 class="headline">
+                <span class="text-muted">Ask. Answer</span>
+                <span class="glow-line">Ascend the</span>
+                <span class="glow-line float">Stack</span>
+              </h1>
+              <p class="subheadline reveal">
+                A modern Q&A platform designed for developers who value clarity, speed, and meaningful collaboration.
+              </p>
+              <div class="cta-row">
+                <button class="cta glow-button" data-glow>Start Asking Questions</button>
+                
+              </div>
+            </div>
+
+            <div class="hero-visual">
+              <div class="image-group">
+                <img src="./ques_back.png" alt="Question background" class="hero-bg-img">
+                <img src="./card.png" alt="Featured question card" class="card-img tilt-card">
+              </div>
+            </div>
+          </div>
+          
+          <div class="hero-stats reveal">
+            <div class="stat-block">
+              <i data-lucide="help-circle" class="stat-icon"></i>
+              <span class="stat-number count-up" data-target="1200">0</span>
+              <span class="stat-label">Questions</span>
+            </div>
+            <div class="stat-block">
+              <i data-lucide="code" class="stat-icon"></i>
+              <span class="stat-number count-up" data-target="820">0</span>
+              <span class="stat-label">Developers</span>
+            </div>
+            <div class="stat-block">
+              <i data-lucide="check-circle" class="stat-icon"></i>
+              <span class="stat-number count-up" data-target="96" data-suffix="%">0</span>
+              <span class="stat-label">Solved</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section knowledge" id="knowledge">
+        <div class="section-header reveal">
+          <p class="eyebrow">Quick knowledge</p>
+          <h2>Knowledge at your fingertips</h2>
+          <p class="section-sub"></p>
+        </div>
+        <div class="knowledge-grid">
+          <article class="qa-card reveal">
+            <div class="qa-icon">
+              <i data-lucide="zap" class="icon"></i>
+            </div>
+            <div class="question">How do I optimize API latency?</div>
+            <div class="tags">
+              <span>performance</span><span>apis</span><span>caching</span>
+            </div>
+            <div class="answer">
+              <!-- Placeholder: swap with dynamic answer content -->
+              Use async batching, cache hot endpoints, and profile DB indexes to shave off milliseconds.
+            </div>
+          </article>
+          <article class="qa-card reveal">
+            <div class="qa-icon">
+              <i data-lucide="shield" class="icon"></i>
+            </div>
+            <div class="question">Best pattern for auth in microservices?</div>
+            <div class="tags">
+              <span>auth</span><span>jwt</span><span>microservices</span>
+            </div>
+            <div class="answer">
+              Centralize issuing with short-lived JWTs, rotate keys, and enforce service-to-service mTLS.
+            </div>
+          </article>
+          <article class="qa-card reveal">
+            <div class="qa-icon">
+              <i data-lucide="rocket" class="icon"></i>
+            </div>
+            <div class="question">Ship features without regressions?</div>
+            <div class="tags">
+              <span>testing</span><span>ci</span><span>feature flags</span>
+            </div>
+            <div class="answer">
+              Layer contract tests, canary deploys, and targeted rollouts with observability gates.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section bento" id="features">
+        <div class="section-header reveal">
+          <p class="eyebrow">Feature stack</p>
+          <h2>Explore the Ghost toolkit</h2>
+          <p class="section-sub"></p>
+        </div>
+        <div class="bento-grid">
+          <article class="bento-card reveal">
+            <div class="icon-placeholder" aria-hidden="true">
+              <i data-lucide="zap" class="icon"></i>
+            </div>
+            <div class="bento-title">Realtime answers</div>
+            <p>Fresh responses with live presence indicators.</p>
+          </article>
+          <article class="bento-card reveal">
+            <div class="icon-placeholder" aria-hidden="true">
+              <i data-lucide="award" class="icon"></i>
+            </div>
+            <div class="bento-title">Expert curation</div>
+            <p>Top contributors surface the clearest solutions.</p>
+          </article>
+          <article class="bento-card reveal">
+            <div class="icon-placeholder" aria-hidden="true">
+              <i data-lucide="search" class="icon"></i>
+            </div>
+            <div class="bento-title">Deep search</div>
+            <p>Find exact snippets, tags, and context without noise.</p>
+          </article>
+          <article class="bento-card reveal">
+            <div class="icon-placeholder" aria-hidden="true">
+              <i data-lucide="users" class="icon"></i>
+            </div>
+            <div class="bento-title">Team spaces</div>
+            <p>Private rooms with shared drafts and moderation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section gallery">
+        <div class="gallery-grid">
+          <div class="gallery-copy reveal">
+            <p class="eyebrow">Quality questions</p>
+            <h2>Made by experts, refined by the community</h2>
+            <p class="section-sub">
+              Clear, well-tagged posts keep your focus on the signal. Every submission is tuned for clarity, context, and quick resolution.
+            </p>
+          </div>
+          <div class="stacked-images reveal">
+            <div class="stack-img">
+              <img src="./G1.png" alt="Question card example 1" loading="lazy">
+            </div>
+            <div class="stack-img">
+              <img src="./G2.png" alt="Question card example 2" loading="lazy">
+            </div>
+            <div class="stack-img">
+              <img src="./G3.png" alt="Question card example 3" loading="lazy">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section terminal-section">
+        <div class="terminal-grid">
+          <div class="terminal-card reveal">
+            <div class="terminal-header">
+              <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+              <span class="terminal-title">ghost@stack:~</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line">
+                <span class="prompt">$</span>
+                <span class="code-text">npm install ghost-stack</span>
+              </div>
+              <div class="terminal-line">
+                <span class="prompt">$</span>
+                <span class="code-text">ghost init --project stack</span>
+              </div>
+              <div class="terminal-line">
+                <span class="prompt">$</span>
+                <span id="terminal-text"></span>
+                <span class="cursor" aria-hidden="true"></span>
+              </div>
+            </div>
+          </div>
+          <div class="terminal-copy reveal">
+            <p class="eyebrow">For builders</p>
+            <h2>Terminal-level focus</h2>
+            <p class="section-sub">
+              Crafted for developers who want fast answers, clean snippets, and streamlined collaboration. Typing animation mimics the flow of shipping code.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section badges" id="badges">
+        <div class="section-header reveal">
+          <p class="eyebrow">Rise with badges</p>
+          <h2>Build your reputation</h2>
+          <p class="section-sub">
+            Build your reputation by helping others. Earn recognition as you contribute to the community.
+          </p>
+        </div>
+        <div class="badge-row">
+          <div class="badge-card reveal">
+            <img src="./B1.png" alt="Gold badge">
+            <div class="badge-label">Gold</div>
+          </div>
+          <div class="badge-card reveal">
+            <img src="./B2.png" alt="Silver badge">
+            <div class="badge-label">Silver</div>
+          </div>
+          <div class="badge-card reveal">
+            <img src="./B3.png" alt="Diamond badge">
+            <div class="badge-label">Diamond</div>
+          </div>
+        </div>
+        <div class="stats-bar reveal">
+          <!-- Placeholder: connect counters to real analytics -->
+          <div class="stat-pill">
+            <i data-lucide="clock" class="pill-icon"></i>
+            <span class="pill-label">Average Response Time</span>
+            <span class="pill-value count-up" data-target="2.4" data-suffix="h">0</span>
+          </div>
+          <div class="stat-pill">
+            <i data-lucide="message-circle" class="pill-icon"></i>
+            <span class="pill-label">Questions Answered</span>
+            <span class="pill-value count-up" data-target="14800">0</span>
+          </div>
+          <div class="stat-pill">
+            <i data-lucide="users" class="pill-icon"></i>
+            <span class="pill-label">Active Contributors</span>
+            <span class="pill-value count-up" data-target="540">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section final-cta reveal">
+        <div class="cta-container">
+          <h2 class="cta-header">Ready to learn?</h2>
+          <p class="cta-description">Join thousands of developers sharing knowledge, solving problems, and building their reputation</p>
+          <p class="cta-note-text">No credit card required • Free forever ghost</p>
+          <div class="cta-full">
+            <button class="cta glow-button wide" data-glow>Start Asking Questions</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="footer">
+      <div class="footer-links">
+        <a href="#hero">Home</a>
+        <a href="#badges">Badges</a>
+        <a href="#knowledge">Questions</a>
+        <a href="#features">Tags</a>
+        <a href="#features">Users</a>
+        <a href="#features">About Us</a>
+        <a href="#footer">Contact Us</a>
+      </div>
+      <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
+    </footer>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
+
