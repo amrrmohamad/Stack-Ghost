@@ -21,11 +21,11 @@ export async function fetchUserData() {
     // Fetch logged-in user's questions with complete profile
     let userQuestions = [];
     let followedTags = [];
-    
+
     try {
       // Get complete profile which includes questions and followed tags
       const profileResponse = await api.getCompleteProfile(userId);
-      
+
       if (profileResponse.success && profileResponse.data) {
         // Get user's questions
         userQuestions = (profileResponse.data.questions || []).map(q => ({
@@ -52,7 +52,7 @@ export async function fetchUserData() {
       }
     } catch (error) {
       console.warn('Could not fetch complete profile, trying alternative methods:', error);
-      
+
       // Fallback: try to get questions directly
       try {
         const questionsResponse = await api.getQuestions(1, 100);
@@ -71,7 +71,7 @@ export async function fetchUserData() {
               is_closed: q.is_closed || false,
               created_at: q.created_at,
               createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
-              url: `index.html?id=${q.question_id}`
+              url: `question-detail.html?id=${q.question_id}`
             }));
         }
       } catch (qError) {

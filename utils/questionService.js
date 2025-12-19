@@ -22,11 +22,11 @@ export const createQuestion = async (title, body, userId, tagIds = []) => {
     if (title.length > 300) {
         throw new Error(ERRORS.TITLE_TOO_LONG);
     }
-    
+
     if (body.length > 30000) {
         throw new Error(ERRORS.BODY_TOO_LONG);
     }
-    
+
     if (tagIds && tagIds.length > 5) {
         throw new Error(ERRORS.TOO_MANY_TAGS);
     }
@@ -41,32 +41,53 @@ export const createQuestion = async (title, body, userId, tagIds = []) => {
     }
 
     try {
-        const newQuestion = await prisma.questions.create({
-            data: {
-                title,
-                body,
-                user_id: parseInt(userId),
-                Question_Tags: tagsData
-            },
-            include: {
-                Question_Tags: true
-            }
-        });
+        // Use transaction to ensure atomicity
+        const result = await prisma.$transaction(async (tx) => {
+            // Create the question
+            const newQuestion = await tx.questions.create({
+                data: {
+                    title,
+                    body,
+                    user_id: parseInt(userId),
+                    Question_Tags: tagsData
+                },
+                include: {
+                    Question_Tags: true
+                }
+            });
 
-        // Award badge if first question
-        try {
-            const questionCount = await prisma.questions.count({
+            // Award +5 reputation for posting a question
+            await tx.users.update({
+                where: { user_id: parseInt(userId) },
+                data: { reputation: { increment: 5 } }
+            });
+
+            // Get question count for badge milestones
+            const questionCount = await tx.questions.count({
                 where: { user_id: parseInt(userId) }
             });
 
+            return { newQuestion, questionCount };
+        });
+
+        // Award badges for question milestones (outside transaction to not block)
+        try {
+            const { questionCount } = result;
+
             if (questionCount === 1) {
                 await awardBadge(parseInt(userId), 'Student');
+            }
+            if (questionCount === 5) {
+                await awardBadge(parseInt(userId), 'Curious');
+            }
+            if (questionCount === 30) {
+                await awardBadge(parseInt(userId), 'Inquisitive');
             }
         } catch (badgeError) {
             console.error("Badge System Error:", badgeError);
         }
 
-        return newQuestion;
+        return result.newQuestion;
     } catch (error) {
         if (error.code === 'P2002' && error.meta?.target?.includes('title')) {
             throw new Error('A question with this title already exists');

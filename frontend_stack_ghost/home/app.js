@@ -7,13 +7,13 @@ let allQuestions = [];
 document.addEventListener("DOMContentLoaded", async () => {
   // Show loading state
   showLoadingState();
-  
+
   cachedUser = await loadUser();
   applyUserData(cachedUser);
-  
+
   // Load questions
   await loadQuestions();
-  
+
   setupPanelSwitching();
   setupFilters();
   setupNotificationDropdown();
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupLogout();
   setupNavigation();
   setupSearch();
-  
+
   // Hide loading state
   hideLoadingState();
 });
@@ -44,7 +44,7 @@ async function loadQuestions() {
         const authorObj = q.author || q.Author || {};
         const authorUsername = authorObj.username || 'Unknown';
         const authorId = authorObj.user_id || null;
-        
+
         return {
           question_id: q.question_id,
           title: q.title,
@@ -61,7 +61,7 @@ async function loadQuestions() {
           url: `../questions/index.html?id=${q.question_id}`
         };
       });
-      
+
       renderQuestionsGrid(allQuestions);
     }
   } catch (error) {
@@ -101,13 +101,12 @@ function setupNavigation() {
       window.location.href = '../questions/index.html';
     });
   }
-  
-  // Navigate to ask question (if implemented)
+
+  // Navigate to ask question page
   const askBtn = document.querySelector('[data-nav="ask"]');
   if (askBtn) {
     askBtn.addEventListener('click', () => {
-      alert('Ask Question page - Coming soon!');
-      // window.location.href = '../ask/index.html';
+      window.location.href = '../ask/index.html';
     });
   }
 }
@@ -117,22 +116,22 @@ function applyUserData(user) {
   document.querySelectorAll("[data-username]").forEach((el) => {
     el.textContent = user.username;
   });
-  
+
   // Update email
   document.querySelectorAll("[data-email]").forEach((el) => {
     el.textContent = user.email || 'Ghost explorer';
   });
-  
+
   // Update reputation with animation
   document.querySelectorAll("[data-reputation]").forEach((el) => {
     animateNumber(el, 0, user.reputation, 1000);
   });
-  
+
   // Update asked questions count
   document.querySelectorAll("[data-asked]").forEach((el) => {
     animateNumber(el, 0, user.asked, 1000);
   });
-  
+
   // Update answered count
   document.querySelectorAll("[data-answered]").forEach((el) => {
     animateNumber(el, 0, user.answered, 1000);
@@ -154,7 +153,7 @@ function animateNumber(element, start, end, duration) {
   const range = end - start;
   const increment = range / (duration / 16); // 60fps
   let current = start;
-  
+
   const timer = setInterval(() => {
     current += increment;
     if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
@@ -170,7 +169,7 @@ function renderTagList(selector, tags) {
   const container = document.querySelector(selector);
   if (!container) return;
   container.innerHTML = '';
-  
+
   tags.forEach(tag => {
     const pill = buildTagPill(tag);
     container.appendChild(pill);
@@ -181,7 +180,7 @@ function renderNotificationsList(selector, notifications) {
   const container = document.querySelector(selector);
   if (!container) return;
   container.innerHTML = '';
-  
+
   notifications.slice(0, 5).forEach(notification => {
     const item = buildNotificationItem(notification);
     container.appendChild(item);
@@ -262,17 +261,17 @@ function setupFilters() {
 function renderQuestionsGrid(questions) {
   const container = document.querySelector('.card-list');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   // Show max 5 questions on home page
   const questionsToShow = questions.slice(0, 5);
-  
+
   questionsToShow.forEach(q => {
     const card = buildQuestionCard(q);
     container.appendChild(card);
   });
-  
+
   // If no questions, show empty state
   if (questionsToShow.length === 0) {
     container.innerHTML = `
@@ -287,12 +286,12 @@ function buildQuestionCard(q) {
   const card = document.createElement('article');
   card.className = 'question-card glass';
   card.style.cursor = 'pointer';
-  
+
   const statusBadge = q.is_closed ? ' <span style="color: #ff6b6b; font-size: 12px;">[closed]</span>' : '';
   const authorName = q.author_username || q.author || 'Unknown';
   const authorLink = q.author_id ? `../profile/index.html?id=${q.author_id}` : '#';
   const createdDate = q.created_at ? new Date(q.created_at).toLocaleDateString() : '';
-  
+
   card.innerHTML = `
     <div class="question-card__stats">
       <div class="question-card__stat question-card__stat--votes">
@@ -323,7 +322,7 @@ function buildQuestionCard(q) {
       </div>
     </div>
   `;
-  
+
   card.addEventListener('click', (e) => {
     // Don't navigate if clicking on author link
     if (e.target.closest('a')) {
@@ -331,7 +330,7 @@ function buildQuestionCard(q) {
     }
     window.location.href = q.url;
   });
-  
+
   return card;
 }
 
@@ -418,13 +417,13 @@ function setupTagRemoval() {
     const tagEl = button.closest(".tag");
     if (tagEl && cachedUser) {
       const tagName = tagEl.textContent.replace('×', '').trim();
-      
+
       try {
         // Find tag ID (would need to fetch from API in real implementation)
         // For now, just remove from UI
         tagEl.classList.add("tag--hidden");
         setTimeout(() => tagEl.remove(), 180);
-        
+
         // Show feedback
         console.log(`Unfollowed tag: ${tagName}`);
       } catch (error) {
@@ -439,17 +438,17 @@ function setupTagRemoval() {
 function setupSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
-  
+
   let searchTimeout;
   searchInput.addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
     const query = e.target.value.trim();
-    
+
     if (query.length < 2) {
       renderQuestionsGrid(allQuestions);
       return;
     }
-    
+
     searchTimeout = setTimeout(async () => {
       try {
         const response = await api.searchQuestions(query, 1, 20);
@@ -459,7 +458,7 @@ function setupSearch() {
             const authorObj = q.author || q.Author || {};
             const authorUsername = authorObj.username || 'Unknown';
             const authorId = authorObj.user_id || null;
-            
+
             return {
               question_id: q.question_id,
               title: q.title,

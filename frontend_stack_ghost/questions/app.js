@@ -73,7 +73,7 @@ function renderFollowedTags(selector, tags) {
   const container = document.querySelector(selector);
   if (!container) return;
   container.innerHTML = "";
-  
+
   if (!tags || tags.length === 0) {
     container.innerHTML = '<span style="opacity: 0.6; padding: 10px; display: block;">No followed tags yet</span>';
     return;
@@ -85,13 +85,13 @@ function renderFollowedTags(selector, tags) {
     pill.style.cursor = 'pointer';
     pill.textContent = tag.name || tag.tag_name;
     pill.title = tag.description || tag.name;
-    
+
     pill.addEventListener('click', () => {
       questionViewState.tag = tag.name || tag.tag_name;
       questionViewState.page = 1;
       renderQuestionsList();
     });
-    
+
     container.appendChild(pill);
   });
 }
@@ -181,7 +181,7 @@ function setupQuestionsPage() {
 function setupAskQuestionButtons() {
   document.querySelectorAll("[data-ask-question]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      window.location.href = "/ask";
+      window.location.href = "../ask/index.html";
     });
   });
 }
@@ -451,8 +451,8 @@ function buildQuestionCard(question) {
       ${summary ? `<p class="question-card__excerpt" style="margin: 8px 0; opacity: 0.8; font-size: 14px;">${summary}</p>` : ''}
       <div class="qa-card__tags" style="margin-top: 8px;">
         ${(question.tags || [])
-          .map((tag) => `<span class="tag tag--pill" data-tag="${tag}">${tag}</span>`)
-          .join("")}
+      .map((tag) => `<span class="tag tag--pill" data-tag="${tag}">${tag}</span>`)
+      .join("")}
       </div>
       ${createdDate ? `<div style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Asked on ${createdDate}</div>` : ''}
     </div>

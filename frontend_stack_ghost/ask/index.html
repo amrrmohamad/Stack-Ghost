@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ask a Question - Stack Ghost</title>
+    <meta name="description" content="Ask a new question on Stack Ghost - Get answers from the community" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="../js/imageHandler.js"></script>
+    <script type="module" src="app.js"></script>
+</head>
+
+<body>
+    <div class="page">
+        <div class="background-glow"></div>
+        <header class="topbar">
+            <a href="../home/index.html" class="brand">
+                <span style="font-size: 24px; margin-right: 8px;">👻</span>
+                <span class="brand__name">Stack Ghost</span>
+            </a>
+            <div class="search">
+                <span class="search__icon">
+                    <span style="opacity: 0.6;">🔍</span>
+                </span>
+                <input type="search" placeholder="Search for questions, users, tags"
+                    aria-label="Search for questions, users, tags" />
+            </div>
+
+            <div class="topbar__actions">
+                <div class="notifications">
+                    <button class="icon-button notifications__toggle" aria-label="Notifications" aria-expanded="false"
+                        aria-haspopup="true" data-notifications-toggle>
+                        <span style="font-size: 20px;">🔔</span>
+                    </button>
+                </div>
+                <div class="avatar avatar--sm">
+                    <img id="profile-image" src="../signin,login/ghost.png" alt="Profile"
+                        onerror="this.style.display='none'" />
+                </div>
+                <button id="logout-btn" class="btn btn--ghost"
+                    style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <aside class="sidebar sidebar--left">
+                <nav class="nav">
+                    <div class="nav__section">
+                        <a class="nav__link" href="../home/index.html">
+                            <span>🏠</span>
+                            <span>Home</span>
+                        </a>
+                    </div>
+                    <hr class="sidebar-divider" />
+                    <div class="nav__section nav__section--cluster">
+                        <a class="nav__link" href="../questions/index.html">
+                            <span>❓</span>
+                            <span>Questions</span>
+                        </a>
+                        <a class="nav__link" href="../users/index.html">
+                            <span>👥</span>
+                            <span>Users</span>
+                        </a>
+                        <a class="nav__link" href="../tages/index.html">
+                            <span>🏷️</span>
+                            <span>Tags</span>
+                        </a>
+                    </div>
+                    <hr class="sidebar-divider" />
+                    <div class="nav__section">
+                        <a class="nav__link" href="../profile/index.html">
+                            <span>👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </div>
+                </nav>
+                <div class="sidebar__ghost">
+                    <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="breadcrumb">
+                    <a href="../questions/index.html">Questions</a> &gt; Ask a Question
+                </div>
+
+                <section class="ask-header glass">
+                    <div class="ask-header__content">
+                        <h1 class="ask-header__title">
+                            <span class="ask-header__title-accent">Ask</span>
+                            <span>a Question</span>
+                        </h1>
+                        <p class="ask-header__subtitle">
+                            Get answers from the Stack Ghost community. Be specific and provide details to get the best
+                            answers.
+                        </p>
+                    </div>
+                    <div class="ask-header__icon">
+                        <span style="font-size: 64px;">💬</span>
+                    </div>
+                </section>
+
+                <form id="ask-form" class="ask-form glass">
+                    <!-- Title Section -->
+                    <div class="form-section">
+                        <div class="form-section__header">
+                            <label for="question-title" class="form-label">
+                                <span class="form-label__icon">📝</span>
+                                Title
+                            </label>
+                            <span class="form-hint">Be specific and imagine you're asking a question to another
+                                person</span>
+                        </div>
+                        <input type="text" id="question-title" name="title" class="form-input"
+                            placeholder="e.g. How do I center a div using CSS flexbox?" maxlength="200" required />
+                        <div class="form-counter">
+                            <span id="title-counter">0</span>/200 characters (minimum 10)
+                        </div>
+                    </div>
+
+                    <!-- Body Section -->
+                    <div class="form-section">
+                        <div class="form-section__header">
+                            <label for="question-body" class="form-label">
+                                <span class="form-label__icon">📖</span>
+                                Body
+                            </label>
+                            <span class="form-hint">Include all the details someone would need to answer your
+                                question</span>
+                        </div>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-format="bold" title="Bold (Ctrl+B)">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-format="italic" title="Italic (Ctrl+I)">
+                                <em>I</em>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-format="code" title="Inline Code">
+                                <code>&lt;/&gt;</code>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-format="codeblock" title="Code Block">
+                                <span>{ }</span>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-format="link" title="Insert Link">
+                                🔗
+                            </button>
+                            <button type="button" class="toolbar-btn" data-format="list" title="Bulleted List">
+                                📋
+                            </button>
+                        </div>
+                        <textarea id="question-body" name="body" class="form-textarea"
+                            placeholder="Describe what you're trying to achieve, what you've tried, and what errors or issues you're facing..."
+                            rows="12" required></textarea>
+                        <div class="form-counter">
+                            <span id="body-counter">0</span> characters (minimum 30)
+                        </div>
+                    </div>
+
+                    <!-- Tags Section -->
+                    <div class="form-section">
+                        <div class="form-section__header">
+                            <label class="form-label">
+                                <span class="form-label__icon">🏷️</span>
+                                Tags
+                            </label>
+                            <span class="form-hint">Select up to 5 tags from the list below</span>
+                        </div>
+
+                        <!-- Selected Tags Display -->
+                        <div class="selected-tags-container">
+                            <div class="selected-tags" id="selected-tags">
+                                <span class="no-selection">No tags selected (select from list below)</span>
+                            </div>
+                        </div>
+
+                        <!-- Tags List -->
+                        <div class="tags-list-container">
+                            <div class="tags-list-header">
+                                <span>Available Tags</span>
+                                <span class="tags-count">Click to select</span>
+                            </div>
+                            <div class="tags-dropdown" id="tags-dropdown">
+                                <div class="loading-tags">Loading tags...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="form-section">
+                        <div class="form-section__header">
+                            <label class="form-label">
+                                <span class="form-label__icon">👁️</span>
+                                Preview
+                            </label>
+                            <span class="form-hint">See how your question will look</span>
+                        </div>
+                        <div class="preview-container glass" id="preview-container">
+                            <div class="preview-content" id="preview-content">
+                                <p class="preview-placeholder">Your question preview will appear here...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn--ghost" onclick="window.history.back()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn--primary btn--lg" id="submit-btn" disabled>
+                            <span class="btn__icon">🚀</span>
+                            Post Your Question
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Success Modal -->
+                <div class="modal" id="success-modal">
+                    <div class="modal__backdrop"></div>
+                    <div class="modal__content glass">
+                        <div class="modal__icon">🎉</div>
+                        <h2 class="modal__title">Question Posted!</h2>
+                        <p class="modal__text">Your question has been successfully posted. You'll be redirected to view
+                            it shortly.</p>
+                        <a href="../questions/index.html" class="btn btn--primary" id="view-question-btn">View
+                            Question</a>
+                    </div>
+                </div>
+
+                <!-- Error Toast -->
+                <div class="toast toast--error" id="error-toast">
+                    <span class="toast__icon">⚠️</span>
+                    <span class="toast__message" id="error-message">An error occurred</span>
+                    <button class="toast__close" onclick="hideToast()">&times;</button>
+                </div>
+            </main>
+
+            <aside class="sidebar sidebar--right">
+                <div class="card glass tips-card">
+                    <header class="section-header">
+                        <h3>💡 Writing Tips</h3>
+                    </header>
+                    <ul class="tips-list">
+                        <li class="tips-list__item">
+                            <span class="tips-list__icon">✓</span>
+                            <span>Summarize your problem in a one-line title</span>
+                        </li>
+                        <li class="tips-list__item">
+                            <span class="tips-list__icon">✓</span>
+                            <span>Describe what you've tried and expected results</span>
+                        </li>
+                        <li class="tips-list__item">
+                            <span class="tips-list__icon">✓</span>
+                            <span>Show some code if applicable</span>
+                        </li>
+                        <li class="tips-list__item">
+                            <span class="tips-list__icon">✓</span>
+                            <span>Add relevant tags to reach the right experts</span>
+                        </li>
+                        <li class="tips-list__item">
+                            <span class="tips-list__icon">✓</span>
+                            <span>Proofread before posting</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card glass">
+                    <header class="section-header">
+                        <h3>🏷️ How to Tag</h3>
+                    </header>
+                    <p class="card__text">
+                        Tags help the right people find and answer your question. Select from the available tags that
+                        match your question's topic.
+                    </p>
+                </div>
+
+                <div class="card glass illustration-card">
+                    <div class="illustration-card__body">
+                        <div>
+                            <p class="eyebrow">Need help?</p>
+                            <p class="illustration-card__text">
+                                Check our <a href="#" style="color: var(--accent);">guidelines</a> for asking great
+                                questions.
+                            </p>
+                        </div>
+                        <div class="illustration-card__img">
+                            <img src="../signin,login/ghost.png" alt="Ghost floating"
+                                onerror="this.style.display='none'" />
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</body>
+
+</html>

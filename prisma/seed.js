@@ -15,7 +15,7 @@ async function main() {
     {
       badge_name: 'Student',
       description: 'Asked first question',
-      badge_type: 'BRONZE' 
+      badge_type: 'BRONZE'
     },
     {
       badge_name: 'Teacher',
@@ -31,19 +31,29 @@ async function main() {
       badge_name: 'Guru',
       description: 'Answer score > 100',
       badge_type: 'GOLD'
+    },
+    {
+      badge_name: 'Curious',
+      description: 'Asked 5 questions',
+      badge_type: 'BRONZE'
+    },
+    {
+      badge_name: 'Inquisitive',
+      description: 'Asked 30 questions',
+      badge_type: 'SILVER'
     }
   ]
 
   for (const badge of badges) {
     const existingBadge = await prisma.badges.findUnique({
-        where: { badge_name: badge.badge_name }
+      where: { badge_name: badge.badge_name }
     })
 
     if (!existingBadge) {
-        await prisma.badges.create({
-            data: badge
-        })
-        console.log(`Created badge: ${badge.badge_name}`)
+      await prisma.badges.create({
+        data: badge
+      })
+      console.log(`Created badge: ${badge.badge_name}`)
     }
   }
 

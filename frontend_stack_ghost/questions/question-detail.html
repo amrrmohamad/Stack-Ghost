@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Question - Stack Ghost</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="globals.css" />
+    <link rel="stylesheet" href="styleguide.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="question-detail.css" />
+    <script src="../js/imageHandler.js"></script>
+    <script type="module" src="question-detail.js"></script>
+</head>
+
+<body>
+    <div class="page">
+        <div class="background-glow"></div>
+        <header class="topbar">
+            <a href="../home/index.html" class="brand">
+                <span style="font-size: 24px; margin-right: 8px;">👻</span>
+                <span class="brand__name">Stack Ghost</span>
+            </a>
+            <div class="search">
+                <span class="search__icon">
+                    <span style="opacity: 0.6;">🔍</span>
+                </span>
+                <input type="search" placeholder="Search for questions, users, tags"
+                    aria-label="Search for questions, users, tags" />
+            </div>
+
+            <div class="topbar__actions">
+                <div class="notifications">
+                    <button class="icon-button notifications__toggle" aria-label="Notifications">
+                        <span style="font-size: 20px;">🔔</span>
+                    </button>
+                </div>
+                <div class="avatar avatar--sm">
+                    <img id="profile-image" src="../signin,login/ghost.png" alt="Profile"
+                        onerror="this.style.display='none'" />
+                </div>
+                <button id="logout-btn" class="btn btn--ghost"
+                    style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <aside class="sidebar sidebar--left">
+                <nav class="nav">
+                    <div class="nav__section">
+                        <a class="nav__link" href="../home/index.html">
+                            <span>🏠</span>
+                            <span>Home</span>
+                        </a>
+                    </div>
+                    <hr class="sidebar-divider" />
+                    <div class="nav__section nav__section--cluster">
+                        <a class="nav__link nav__link--active" href="index.html">
+                            <span>❓</span>
+                            <span>Questions</span>
+                        </a>
+                        <a class="nav__link" href="../users/index.html">
+                            <span>👥</span>
+                            <span>Users</span>
+                        </a>
+                        <a class="nav__link" href="../tages/index.html">
+                            <span>🏷️</span>
+                            <span>Tags</span>
+                        </a>
+                    </div>
+                    <hr class="sidebar-divider" />
+                    <div class="nav__section">
+                        <a class="nav__link" href="../profile/index.html">
+                            <span>👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </div>
+                </nav>
+            </aside>
+
+            <main class="content question-detail-content">
+                <!-- Loading State -->
+                <div id="loading-state" class="loading-state glass">
+                    <div class="loading-spinner"></div>
+                    <p>Loading question...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="error-state" class="error-state glass" style="display: none;">
+                    <span style="font-size: 48px;">😵</span>
+                    <h2>Question not found</h2>
+                    <p id="error-message">The question you're looking for doesn't exist or has been removed.</p>
+                    <a href="index.html" class="btn btn--primary">Back to Questions</a>
+                </div>
+
+                <!-- Question Detail -->
+                <article id="question-detail" class="question-detail glass" style="display: none;">
+                    <!-- Header -->
+                    <header class="question-detail__header">
+                        <h1 id="question-title" class="question-detail__title">Loading...</h1>
+                        <div class="question-detail__meta">
+                            <span id="question-date">Asked on ...</span>
+                            <span id="question-views">0 views</span>
+                        </div>
+                    </header>
+
+                    <!-- Question Content with Voting -->
+                    <div class="question-detail__main">
+                        <!-- Voting Column -->
+                        <div class="vote-column">
+                            <button class="vote-btn vote-btn--up" id="vote-up-btn" aria-label="Vote up">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 19V5M5 12l7-7 7 7" />
+                                </svg>
+                            </button>
+                            <span class="vote-count" id="vote-count">0</span>
+                            <button class="vote-btn vote-btn--down" id="vote-down-btn" aria-label="Vote down">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Content Column -->
+                        <div class="content-column">
+                            <div id="question-body" class="question-detail__body">
+                                <!-- Question body content -->
+                            </div>
+
+                            <!-- Tags -->
+                            <div id="question-tags" class="question-detail__tags">
+                                <!-- Tags will be rendered here -->
+                            </div>
+
+                            <!-- Action Buttons & Author Info Row -->
+                            <div class="question-detail__footer">
+                                <!-- Action Buttons -->
+                                <div class="post-actions">
+                                    <button class="action-btn" id="share-btn" title="Share">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                            <polyline points="16 6 12 2 8 6" />
+                                            <line x1="12" y1="2" x2="12" y2="15" />
+                                        </svg>
+                                        Share
+                                    </button>
+                                    <button class="action-btn" id="edit-question-btn" title="Edit"
+                                        style="display: none;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                        Edit
+                                    </button>
+                                    <button class="action-btn" id="report-btn" title="Report">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                            <line x1="4" y1="22" x2="4" y2="15" />
+                                        </svg>
+                                        Report
+                                    </button>
+                                </div>
+
+                                <!-- Author Info -->
+                                <div class="author-card">
+                                    <div class="author-card__label">asked</div>
+                                    <img id="author-image" src="../signin,login/ghost.png" alt=""
+                                        class="author-card__avatar" />
+                                    <div class="author-card__info">
+                                        <span id="author-name" class="author-card__name">Author</span>
+                                        <span id="author-reputation" class="author-card__rep">0 reputation</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Question Comments -->
+                            <div class="comments-section">
+                                <div id="question-comments" class="comments-list">
+                                    <!-- Comments will be rendered here -->
+                                </div>
+                                <div class="add-comment">
+                                    <button class="add-comment-toggle" id="add-question-comment-btn">Add a
+                                        comment</button>
+                                    <div class="add-comment-form" id="question-comment-form" style="display: none;">
+                                        <textarea id="question-comment-input" placeholder="Write your comment..."
+                                            rows="2"></textarea>
+                                        <div class="add-comment-actions">
+                                            <button class="btn btn--ghost btn--sm"
+                                                id="cancel-question-comment">Cancel</button>
+                                            <button class="btn btn--primary btn--sm" id="submit-question-comment">Post
+                                                Comment</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Answers Section -->
+                <section id="answers-section" class="answers-section glass" style="display: none;">
+                    <header class="answers-section__header">
+                        <h2><span id="answers-count">0</span> Answers</h2>
+                        <div class="answers-sort">
+                            <button class="filter-btn filter-btn--active" data-sort="votes">Highest Score</button>
+                            <button class="filter-btn" data-sort="newest">Newest</button>
+                            <button class="filter-btn" data-sort="oldest">Oldest</button>
+                        </div>
+                    </header>
+
+                    <div id="answers-list" class="answers-list">
+                        <!-- Answers will be rendered here -->
+                    </div>
+                </section>
+
+                <!-- Post Answer Section -->
+                <section id="post-answer-section" class="post-answer-section glass" style="display: none;">
+                    <h3>Your Answer</h3>
+                    <div class="post-answer-form">
+                        <textarea id="answer-body" placeholder="Write your answer here... Be descriptive and helpful!"
+                            rows="8"></textarea>
+                        <div class="post-answer-toolbar">
+                            <button type="button" class="toolbar-btn" data-format="bold" title="Bold">B</button>
+                            <button type="button" class="toolbar-btn" data-format="italic"
+                                title="Italic"><i>I</i></button>
+                            <button type="button" class="toolbar-btn" data-format="code" title="Code">&lt;/&gt;</button>
+                            <button type="button" class="toolbar-btn" data-format="link" title="Link">🔗</button>
+                        </div>
+                        <div class="post-answer-actions">
+                            <button id="submit-answer-btn" class="btn btn--primary">Post Your Answer</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <aside class="sidebar sidebar--right">
+                <div class="card glass">
+                    <header class="section-header">
+                        <h3>Related Questions</h3>
+                    </header>
+                    <ul id="related-questions" class="list">
+                        <li class="list__item">Loading...</li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" style="display: none;">
+        <span id="toast-message"></span>
+        <button class="toast-close" onclick="hideToast()">×</button>
+    </div>
+</body>
+
+</html>
