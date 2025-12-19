@@ -1,6 +1,7 @@
 // Question Page JavaScript
 
 import { fetchUserData, fallbackUserData, fetchQuestionData } from "./data.js";
+import api from '../js/api.js';
 
 let currentQuestionId = null;
 let cachedUser = null;
@@ -20,13 +21,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("Loading question data...", currentQuestionId);
     questionData = await loadQuestionData(currentQuestionId);
     console.log("Question data loaded:", questionData);
+    console.log("Vote count in questionData:", questionData?.votes);
     
     if (!questionData) {
       console.error("No question data received!");
       return;
     }
     
+    // Ensure vote count is set before rendering
+    if (questionData.votes === undefined || questionData.votes === null) {
+      console.warn('Vote count is missing, setting to 0');
+      questionData.votes = 0;
+    }
+    
     renderQuestionData(questionData);
+    
+    // Initialize vote states from question data
+    if (questionData && questionData.voteStatus) {
+      voteStates.question = questionData.voteStatus;
+    }
     
     // Parse question and answer content (must be after rendering)
     parseAllContent();
@@ -186,6 +199,7 @@ const voteStates = {
 };
 
 /**
+/**
  * Setup voting functionality for questions and answers
  * Only allows one vote (upvote OR downvote) and highlights the selected button
  */
@@ -217,8 +231,17 @@ function setupVoting() {
       questionDownvote.classList.remove("vote-btn--active");
       questionDownvote.disabled = false;
       
-      // Backend: Send upvote request for question ID
-      // Example: fetch(`/api/questions/${currentQuestionId}/upvote`, { method: 'POST' })
+      // Backend: Send upvote request
+      try {
+        await api.vote(currentQuestionId, null, 1);
+      } catch (error) {
+        console.error('Error voting:', error);
+        // Revert UI on error
+        const current = parseInt(questionVotes.textContent) || 0;
+        questionVotes.textContent = current - 1;
+        voteStates.question = null;
+        questionUpvote.classList.remove("vote-btn--active");
+      }
     });
     
     questionDownvote.addEventListener("click", () => {
@@ -284,9 +307,17 @@ function setupVoting() {
             downvoteBtnForAnswer.classList.remove("vote-btn--active");
           }
           
-          // Backend: Send upvote request for answer ID
-          // Example: fetch(`/api/answers/${answerId}/upvote`, { method: 'POST' })
-        }
+          // Backend: Send upvote request
+          try {
+            await api.vote(null, answerId, 1);
+          } catch (error) {
+            console.error('Error voting on answer:', error);
+            // Revert UI on error
+            const current = parseInt(votesEl.textContent) || 0;
+            votesEl.textContent = current - 1;
+            voteStates.answers[answerId] = null;
+            upvoteBtn.classList.remove("vote-btn--active");
+          }
       }
       
       if (downvoteBtn) {
@@ -319,8 +350,17 @@ function setupVoting() {
           }
           
           // Backend: Send downvote request for answer ID
-          // Example: fetch(`/api/answers/${answerId}/downvote`, { method: 'POST' })
-        }
+          // Backend: Send downvote request
+          try {
+            await api.vote(null, answerId, -1);
+          } catch (error) {
+            console.error('Error voting on answer:', error);
+            // Revert UI on error
+            const current = parseInt(votesEl.textContent) || 0;
+            votesEl.textContent = current + 1;
+            voteStates.answers[answerId] = null;
+            downvoteBtn.classList.remove("vote-btn--active");
+          }
       }
     });
   }
@@ -420,11 +460,16 @@ function setupCommentSubmission() {
       
       // Backend: Submit comment
       // Example: fetch(`/api/questions/${currentQuestionId}/comments`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ text: commentText })
-      // })
-      
+      try {
+        const response = await api.createComment(commentText, currentQuestionId, null);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to create comment');
+        }
+      } catch (error) {
+        console.error('Error creating comment:', error);
+        alert('Failed to add comment. Please try again.');
+        return;
+      }
       // Add comment to UI
       const questionComments = document.querySelector("[data-question-comments]");
       const questionCommentsCount = document.querySelector("[data-question-comments-count]");
@@ -477,11 +522,16 @@ function setupCommentSubmission() {
         
         // Backend: Submit comment
         // Example: fetch(`/api/answers/${answerId}/comments`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ text: commentText })
-        // })
-        
+        try {
+          const response = await api.createComment(commentText, null, answerId);
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to create comment');
+          }
+        } catch (error) {
+          console.error('Error creating comment:', error);
+          alert('Failed to add comment. Please try again.');
+          return;
+        }
         // Add comment to UI
         const commentEl = document.createElement("div");
         commentEl.className = "comment";
@@ -519,6 +569,80 @@ function setupCommentSubmission() {
 
 /**
  * Setup Add Answer form with formatting tools
+ * Setup reporting functionality for questions and answers
+ */
+function setupReporting() {
+  // Add report button to question
+  const questionContent = document.querySelector(".question-content");
+  if (questionContent) {
+    const reportBtn = document.createElement("button");
+    reportBtn.className = "btn btn--ghost btn--sm";
+    reportBtn.style.marginTop = "12px";
+    reportBtn.textContent = "Report";
+    reportBtn.addEventListener("click", () => {
+      showReportModal(currentQuestionId, null);
+    });
+    questionContent.appendChild(reportBtn);
+  }
+
+  // Add report buttons to answers using event delegation
+  const answersContainer = document.querySelector("[data-answers-list]");
+  if (answersContainer) {
+    answersContainer.addEventListener("click", (e) => {
+      const reportBtn = e.target.closest("[data-report-answer]");
+      if (!reportBtn) return;
+      
+      const answerId = reportBtn.getAttribute("data-report-answer");
+      showReportModal(null, answerId);
+    });
+  }
+}
+
+async function showReportModal(questionId, answerId) {
+  const reason = prompt("Please provide a reason for reporting:");
+  if (!reason || !reason.trim()) {
+    return;
+  }
+
+  // Get current user
+  let currentUser = null;
+  try {
+    const userResponse = await api.getCurrentUser();
+    currentUser = userResponse.data;
+  } catch (error) {
+    alert("You must be logged in to report.");
+    return;
+  }
+
+  if (!currentUser || !currentUser.user_id) {
+    alert("You must be logged in to report.");
+    return;
+  }
+
+  // Submit report - API expects userId in body
+  try {
+    const response = await api.request('/reports', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: currentUser.user_id,
+        reason: reason.trim(),
+        questionId: questionId,
+        answerId: answerId,
+      }),
+    });
+
+    if (response.success) {
+      alert("Report submitted successfully. Thank you for helping keep the community safe.");
+    } else {
+      throw new Error(response.message || 'Failed to submit report');
+    }
+  } catch (error) {
+    console.error('Error submitting report:', error);
+    alert('Failed to submit report. Please try again.');
+  }
+}
+
+/**
  */
 function setupAddAnswer() {
   const toggleBtn = document.querySelector("[data-add-answer-toggle]");
@@ -583,19 +707,18 @@ function setupAddAnswer() {
       
       // Backend: Submit answer
       // Example: 
-      // fetch(`/api/questions/${currentQuestionId}/answers`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ body: answerText })
-      // })
-      
-      console.log("Submitting answer:", answerText);
-      alert("Answer submitted! (Backend integration needed)");
-      
-      // Reset form
-      answerInput.value = "";
-      form.classList.remove("add-answer-form--open");
-    });
+      try {
+        const response = await api.createAnswer(currentQuestionId, answerText);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to submit answer');
+        }
+        
+        // Reload page to show new answer
+        window.location.reload();
+      } catch (error) {
+        console.error('Error submitting answer:', error);
+        alert('Failed to submit answer. Please try again.');
+      }
   }
   
   // Cancel
@@ -624,6 +747,14 @@ function renderQuestionData(data) {
   }
   
   // Question title
+  console.log('Rendering question data:', {
+    id: data.id,
+    title: data.title,
+    votes: data.votes,
+    voteStatus: data.voteStatus
+  });
+  
+  // Question title
   const titleEl = document.querySelector("[data-question-title]");
   if (titleEl && data.title) {
     titleEl.textContent = data.title;
@@ -635,22 +766,87 @@ function renderQuestionData(data) {
     bodyEl.textContent = data.body;
   }
   
-  // Question votes
+  // Question votes - ensure it's always displayed
   const votesEl = document.querySelector("[data-question-votes]");
-  if (votesEl && data.votes !== undefined) {
-    votesEl.textContent = formatNumber(data.votes);
-  }
+  if (votesEl) {
+    // Ensure vote count is always a number, default to 0
+    let voteCount = 0;
+    if (data.votes !== undefined && data.votes !== null) {
+      voteCount = Number(data.votes);
+      // If conversion fails, default to 0
+      if (isNaN(voteCount)) {
+        voteCount = 0;
+      }
+    }
+    votesEl.textContent = formatNumber(voteCount);
+    console.log('Vote count set to:', voteCount, 'formatted:', formatNumber(voteCount));
+  } else {
+    console.error('Vote count element [data-question-votes] not found in DOM!');
   
+
+  // Update vote button states
+  if (data.voteStatus) {
+    voteStates.question = data.voteStatus;
+    const questionUpvote = document.querySelector("[data-question-upvote]");
+    const questionDownvote = document.querySelector("[data-question-downvote]");
+    if (questionUpvote && questionDownvote) {
+      if (data.voteStatus === 'up') {
+        questionUpvote.classList.add("vote-btn--active");
+      } else if (data.voteStatus === 'down') {
+        questionDownvote.classList.add("vote-btn--active");
+      }
+    }
+  }
+
+  // Show views count if available
+  if (data.views !== undefined) {
+    const questionContent = document.querySelector(".question-content");
+    if (questionContent) {
+      const viewsEl = document.createElement("div");
+      viewsEl.style.cssText = "font-size: 14px; opacity: 0.7; margin-top: 8px;";
+      viewsEl.textContent = `${formatNumber(data.views)} views`;
+      questionContent.insertBefore(viewsEl, questionContent.firstChild);
+    }
+  }
+
+  // Show closed status if applicable
+  if (data.is_closed) {
+    const questionTitle = document.querySelector("[data-question-title]");
+    if (questionTitle) {
+      const closedBadge = document.createElement("span");
+      closedBadge.className = "pill pill--muted";
+      closedBadge.style.cssText = "background: #ff6b6b; color: white; margin-left: 12px;";
+      closedBadge.textContent = "[Closed]";
+      questionTitle.parentElement.appendChild(closedBadge);
+    }
+  }
+  // Question author
+  // Question tags
+  const tagsContainer = document.querySelector("[data-question-tags]");
+  if (tagsContainer && data.tags) {
+    tagsContainer.innerHTML = "";
+    data.tags.forEach(tag => {
+      const tagEl = document.createElement("span");
+      tagEl.className = "tag";
+      tagEl.textContent = tag;
+      tagsContainer.appendChild(tagEl);
+    });
+  }
+
   // Question author
   const authorImageEl = document.querySelector("[data-question-author-image]");
-  if (authorImageEl) authorImageEl.src = data.author.image;
+  if (authorImageEl && data.author.image) {
+    authorImageEl.src = data.author.image;
+    authorImageEl.onerror = function() {
+      this.src = '../signin,login/ghost.png';
+    };
+  }
   
   const authorNameEl = document.querySelector("[data-question-author-name]");
-  if (authorNameEl) authorNameEl.textContent = data.author.name;
+  if (authorNameEl) authorNameEl.textContent = data.author.name || 'Unknown';
   
   const authorReputationEl = document.querySelector("[data-question-author-reputation]");
-  if (authorReputationEl) authorReputationEl.textContent = formatNumber(data.author.reputation);
-  
+  if (authorReputationEl) authorReputationEl.textContent = formatNumber(data.author.reputation || 0);
   const authorRoleEl = document.querySelector("[data-question-author-role]");
   if (authorRoleEl) {
     if (data.author.role) {
@@ -811,6 +1007,9 @@ function createAnswerElement(answer) {
         </div>
       </div>
     </div>
+      <div style="margin-top: 12px;">
+        <button class="btn btn--ghost btn--sm" data-report-answer="${answer.id}">Report</button>
+      </div>
   `;
   
   article.innerHTML = votesHtml + contentHtml;

@@ -660,193 +660,167 @@ function renderBadges(badges) {
   if (!container) return;
   container.innerHTML = '';
 
-  // Badge type configurations
+  // Badge type configurations - using landing page images
   const badgeConfigs = {
-    BRONZE: {
-      color: '#cd7f32',
-      icon: '🥉',
-      name: 'Bronze',
-      gradient: 'linear-gradient(135deg, #cd7f32 0%, #b87333 100%)',
-      shadow: '0 2px 8px rgba(205, 127, 50, 0.3)'
-    },
     SILVER: {
-      color: '#c0c0c0',
-      icon: '🥈',
-      name: 'Silver',
-      gradient: 'linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%)',
-      shadow: '0 2px 8px rgba(192, 192, 192, 0.3)'
+      image: '../landing_page/B1.png',
+      name: 'Silver'
     },
     GOLD: {
-      color: '#ffd700',
-      icon: '🥇',
-      name: 'Gold',
-      gradient: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
-      shadow: '0 2px 8px rgba(255, 215, 0, 0.4)'
+      image: '../landing_page/B2.png',
+      name: 'Gold'
+    },
+    DIAMOND: {
+      image: '../landing_page/B3.png',
+      name: 'Diamond'
     }
   };
 
   // Count badges by type
   const badgeCounts = {
+    DIAMOND: 0,
     GOLD: 0,
-    SILVER: 0,
-    BRONZE: 0
+    SILVER: 0
   };
 
   if (badges && badges.length > 0) {
     badges.forEach(badge => {
-      const type = badge.badge_type || 'BRONZE';
+      const type = badge.badge_type || 'SILVER';
       if (badgeCounts[type] !== undefined) {
         badgeCounts[type]++;
       } else {
-        badgeCounts.BRONZE++;
+        badgeCounts.SILVER++;
       }
     });
   }
 
-  // Always render all three badge types with counts
-  ['GOLD', 'SILVER', 'BRONZE'].forEach(type => {
+  // Render in order: Silver, Gold, Diamond
+  ['SILVER', 'GOLD', 'DIAMOND'].forEach(type => {
     const config = badgeConfigs[type];
     const count = badgeCounts[type] || 0;
     
     const wrapper = document.createElement("div");
-    wrapper.className = "badge";
+    wrapper.className = "badge badge-card";
+    
+    // Enhanced lighting for badges with count > 0
+    const hasBadges = count > 0;
+    const glowColor = type === 'DIAMOND' ? 'rgba(133, 103, 186, 0.4)' :
+                      type === 'GOLD' ? 'rgba(255, 215, 0, 0.4)' : 
+                      'rgba(192, 192, 192, 0.4)'; // SILVER
+    
+    // Enhanced lighting effects for badges with count > 0
+    const baseGlow = hasBadges ? 
+      `drop-shadow(0 0 20px ${glowColor}) drop-shadow(0 0 40px ${glowColor}80) drop-shadow(0 12px 32px rgba(133, 103, 186, 0.6))` :
+      `drop-shadow(0 12px 32px rgba(133, 103, 186, 0.4))`;
+    
     wrapper.style.cssText = `
-      border: 2px solid ${config.color};
-      background: ${count > 0 ? config.gradient : 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'};
-      box-shadow: ${count > 0 ? config.shadow : '0 2px 8px rgba(0,0,0,0.1)'};
-      border-radius: 8px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: ${hasBadges ? `radial-gradient(circle at center, ${glowColor} 0%, transparent 70%)` : 'transparent'};
+      border: none;
+      border-radius: 50%;
+      padding: ${hasBadges ? '20px' : '0'};
+      text-align: center;
+      box-shadow: ${hasBadges ? `0 0 40px ${glowColor}, 0 0 80px ${glowColor}40` : 'none'};
+      transition: transform 0.3s ease, filter 0.3s ease, box-shadow 0.3s ease;
+      opacity: ${hasBadges ? '1' : '0.6'};
       cursor: pointer;
-      opacity: ${count > 0 ? '1' : '0.6'};
+      position: relative;
+      animation: ${hasBadges ? 'badgeGlow 3s ease-in-out infinite' : 'none'};
     `;
     
+    // Hover effects matching landing page - enhanced for clarity
     wrapper.addEventListener('mouseenter', () => {
-      wrapper.style.transform = 'scale(1.05)';
-      if (count > 0) {
-        wrapper.style.boxShadow = config.shadow.replace('0.3', '0.5').replace('0.4', '0.6');
+      wrapper.style.transform = 'translateY(-12px) rotate(-2deg)';
+      if (hasBadges) {
+        wrapper.style.boxShadow = `0 0 60px ${glowColor}, 0 0 120px ${glowColor}80, 0 0 180px ${glowColor}40`;
+      }
+      const img = wrapper.querySelector('img');
+      if (img) {
+        const hoverGlow = hasBadges ?
+          `drop-shadow(0 0 30px ${glowColor}) drop-shadow(0 0 60px ${glowColor}) drop-shadow(0 24px 60px rgba(133, 103, 186, 0.8))` :
+          'drop-shadow(0 24px 60px rgba(133, 103, 186, 0.7))';
+        img.style.filter = `${hoverGlow} brightness(${hasBadges ? '1.5' : '1.2'}) contrast(${hasBadges ? '1.2' : '1'})`;
+        img.style.transform = 'scale(1.08)';
+        img.style.opacity = '1';
       }
     });
     
     wrapper.addEventListener('mouseleave', () => {
-      wrapper.style.transform = 'scale(1)';
-      wrapper.style.boxShadow = count > 0 ? config.shadow : '0 2px 8px rgba(0,0,0,0.1)';
+      wrapper.style.transform = 'translateY(0) rotate(0deg)';
+      if (hasBadges) {
+        wrapper.style.boxShadow = `0 0 40px ${glowColor}, 0 0 80px ${glowColor}40`;
+      }
+      const img = wrapper.querySelector('img');
+      if (img) {
+        img.style.filter = `${baseGlow} brightness(${hasBadges ? '1.3' : '1.1'}) contrast(${hasBadges ? '1.1' : '1'})`;
+        img.style.transform = 'scale(1)';
+        img.style.opacity = hasBadges ? '1' : '0.5';
+      }
     });
 
-    // Badge icon - honor/army style medal with stars
-    const iconEl = document.createElement("div");
-    iconEl.style.cssText = `
-      width: 64px;
-      height: 64px;
+    // Badge image - using landing page images
+    const imgContainer = document.createElement("div");
+    imgContainer.style.cssText = `
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      opacity: ${count > 0 ? '1' : '0.6'};
+      margin-bottom: 8px;
     `;
     
-    // Create honor medal SVG
-    const medalSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    medalSVG.setAttribute("width", "64");
-    medalSVG.setAttribute("height", "64");
-    medalSVG.setAttribute("viewBox", "0 0 64 64");
+    const badgeImg = document.createElement("img");
+    badgeImg.src = config.image;
+    badgeImg.alt = `${config.name} badge`;
     
-    // Medal ribbon/top part
-    const ribbon = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    ribbon.setAttribute("d", "M 20 8 Q 20 4 24 4 L 40 4 Q 44 4 44 8 L 44 16 L 20 16 Z");
-    ribbon.setAttribute("fill", config.color);
-    ribbon.setAttribute("opacity", "0.9");
+    badgeImg.style.cssText = `
+      width: auto;
+      max-width: 160px;
+      height: auto;
+      max-height: 160px;
+      display: block;
+      margin: 0 auto;
+      background: transparent;
+      filter: ${baseGlow} brightness(${hasBadges ? '1.3' : '1.1'}) contrast(${hasBadges ? '1.1' : '1'});
+      transition: filter 0.3s ease, transform 0.3s ease;
+      opacity: ${hasBadges ? '1' : '0.5'};
+      position: relative;
+      z-index: 1;
+    `;
     
-    // Medal circle/body
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", "32");
-    circle.setAttribute("cy", "36");
-    circle.setAttribute("r", "18");
-    circle.setAttribute("fill", config.color);
-    circle.setAttribute("stroke", "rgba(255,255,255,0.3)");
-    circle.setAttribute("stroke-width", "2");
-    
-    // Inner circle for depth
-    const innerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    innerCircle.setAttribute("cx", "32");
-    innerCircle.setAttribute("cy", "36");
-    innerCircle.setAttribute("r", "14");
-    innerCircle.setAttribute("fill", "rgba(255,255,255,0.15)");
-    
-    // Star decoration (honor star)
-    const star = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    const starPoints = [];
-    const centerX = 32;
-    const centerY = 36;
-    const outerRadius = 10;
-    const innerRadius = 5;
-    for (let i = 0; i < 10; i++) {
-      const angle = (i * Math.PI) / 5;
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const x = centerX + radius * Math.cos(angle - Math.PI / 2);
-      const y = centerY + radius * Math.sin(angle - Math.PI / 2);
-      starPoints.push(`${i === 0 ? 'M' : 'L'} ${x} ${y}`);
-    }
-    star.setAttribute("d", starPoints.join(' ') + ' Z');
-    star.setAttribute("fill", "rgba(255,255,255,0.9)");
-    star.setAttribute("stroke", "rgba(255,255,255,0.5)");
-    star.setAttribute("stroke-width", "0.5");
-    
-    // Small decorative stars around
-    for (let i = 0; i < 3; i++) {
-      const smallStar = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const angle = (i * 2 * Math.PI) / 3;
-      const x = centerX + 12 * Math.cos(angle);
-      const y = centerY + 12 * Math.sin(angle);
-      const smallStarPoints = [];
-      for (let j = 0; j < 10; j++) {
-        const starAngle = (j * Math.PI) / 5;
-        const radius = j % 2 === 0 ? 2 : 1;
-        const sx = x + radius * Math.cos(starAngle - Math.PI / 2);
-        const sy = y + radius * Math.sin(starAngle - Math.PI / 2);
-        smallStarPoints.push(`${j === 0 ? 'M' : 'L'} ${sx} ${sy}`);
-      }
-      smallStar.setAttribute("d", smallStarPoints.join(' ') + ' Z');
-      smallStar.setAttribute("fill", "rgba(255,255,255,0.7)");
-      medalSVG.appendChild(smallStar);
-    }
-    
-    medalSVG.appendChild(ribbon);
-    medalSVG.appendChild(circle);
-    medalSVG.appendChild(innerCircle);
-    medalSVG.appendChild(star);
-    
-    iconEl.appendChild(medalSVG);
+    imgContainer.appendChild(badgeImg);
 
     // Badge name
     const label = document.createElement("span");
     label.className = "badge__label";
     label.style.cssText = `
-      color: ${count > 0 ? 'white' : 'rgba(255,255,255,0.7)'};
-      font-weight: 600;
-      font-size: 12px;
+      color: ${hasBadges ? '#e9e6f5' : 'rgba(181, 176, 199, 0.6)'};
+      font-weight: 700;
+      font-size: 15px;
       text-align: center;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      display: block;
+      margin-top: 10px;
+      text-shadow: ${hasBadges ? `0 0 8px ${glowColor}, 0 2px 4px rgba(0, 0, 0, 0.3)` : '0 2px 4px rgba(0, 0, 0, 0.3)'};
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
     `;
     label.textContent = config.name;
 
-    // Badge count (number of badges of this type)
+    // Badge count (number of badges of this type) - displayed below
     const countEl = document.createElement("span");
     countEl.style.cssText = `
-      color: ${count > 0 ? 'white' : 'rgba(255,255,255,0.6)'};
-      font-weight: 700;
-      font-size: 16px;
+      color: ${hasBadges ? '#ffffff' : 'rgba(181, 176, 199, 0.5)'};
+      font-weight: 800;
+      font-size: 20px;
       text-align: center;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      margin-top: 4px;
+      display: block;
+      margin-top: 6px;
+      text-shadow: ${hasBadges ? `0 0 10px ${glowColor}, 0 0 20px ${glowColor}80, 0 2px 6px rgba(0, 0, 0, 0.5)` : '0 2px 6px rgba(133, 103, 186, 0.5)'};
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
     `;
     countEl.textContent = count;
 
-    wrapper.append(iconEl, label, countEl);
+    wrapper.append(imgContainer, label, countEl);
     container.appendChild(wrapper);
   });
 }

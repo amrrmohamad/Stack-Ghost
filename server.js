@@ -47,6 +47,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Serve landing page at root
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend_stack_ghost', 'landing_page', 'index.html'));
+});
+
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'frontend_stack_ghost')));
 

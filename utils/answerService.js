@@ -7,7 +7,7 @@
  */
 
 import prisma from '../lib/prisma.js';
-import { awardBadge } from './badgeService.js';
+import { awardBadge, checkGhostBadges } from './badgeService.js';
 import { ERRORS } from '../lib/errors.js';
 
 /**
@@ -48,6 +48,9 @@ export const createAnswer = async (body, questionId, userId) => {
             if (answerCount === 1) {
                 await awardBadge(parseInt(userId), 'Teacher');
             }
+
+            // Check Ghost badges after answer creation
+            await checkGhostBadges(parseInt(userId));
         } catch (badgeError) {
             console.error("Badge System Error:", badgeError);
         }
@@ -228,7 +231,9 @@ export const acceptAnswer = async (answerId, userId) => {
             }
         });
 
+        let oldAnswerAuthorId = null;
         if (oldAcceptedAnswer) {
+            oldAnswerAuthorId = oldAcceptedAnswer.user_id;
             // Unaccept old answer
             await tx.answers.update({
                 where: { answer_id: oldAcceptedAnswer.answer_id },
@@ -260,7 +265,27 @@ export const acceptAnswer = async (answerId, userId) => {
             data: { reputation: { increment: 2 } }
         });
 
-        return { success: true };
+        return { 
+            success: true,
+            answerAuthorId: answerToAccept.user_id,
+            questionOwnerId: questionOwnerId,
+            oldAnswerAuthorId: oldAnswerAuthorId
+        };
+    }).then(async (result) => {
+        // Check Ghost badges after accepting answer (outside transaction)
+        try {
+            // Check for answer author (got +15 reputation and has accepted answer)
+            await checkGhostBadges(result.answerAuthorId);
+            // Check for question owner (got +2 reputation and accepted a question)
+            await checkGhostBadges(result.questionOwnerId);
+            // Also check for old answer author if answer was unaccepted
+            if (result.oldAnswerAuthorId) {
+                await checkGhostBadges(result.oldAnswerAuthorId);
+            }
+        } catch (badgeError) {
+            console.error("Badge System Error after accepting answer:", badgeError);
+        }
+        return result;
     });
 };
 

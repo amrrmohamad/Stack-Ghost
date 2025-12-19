@@ -267,13 +267,13 @@ function updateQuestionsHero() {
   const hero = document.querySelector("[data-questions-top]");
 
   const accentCopy = {
-    newest: "My Recent",
-    votes: "My Popular",
-    oldest: "My Previous",
+    newest: "Recent",
+    votes: "Popular",
+    oldest: "Previous",
   };
 
   if (accent) {
-    accent.textContent = accentCopy[questionViewState.sort] ?? "My Recent";
+    accent.textContent = accentCopy[questionViewState.sort] ?? "Recent";
     accent.style.color = "#8567BA";
   }
 
@@ -427,6 +427,8 @@ function buildQuestionCard(question) {
   const closedBadge = isClosed ? '<span class="pill pill--muted" style="background: #ff6b6b; color: white; margin-left: 8px;">[Closed]</span>' : '';
   const summary = question.summary || '';
   const createdDate = question.created_at ? new Date(question.created_at).toLocaleDateString() : '';
+  const authorName = question.author || question.author_username || 'Unknown';
+  const authorLink = question.author_id ? `../profile/index.html?id=${question.author_id}` : '#';
 
   card.innerHTML = `
     <div class="question-card__stats">
@@ -454,20 +456,33 @@ function buildQuestionCard(question) {
       .map((tag) => `<span class="tag tag--pill" data-tag="${tag}">${tag}</span>`)
       .join("")}
       </div>
-      ${createdDate ? `<div style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Asked on ${createdDate}</div>` : ''}
+      <div style="font-size: 12px; opacity: 0.6; margin-top: 8px; display: flex; gap: 12px; align-items: center;">
+        ${createdDate ? `<span>Asked on ${createdDate}</span>` : ''}
+        <span>by <a href="${authorLink}" style="color: #8567ba; text-decoration: none;" onclick="event.stopPropagation();">${authorName}</a></span>
+      </div>
     </div>
   `;
 
   if (question.url) {
     card.addEventListener("click", (event) => {
+      // Don't navigate if clicking on author link or tag
       const isTag = event.target.closest(".tag");
+      const isAuthorLink = event.target.closest("a[href*='profile']");
+      
       if (isTag) {
+        event.stopPropagation();
         const tagName = isTag.dataset.tag;
         questionViewState.tag = tagName;
         questionViewState.page = 1;
         renderQuestionsList();
         return;
       }
+      
+      if (isAuthorLink) {
+        // Let the link handle navigation naturally
+        return;
+      }
+      
       window.location.href = question.url;
     });
   }

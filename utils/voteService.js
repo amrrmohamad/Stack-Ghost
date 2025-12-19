@@ -7,7 +7,7 @@
  */
 
 import prisma from '../lib/prisma.js';
-import { awardBadge } from './badgeService.js';
+import { awardBadge, checkGhostBadges } from './badgeService.js';
 import { ERRORS } from '../lib/errors.js';
 
 const REPUTATION_GAINS = {
@@ -168,7 +168,22 @@ export const handleVote = async (userId, questionId, answerId, voteType) => {
             else if (actionType === 'flip') message = `Vote on ${targetEntity} flipped`;
             else message = `New ${voteType === 1 ? 'Upvote' : 'Downvote'} recorded`;
 
-            return { action: actionType, message };
+            return { 
+                action: actionType, 
+                message,
+                postOwnerId: postOwnerId,
+                reputationChange: reputationChangeForOwner
+            };
+        }).then(async (result) => {
+            // Check Ghost badges after reputation change (outside transaction)
+            if (result.reputationChange !== 0) {
+                try {
+                    await checkGhostBadges(result.postOwnerId);
+                } catch (badgeError) {
+                    console.error("Badge System Error after vote:", badgeError);
+                }
+            }
+            return result;
         });
 
     } catch (error) {

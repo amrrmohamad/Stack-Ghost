@@ -224,16 +224,16 @@ model Notifications {
 }
 
 enum BadgeLevel {
-  BRONZE
   SILVER
   GOLD
+  DIAMOND
 }
 
 model Badges {
   badge_id    Int           @id @default(autoincrement())
   badge_name  String        @unique 
   description String        
-  badge_type  BadgeLevel    @default(BRONZE) 
+  badge_type  BadgeLevel    @default(SILVER) 
   icon        String?       
   
   User_Badges User_Badges[]

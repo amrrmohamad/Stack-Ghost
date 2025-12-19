@@ -1,5 +1,5 @@
 // All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
+import api from '../js/api.js';
 
 export const fallbackUserData = {
   username: "Amr",
@@ -132,9 +132,6 @@ export async function fetchUserData() {
     tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
   };
 }
-
-// Question data structure
-const QUESTION_ENDPOINT = "/api/questions";
 
 export const fallbackQuestionData = {
   id: "1",
@@ -275,43 +272,168 @@ Set a reasonable expiration time and handle token refresh automatically.`,
 
 export async function fetchQuestionData(questionId) {
   try {
-    const response = await fetch(`${QUESTION_ENDPOINT}/${questionId}`, {
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to load question data: ${response.status}`);
+    // Fetch question - views are automatically incremented by backend
+    const questionResponse = await api.getQuestionById(questionId);
+    if (!questionResponse.success || !questionResponse.data) {
+      throw new Error('Question not found');
     }
 
-    const payload = await response.json();
+    const q = questionResponse.data;
+    const author = q.Author || {};
+    const tags = (q.Question_Tags || []).map(qt => qt.Tags?.tag_name).filter(Boolean);
+    
+    // Debug: Log the question data to see what we're getting
+    console.log('Question data from API:', {
+      question_id: q.question_id,
+      vote_count: q.vote_count,
+      vote_count_type: typeof q.vote_count,
+      Votes: q.Votes,
+      VotesLength: q.Votes?.length,
+      VotesArray: Array.isArray(q.Votes) ? q.Votes : 'not an array'
+    });
 
+    // Fetch comments for question
+    let questionComments = [];
+    try {
+      const commentsResponse = await api.getComments(questionId, null);
+      if (commentsResponse.success && commentsResponse.data) {
+        questionComments = commentsResponse.data.map(c => ({
+          id: c.comment_id,
+          author: c.Users?.username || 'Unknown',
+          time: c.created_at ? formatTimeAgo(new Date(c.created_at)) : 'Recently',
+          text: c.body
+        }));
+      }
+    } catch (error) {
+      console.warn('Could not fetch question comments:', error);
+    }
+
+    // Fetch answers
+    let answers = [];
+    try {
+      const answersResponse = await api.getAnswers(questionId, 1, 100);
+      if (answersResponse.success && answersResponse.data) {
+        answers = await Promise.all(answersResponse.data.map(async (a) => {
+          // Fetch comments for each answer
+          let answerComments = [];
+          try {
+            const answerCommentsResponse = await api.getComments(null, a.answer_id);
+            if (answerCommentsResponse.success && answerCommentsResponse.data) {
+              answerComments = answerCommentsResponse.data.map(c => ({
+                id: c.comment_id,
+                author: c.Users?.username || 'Unknown',
+                time: c.created_at ? formatTimeAgo(new Date(c.created_at)) : 'Recently',
+                text: c.body
+              }));
+            }
+          } catch (error) {
+            console.warn(`Could not fetch comments for answer ${a.answer_id}:`, error);
+          }
+
+          // Get vote count for answer
+          const answerVotes = (a.Votes || []).reduce((acc, v) => acc + (v.vote_type || 0), 0);
+
+          return {
+            id: a.answer_id,
+            body: a.body,
+            votes: answerVotes,
+            accepted: a.is_accepted || false,
+            author: {
+              name: a.Users?.username || 'Unknown',
+              image: a.Users?.profile_image || '../signin,login/ghost.png',
+              reputation: a.Users?.reputation || 0,
+              role: a.Users?.Roles?.role_name || null,
+            },
+            comments: answerComments
+          };
+        }));
+      }
+    } catch (error) {
+      console.warn('Could not fetch answers:', error);
+    }
+
+    // Check vote status for question
+    let questionVoteStatus = null;
+    try {
+      const voteStatusResponse = await api.checkVoteStatus(questionId, null);
+      if (voteStatusResponse.success && voteStatusResponse.data) {
+        questionVoteStatus = voteStatusResponse.data.vote_type === 1 ? 'up' : 
+                            voteStatusResponse.data.vote_type === -1 ? 'down' : null;
+      }
+    } catch (error) {
+      console.warn('Could not fetch vote status:', error);
+    }
+
+    // Calculate vote count - prioritize vote_count from backend, fallback to Votes array
+    let voteCount = 0;
+    
+    // First try to use vote_count from backend response (this is calculated by the controller)
+    if (q.vote_count !== undefined && q.vote_count !== null) {
+      voteCount = Number(q.vote_count);
+      if (isNaN(voteCount)) {
+        console.warn('vote_count is not a valid number:', q.vote_count);
+        voteCount = 0;
+      }
+    } 
+    // If not available, calculate from Votes array
+    else if (q.Votes && Array.isArray(q.Votes)) {
+      if (q.Votes.length > 0) {
+        voteCount = q.Votes.reduce((acc, v) => {
+          const voteType = Number(v.vote_type) || 0;
+          return acc + voteType;
+        }, 0);
+      }
+      // If Votes array is empty, voteCount stays 0
+    }
+    
+    console.log('Final calculated vote count:', voteCount, {
+      'from vote_count': q.vote_count,
+      'from Votes array': q.Votes,
+      'Votes length': q.Votes?.length || 0
+    });
+
+    // Ensure voteCount is always a number
+    const finalVoteCount = Number(voteCount);
+    const safeVoteCount = isNaN(finalVoteCount) ? 0 : finalVoteCount;
+    
+    console.log('Returning question data with vote count:', safeVoteCount);
+    
     return {
-      id: payload?.id ?? fallbackQuestionData.id,
-      title: payload?.title ?? fallbackQuestionData.title,
-      body: payload?.body ?? fallbackQuestionData.body,
-      votes: payload?.votes ?? fallbackQuestionData.votes,
-      tags: Array.isArray(payload?.tags) && payload.tags.length
-        ? payload.tags
-        : fallbackQuestionData.tags,
+      id: q.question_id,
+      title: q.title,
+      body: q.body,
+      votes: safeVoteCount, // Always ensure it's a number
+      views: q.views_count || 0,
+      is_closed: q.is_closed || false,
+      tags: tags,
       author: {
-        name: payload?.author?.name ?? fallbackQuestionData.author.name,
-        image: payload?.author?.image ?? fallbackQuestionData.author.image,
-        reputation: payload?.author?.reputation ?? fallbackQuestionData.author.reputation,
-        role: payload?.author?.role ?? fallbackQuestionData.author.role,
+        name: author.username || 'Unknown',
+        image: author.profile_image || '../signin,login/ghost.png',
+        reputation: author.reputation || 0,
+        role: author.Roles?.role_name || null,
       },
-      comments: Array.isArray(payload?.comments) && payload.comments.length
-        ? payload.comments
-        : fallbackQuestionData.comments,
-      answers: Array.isArray(payload?.answers) && payload.answers.length
-        ? payload.answers
-        : fallbackQuestionData.answers,
-      popularQuestions: Array.isArray(payload?.popularQuestions) && payload.popularQuestions.length
-        ? payload.popularQuestions
-        : fallbackQuestionData.popularQuestions,
+      comments: questionComments,
+      answers: answers,
+      voteStatus: questionVoteStatus,
+      popularQuestions: []
     };
   } catch (error) {
-    console.warn("Falling back to local question data", error);
+    console.error("Error fetching question data:", error);
     return fallbackQuestionData;
   }
+}
+
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  return 'just now';
 }
 

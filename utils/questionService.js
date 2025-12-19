@@ -7,7 +7,7 @@
  */
 
 import prisma from '../lib/prisma.js';
-import { awardBadge } from './badgeService.js';
+import { awardBadge, checkGhostBadges } from './badgeService.js';
 import { ERRORS } from '../lib/errors.js';
 
 /**
@@ -83,6 +83,9 @@ export const createQuestion = async (title, body, userId, tagIds = []) => {
             if (questionCount === 30) {
                 await awardBadge(parseInt(userId), 'Inquisitive');
             }
+
+            // Check Ghost badges after question creation
+            await checkGhostBadges(parseInt(userId));
         } catch (badgeError) {
             console.error("Badge System Error:", badgeError);
         }

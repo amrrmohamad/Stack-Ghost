@@ -441,6 +441,18 @@ class APIClient {
             method: 'POST',
         });
     }
+
+    // Report endpoints
+    async createReport(reason, questionId = null, answerId = null) {
+        return this.request('/reports', {
+            method: 'POST',
+            body: JSON.stringify({
+                reason,
+                question_id: questionId,
+                answer_id: answerId,
+            }),
+        });
+    }
 }
 
 // Create and export a singleton instance

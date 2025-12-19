@@ -18,30 +18,14 @@ export async function fetchUserData() {
     const user = userResponse.data;
     const userId = user.user_id;
 
-    // Fetch logged-in user's questions with complete profile
+    // Fetch all questions from database
     let userQuestions = [];
     let followedTags = [];
 
     try {
-      // Get complete profile which includes questions and followed tags
+      // Get complete profile for followed tags
       const profileResponse = await api.getCompleteProfile(userId);
-
       if (profileResponse.success && profileResponse.data) {
-        // Get user's questions
-        userQuestions = (profileResponse.data.questions || []).map(q => ({
-          question_id: q.question_id,
-          title: q.title,
-          summary: q.summary || q.body?.substring(0, 150) || '',
-          votes: q.votes || q.score || 0,
-          answers: q.answers || q.answers_count || 0,
-          views: q.views || q.views_count || 0,
-          tags: Array.isArray(q.tags) ? q.tags : (q.Question_Tags?.map(qt => qt.Tags?.tag_name) || []),
-          is_closed: q.is_closed || false,
-          created_at: q.created_at,
-          createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
-          url: `index.html?id=${q.question_id}`
-        }));
-
         // Get followed tags
         followedTags = (profileResponse.data.followedTags || []).map(t => ({
           tag_id: t.tag_id,
@@ -51,32 +35,38 @@ export async function fetchUserData() {
         }));
       }
     } catch (error) {
-      console.warn('Could not fetch complete profile, trying alternative methods:', error);
+      console.warn('Could not fetch profile for tags:', error);
+    }
 
-      // Fallback: try to get questions directly
-      try {
-        const questionsResponse = await api.getQuestions(1, 100);
-        if (questionsResponse.success && questionsResponse.data) {
-          // Filter to only show logged-in user's questions
-          userQuestions = questionsResponse.data
-            .filter(q => q.user_id === userId)
-            .map(q => ({
-              question_id: q.question_id,
-              title: q.title,
-              summary: q.summary || q.body?.substring(0, 150) || '',
-              votes: q.score || q.votes || 0,
-              answers: q.answers_count || q.answers || 0,
-              views: q.views_count || q.views || 0,
-              tags: q.tags || [],
-              is_closed: q.is_closed || false,
-              created_at: q.created_at,
-              createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
-              url: `question-detail.html?id=${q.question_id}`
-            }));
-        }
-      } catch (qError) {
-        console.error('Error fetching questions:', qError);
+    // Fetch ALL questions from database
+    try {
+      const questionsResponse = await api.getQuestions(1, 100);
+      if (questionsResponse.success && questionsResponse.data) {
+        // Get all questions (no filter by user_id)
+        userQuestions = questionsResponse.data.map(q => {
+          const authorObj = q.author || q.Author || {};
+          const authorName = authorObj.username || 'Unknown';
+          const authorId = authorObj.user_id || null;
+          
+          return {
+            question_id: q.question_id,
+            title: q.title,
+            summary: q.summary || q.body?.substring(0, 150) || '',
+            votes: q.score || q.votes || 0,
+            answers: q.answers_count || q.answers || 0,
+            views: q.views_count || q.views || 0,
+            tags: q.tags || [],
+            is_closed: q.is_closed || false,
+            created_at: q.created_at,
+            createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
+            author: authorName,
+            author_id: authorId,
+            url: `question-detail.html?id=${q.question_id}`
+          };
+        });
       }
+    } catch (qError) {
+      console.error('Error fetching questions:', qError);
     }
 
     // Fetch user's notifications

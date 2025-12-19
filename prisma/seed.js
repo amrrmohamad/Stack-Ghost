@@ -15,32 +15,110 @@ async function main() {
     {
       badge_name: 'Student',
       description: 'Asked first question',
-      badge_type: 'BRONZE'
+      badge_type: 'SILVER'
     },
     {
       badge_name: 'Teacher',
       description: 'Answered first question',
-      badge_type: 'BRONZE'
+      badge_type: 'SILVER'
     },
     {
       badge_name: 'Nice Answer',
       description: 'Answer score > 10',
-      badge_type: 'SILVER'
+      badge_type: 'GOLD'
     },
     {
       badge_name: 'Guru',
       description: 'Answer score > 100',
-      badge_type: 'GOLD'
+      badge_type: 'DIAMOND'
     },
     {
       badge_name: 'Curious',
       description: 'Asked 5 questions',
-      badge_type: 'BRONZE'
+      badge_type: 'SILVER'
     },
     {
       badge_name: 'Inquisitive',
       description: 'Asked 30 questions',
+      badge_type: 'GOLD'
+    },
+    // Silver Ghost badges - each requirement awards separately
+    {
+      badge_name: 'Silver Ghost (Reputation)',
+      description: 'Reached 1,000 reputation points',
       badge_type: 'SILVER'
+    },
+    {
+      badge_name: 'Silver Ghost (Questions)',
+      description: 'Asked 10 questions',
+      badge_type: 'SILVER'
+    },
+    {
+      badge_name: 'Silver Ghost (Answers)',
+      description: 'Answered 20 questions',
+      badge_type: 'SILVER'
+    },
+    {
+      badge_name: 'Silver Ghost (Accepted Questions)',
+      description: 'Accepted answers on 5 questions',
+      badge_type: 'SILVER'
+    },
+    {
+      badge_name: 'Silver Ghost (Accepted Answers)',
+      description: 'Had 10 answers accepted',
+      badge_type: 'SILVER'
+    },
+    // Gold Ghost badges - each requirement awards separately
+    {
+      badge_name: 'Gold Ghost (Reputation)',
+      description: 'Reached 5,000 reputation points',
+      badge_type: 'GOLD'
+    },
+    {
+      badge_name: 'Gold Ghost (Questions)',
+      description: 'Asked 50 questions',
+      badge_type: 'GOLD'
+    },
+    {
+      badge_name: 'Gold Ghost (Answers)',
+      description: 'Answered 100 questions',
+      badge_type: 'GOLD'
+    },
+    {
+      badge_name: 'Gold Ghost (Accepted Questions)',
+      description: 'Accepted answers on 25 questions',
+      badge_type: 'GOLD'
+    },
+    {
+      badge_name: 'Gold Ghost (Accepted Answers)',
+      description: 'Had 50 answers accepted',
+      badge_type: 'GOLD'
+    },
+    // Diamond Ghost badges - each requirement awards separately
+    {
+      badge_name: 'Diamond Ghost (Reputation)',
+      description: 'Reached 10,000 reputation points',
+      badge_type: 'DIAMOND'
+    },
+    {
+      badge_name: 'Diamond Ghost (Questions)',
+      description: 'Asked 100 questions',
+      badge_type: 'DIAMOND'
+    },
+    {
+      badge_name: 'Diamond Ghost (Answers)',
+      description: 'Answered 200 questions',
+      badge_type: 'DIAMOND'
+    },
+    {
+      badge_name: 'Diamond Ghost (Accepted Questions)',
+      description: 'Accepted answers on 50 questions',
+      badge_type: 'DIAMOND'
+    },
+    {
+      badge_name: 'Diamond Ghost (Accepted Answers)',
+      description: 'Had 100 answers accepted',
+      badge_type: 'DIAMOND'
     }
   ]
 

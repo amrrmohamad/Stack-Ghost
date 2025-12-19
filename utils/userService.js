@@ -7,6 +7,7 @@
  */
 
 import prisma from '../lib/prisma.js';
+import { checkGhostBadges } from './badgeService.js';
 
 /**
  * Retrieves all users from the database
@@ -128,6 +129,12 @@ const getCurrentUser = async (userId) => {
     if (!user || user.is_active === false) {
         throw new Error('User not found');
     }
+
+    // Check Ghost badges when current user profile is viewed (non-blocking)
+    checkGhostBadges(userId).catch(err => {
+        console.error(`Error checking badges for user ${userId}:`, err);
+    });
+
     return user;
 };
 

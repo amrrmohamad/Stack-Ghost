@@ -1,4 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Setup navigation to login/signup
+  const loginBtn = document.querySelector('.login-btn');
+  const signupBtn = document.querySelector('.signup-btn');
+  const ctaButtons = document.querySelectorAll('.cta, .glow-button');
+  
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      window.location.href = '../signin,login/index.html';
+    });
+  }
+  
+  if (signupBtn) {
+    signupBtn.addEventListener('click', () => {
+      window.location.href = '../signin,login/index.html';
+    });
+  }
+  
+  // Redirect CTA buttons to login/signup page
+  ctaButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.location.href = '../signin,login/index.html';
+    });
+  });
+  
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
