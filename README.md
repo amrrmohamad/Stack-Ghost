@@ -26,28 +26,79 @@ Built with **Node.js** and a simple frontend using **HTML / CSS / JavaScript** (
 ```
 Stack-Ghost/
 │
-├── server.js
-├── package.json
+├── server.js                    # Main Express server entry point
+├── package.json                 # Dependencies and scripts
+├── .env                         # Environment variables
 │
-├── public/
-│   ├── index.html
-│   ├── login.html
-│   ├── register.html
-│   ├── dashboard.html
-│   ├── css/
-│   └── js/
+├── prisma/                      # Prisma ORM
+│   └── schema.prisma            # Database schema
 │
-├── database/
-│   ├── schema.sql       # Database schema
-│   └── connection.js    # PostgreSQL connection
+├── controllers/                 # Request handlers
+│   ├── AnswerController.js      # Answer CRUD operations
+│   ├── AuthController.js        # Login, register, logout
+│   ├── CommentController.js     # Comments on Q&A
+│   ├── FollowController.js      # User follow/unfollow
+│   ├── NotificationController.js # User notifications
+│   ├── QuestionController.js    # Question CRUD operations
+│   ├── QuestionTagController.js # Question-Tag relations
+│   ├── ReportController.js      # Content reporting
+│   ├── TagController.js         # Tags management
+│   ├── UserController.js        # User profiles
+│   └── VoteController.js        # Upvote/downvote
 │
-├── controllers/
-│   ├── userController.js
-│   └── badgeController.js
+├── routes/                      # API route definitions
+│   ├── answerRoutes.js
+│   ├── authRoutes.js
+│   ├── commentRoutes.js
+│   ├── followRoutes.js
+│   ├── notificationRoutes.js
+│   ├── questionRoutes.js
+│   ├── questionTagRoutes.js
+│   ├── reportRoutes.js
+│   ├── tagRoutes.js
+│   ├── userRoutes.js
+│   └── voteRoutes.js
 │
-└── routes/
-    ├── userRoutes.js
-    └── badgeRoutes.js
+├── utils/                       # Business logic services
+│   ├── answerService.js
+│   ├── badgeService.js
+│   ├── commentService.js
+│   ├── followService.js
+│   ├── notificationService.js
+│   ├── profileService.js
+│   ├── questionService.js
+│   ├── questionTagService.js
+│   ├── reportService.js
+│   ├── tagService.js
+│   ├── userService.js
+│   └── voteService.js
+│
+├── middlewares/                 # Express middleware
+│   ├── auth.middleware.js       # JWT authentication
+│   ├── permission.middleware.js # Permission checks
+│   ├── rateLimiter.js           # Rate limiting
+│   ├── requestLogger.js         # Request logging
+│   └── role.middleware.js       # Role-based access
+│
+├── lib/                         # Shared libraries
+│   ├── errors.js                # Error definitions
+│   ├── logger.js                # Winston logger
+│   ├── pagination.js            # Pagination utils
+│   └── prisma.js                # Prisma client
+│
+└── frontend_stack_ghost/        # Frontend pages
+    ├── js/                      # Shared JS (api.js)
+    ├── landing_page/            # Landing/marketing page
+    ├── signin,login/            # Auth pages
+    ├── home/                    # Dashboard/home
+    ├── questions/               # Questions list
+    ├── question_review/         # Question detail page
+    ├── ask/                     # Ask question form
+    ├── profile/                 # User profiles
+    ├── users/                   # Users directory
+    ├── badges/                  # Badges page
+    ├── tages/                   # Tags page
+    └── dashboard/               # Admin dashboard
 ```
 
 ---

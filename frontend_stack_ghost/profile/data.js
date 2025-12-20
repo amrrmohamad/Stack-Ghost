@@ -68,7 +68,7 @@ async function fetchCompleteProfile(userId) {
   try {
     // Fetch complete profile with all includes
     const response = await api.getCompleteProfile(userId);
-    
+
     if (!response.success || !response.data) {
       throw new Error('Failed to load profile');
     }
@@ -76,7 +76,7 @@ async function fetchCompleteProfile(userId) {
     const data = response.data;
     const user = data.user;
     const followStats = data.followStats || { followersCount: 0, followingCount: 0 };
-    
+
     // Debug: Log the follow stats to verify
     console.log('Follow stats from API:', followStats);
     console.log('Following count:', followStats.followingCount);
@@ -134,7 +134,7 @@ async function fetchCompleteProfile(userId) {
         is_closed: q.is_closed,
         created_at: q.created_at,
         createdAt: q.createdAt,
-        url: `../questions/index.html?id=${q.question_id}`
+        url: `../question_review/question.html?id=${q.question_id}`
       })),
       answers: (data.answers || []).map(a => ({
         answer_id: a.answer_id,
@@ -147,7 +147,7 @@ async function fetchCompleteProfile(userId) {
         is_accepted: a.is_accepted,
         created_at: a.created_at,
         createdAt: a.createdAt,
-        url: `../questions/index.html?id=${a.question_id}#answer-${a.answer_id}`
+        url: `../question_review/question.html?id=${a.question_id}#answer-${a.answer_id}`
       })),
       tagCards: (data.followedTags || []).map(t => ({
         tag_id: t.tag_id,
@@ -159,7 +159,8 @@ async function fetchCompleteProfile(userId) {
       posts: (data.questionTitles || []).map(q => ({
         title: q.title,
         username: user.username,
-        url: q.url
+        question_id: q.question_id,
+        url: `../question_review/question.html?id=${q.question_id}`
       }))
     };
   } catch (error) {
