@@ -2,12 +2,11 @@
  * @file ReportController.js
  * @description Controller responsible for handling Report CRUD operations.
  * @author M-Ahmd <ma0950082@gmail.com>
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2025-12-17
  */
 
-import prisma from '../lib/prisma.js';
-import { ERRORS } from '../lib/errors.js';
+import * as reportService from '../utils/reportService.js';
 
 class ReportController {
     /**
@@ -20,50 +19,15 @@ class ReportController {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const status = req.query.status || null;
-            const skip = (page - 1) * limit;
 
-            const where = {};
-            if (status) {
-                where.status = status;
-            }
-
-            const totalReports = await prisma.reports.count({ where });
-
-            const reports = await prisma.reports.findMany({
-                where,
-                skip,
-                take: limit,
-                include: {
-                    Users: {
-                        select: {
-                            user_id: true,
-                            username: true,
-                            profile_image: true
-                        }
-                    },
-                    Questions: {
-                        select: {
-                            question_id: true,
-                            title: true
-                        }
-                    },
-                    Answers: {
-                        select: {
-                            answer_id: true,
-                            body: true
-                        }
-                    }
-                },
-                orderBy: {
-                    created_at: 'desc'
-                }
-            });
+            const { reports, totalReports, totalPages } =
+                await reportService.getAllReports(page, limit, status);
 
             res.status(200).json({
                 success: true,
                 count: reports.length,
                 total: totalReports,
-                totalPages: Math.ceil(totalReports / limit),
+                totalPages,
                 currentPage: page,
                 data: reports
             });
@@ -90,41 +54,7 @@ class ReportController {
                 });
             }
 
-            const report = await prisma.reports.findUnique({
-                where: { report_id: reportId },
-                include: {
-                    Users: {
-                        select: {
-                            user_id: true,
-                            username: true,
-                            profile_image: true,
-                            email: true
-                        }
-                    },
-                    Questions: {
-                        select: {
-                            question_id: true,
-                            title: true,
-                            body: true,
-                            created_at: true
-                        }
-                    },
-                    Answers: {
-                        select: {
-                            answer_id: true,
-                            body: true,
-                            created_at: true
-                        }
-                    }
-                }
-            });
-
-            if (!report) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Report not found"
-                });
-            }
+            const report = await reportService.getReportById(reportId);
 
             res.status(200).json({
                 success: true,
@@ -133,6 +63,12 @@ class ReportController {
 
         } catch (error) {
             console.error(error);
+            if (error.message.includes('not found')) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Report not found"
+                });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -144,40 +80,14 @@ class ReportController {
      */
     async createReport(req, res) {
         try {
-            const { userId, reason, questionId, answerId } = req.body;
+            const userId = req.user?.user_id || req.body.userId;
+            const { reason, questionId, answerId, question_id, answer_id } = req.body;
 
-            if (!userId || !reason) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Missing required fields: userId and reason are required."
-                });
-            }
+            // Support both camelCase and snake_case from frontend
+            const qId = questionId || question_id;
+            const aId = answerId || answer_id;
 
-            if (!questionId && !answerId) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Either questionId or answerId must be provided."
-                });
-            }
-
-            const report = await prisma.reports.create({
-                data: {
-                    user_id: userId,
-                    reason,
-                    question_id: questionId || null,
-                    answer_id: answerId || null,
-                    status: 'pending',
-                    created_at: new Date()
-                },
-                include: {
-                    Users: {
-                        select: {
-                            user_id: true,
-                            username: true
-                        }
-                    }
-                }
-            });
+            const report = await reportService.createReport(userId, reason, qId, aId);
 
             res.status(201).json({
                 success: true,
@@ -187,6 +97,18 @@ class ReportController {
 
         } catch (error) {
             console.error(error);
+            if (error.message.includes('required')) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+            if (error.message.includes('must be provided')) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
+                });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -208,33 +130,7 @@ class ReportController {
                 });
             }
 
-            if (!status) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Status is required"
-                });
-            }
-
-            const validStatuses = ['pending', 'under-review', 'resolved', 'dismissed'];
-            if (!validStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-                });
-            }
-
-            const report = await prisma.reports.update({
-                where: { report_id: reportId },
-                data: { status },
-                include: {
-                    Users: {
-                        select: {
-                            user_id: true,
-                            username: true
-                        }
-                    }
-                }
-            });
+            const report = await reportService.updateReportStatus(reportId, status);
 
             res.status(200).json({
                 success: true,
@@ -244,10 +140,16 @@ class ReportController {
 
         } catch (error) {
             console.error(error);
-            if (error.code === 'P2025') {
+            if (error.message.includes('not found')) {
                 return res.status(404).json({
                     success: false,
                     message: "Report not found"
+                });
+            }
+            if (error.message.includes('Invalid status') || error.message.includes('required')) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
                 });
             }
             res.status(500).json({ success: false, message: "Server Error" });
@@ -264,55 +166,15 @@ class ReportController {
             const status = req.params.status;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
-            const skip = (page - 1) * limit;
 
-            const validStatuses = ['pending', 'under-review', 'resolved', 'dismissed'];
-            if (!validStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-                });
-            }
-
-            const totalReports = await prisma.reports.count({
-                where: { status }
-            });
-
-            const reports = await prisma.reports.findMany({
-                where: { status },
-                skip,
-                take: limit,
-                include: {
-                    Users: {
-                        select: {
-                            user_id: true,
-                            username: true,
-                            profile_image: true
-                        }
-                    },
-                    Questions: {
-                        select: {
-                            question_id: true,
-                            title: true
-                        }
-                    },
-                    Answers: {
-                        select: {
-                            answer_id: true,
-                            body: true
-                        }
-                    }
-                },
-                orderBy: {
-                    created_at: 'desc'
-                }
-            });
+            const { reports, totalReports, totalPages } =
+                await reportService.getReportsByStatus(status, page, limit);
 
             res.status(200).json({
                 success: true,
                 count: reports.length,
                 total: totalReports,
-                totalPages: Math.ceil(totalReports / limit),
+                totalPages,
                 currentPage: page,
                 status,
                 data: reports
@@ -320,6 +182,12 @@ class ReportController {
 
         } catch (error) {
             console.error(error);
+            if (error.message.includes('Invalid status')) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
+                });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
@@ -340,9 +208,7 @@ class ReportController {
                 });
             }
 
-            const report = await prisma.reports.delete({
-                where: { report_id: reportId }
-            });
+            const report = await reportService.deleteReport(reportId);
 
             res.status(200).json({
                 success: true,
@@ -352,12 +218,54 @@ class ReportController {
 
         } catch (error) {
             console.error(error);
-            if (error.code === 'P2025') {
+            if (error.message.includes('not found')) {
                 return res.status(404).json({
                     success: false,
                     message: "Report not found"
                 });
             }
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
+    /**
+     * Get report statistics
+     * @param {import('express').Request} req - Express request object
+     * @param {import('express').Response} res - Express response object
+     */
+    async getReportStats(req, res) {
+        try {
+            const stats = await reportService.getReportStats();
+
+            res.status(200).json({
+                success: true,
+                data: stats
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
+    /**
+     * Get recent reports
+     * @param {import('express').Request} req - Express request object
+     * @param {import('express').Response} res - Express response object
+     */
+    async getRecentReports(req, res) {
+        try {
+            const limit = parseInt(req.query.limit) || 10;
+            const reports = await reportService.getRecentReports(limit);
+
+            res.status(200).json({
+                success: true,
+                count: reports.length,
+                data: reports
+            });
+
+        } catch (error) {
+            console.error(error);
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
