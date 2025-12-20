@@ -343,7 +343,9 @@ export async function fetchQuestionData(questionId) {
             body: a.body,
             votes: answerVotes,
             accepted: a.is_accepted || false,
+            author_id: a.user_id || a.Users?.user_id,
             author: {
+              user_id: a.user_id || a.Users?.user_id,
               name: a.Users?.username || 'Unknown',
               image: a.Users?.profile_image || '../signin,login/ghost.png',
               reputation: a.Users?.reputation || 0,
@@ -412,6 +414,7 @@ export async function fetchQuestionData(questionId) {
       is_closed: q.is_closed || false,
       tags: tags,
       author: {
+        user_id: author.user_id || q.user_id,
         name: author.username || 'Unknown',
         image: author.profile_image || '../signin,login/ghost.png',
         reputation: author.reputation || 0,

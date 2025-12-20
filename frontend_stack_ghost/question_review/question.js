@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupVoting();
     setupComments();
     setupAddAnswer();
+    setupAcceptAnswer();
 
     console.log("Page initialized successfully");
   } catch (error) {
@@ -910,6 +911,44 @@ function setupAddAnswer() {
 }
 
 /**
+ * Setup accept answer functionality - only question owner can accept
+ */
+function setupAcceptAnswer() {
+  const answersContainer = document.querySelector("[data-answers-list]");
+  if (!answersContainer) return;
+
+  answersContainer.addEventListener("click", async (e) => {
+    const acceptBtn = e.target.closest("[data-accept-answer]");
+    if (!acceptBtn) return;
+
+    const answerId = acceptBtn.getAttribute("data-accept-answer");
+
+    // Disable button to prevent double-click
+    acceptBtn.disabled = true;
+    acceptBtn.textContent = "Accepting...";
+
+    try {
+      const response = await api.acceptAnswer(answerId);
+
+      if (response.success) {
+        // Show success message
+        alert("Answer accepted successfully! The answerer has received +15 reputation.");
+        // Reload page to show updated state
+        window.location.reload();
+      } else {
+        throw new Error(response.message || 'Failed to accept answer');
+      }
+    } catch (error) {
+      console.error('Error accepting answer:', error);
+      alert(error.message || 'Failed to accept answer. Please try again.');
+      // Re-enable button
+      acceptBtn.disabled = false;
+      acceptBtn.textContent = "✓ Accept Answer";
+    }
+  });
+}
+
+/**
  * Load question data from backend
  */
 async function loadQuestionData(questionId) {
@@ -1125,11 +1164,26 @@ function renderAnswers(answers) {
 }
 
 /**
+ * Check if current user is the question owner
+ */
+function isQuestionOwner() {
+  const currentUserId = api.getUser()?.user_id;
+  const questionOwnerId = questionData?.author?.user_id;
+  return currentUserId && questionOwnerId && currentUserId === questionOwnerId;
+}
+
+/**
  * Create answer element
  */
 function createAnswerElement(answer) {
   const article = document.createElement("article");
   article.className = `answer-card glass${answer.accepted ? ' answer-card--accepted' : ''}`;
+  article.setAttribute('data-answer-id', answer.id);
+
+  // Only show accept button if current user is question owner and answer is not from question owner
+  const currentUserId = api.getUser()?.user_id;
+  const questionOwnerId = questionData?.author?.user_id;
+  const canAccept = isQuestionOwner() && answer.author_id !== questionOwnerId && !answer.accepted;
 
   const votesHtml = `
     <div class="answer-votes">
@@ -1149,6 +1203,12 @@ function createAnswerElement(answer) {
   `;
 
   const commentsHtml = renderAnswerComments(answer.comments, answer.id);
+
+  // Generate accept button HTML only if user can accept
+  const acceptButtonHtml = canAccept ?
+    `<button class="btn btn--primary btn--sm" data-accept-answer="${answer.id}" style="margin-right: 8px;">
+      ✓ Accept Answer
+    </button>` : '';
 
   const contentHtml = `
     <div class="answer-content">
@@ -1187,6 +1247,7 @@ function createAnswerElement(answer) {
       </div>
     </div>
       <div style="margin-top: 12px;">
+        ${acceptButtonHtml}
         <button class="btn btn--ghost btn--sm" data-report-answer="${answer.id}">Report</button>
       </div>
   `;
