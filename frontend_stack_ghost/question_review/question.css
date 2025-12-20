@@ -477,6 +477,7 @@ pre.code-block::-webkit-scrollbar-thumb:hover {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -634,6 +635,7 @@ pre.code-block::-webkit-scrollbar-thumb:hover {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
+
   .question-card-detailed,
   .answer-card {
     grid-template-columns: 1fr;
@@ -675,3 +677,30 @@ pre.code-block::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Comment action buttons */
+.comment-action-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  margin-left: 8px;
+}
+
+.comment-action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.comment-action-btn--delete:hover {
+  color: #ff6b6b;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}

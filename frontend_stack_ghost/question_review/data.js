@@ -304,6 +304,7 @@ export async function fetchQuestionData(questionId) {
       if (commentsResponse.success && commentsResponse.data) {
         questionComments = commentsResponse.data.map(c => ({
           id: c.comment_id,
+          user_id: c.user_id || c.Users?.user_id,
           author: c.Users?.username || 'Unknown',
           time: c.created_at ? formatTimeAgo(new Date(c.created_at)) : 'Recently',
           text: c.body
@@ -326,6 +327,7 @@ export async function fetchQuestionData(questionId) {
             if (answerCommentsResponse.success && answerCommentsResponse.data) {
               answerComments = answerCommentsResponse.data.map(c => ({
                 id: c.comment_id,
+                user_id: c.user_id || c.Users?.user_id,
                 author: c.Users?.username || 'Unknown',
                 time: c.created_at ? formatTimeAgo(new Date(c.created_at)) : 'Recently',
                 text: c.body

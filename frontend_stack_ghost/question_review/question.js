@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupAddAnswer();
     setupAcceptAnswer();
     setupEditDeleteAnswer();
+    setupEditDeleteComment();
 
     console.log("Page initialized successfully");
   } catch (error) {
@@ -1179,6 +1180,241 @@ function setupEditDeleteAnswer() {
 }
 
 /**
+ * Setup edit and delete comment functionality - only comment owner can edit/delete
+ */
+function setupEditDeleteComment() {
+  // Use event delegation on the entire content area for comments
+  document.addEventListener("click", async (e) => {
+    // Handle Edit Comment button
+    const editBtn = e.target.closest("[data-edit-comment]");
+    if (editBtn) {
+      const commentId = editBtn.getAttribute("data-edit-comment");
+      const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+      const commentText = commentEl?.querySelector(`[data-comment-text="${commentId}"]`);
+
+      if (!commentText || commentEl.querySelector('.edit-comment-form')) return;
+
+      const currentContent = commentText.textContent || commentText.innerText;
+
+      // Hide original text
+      commentText.style.display = 'none';
+
+      // Create edit form
+      const editForm = document.createElement('div');
+      editForm.className = 'edit-comment-form';
+      editForm.innerHTML = `
+        <input type="text" class="edit-comment-input comment-input" value="${escapeHtml(currentContent)}" style="flex: 1;">
+        <button class="btn btn--primary btn--sm save-comment-btn">Save</button>
+        <button class="btn btn--ghost btn--sm cancel-comment-btn">Cancel</button>
+      `;
+      editForm.style.cssText = 'display: flex; gap: 8px; margin-top: 8px; align-items: center;';
+
+      commentText.insertAdjacentElement('afterend', editForm);
+
+      const input = editForm.querySelector('.edit-comment-input');
+      input.focus();
+      input.select();
+
+      // Handle Save
+      editForm.querySelector('.save-comment-btn').addEventListener('click', async () => {
+        const newContent = input.value.trim();
+
+        if (newContent === currentContent.trim() || !newContent) {
+          editForm.remove();
+          commentText.style.display = '';
+          return;
+        }
+
+        const saveBtn = editForm.querySelector('.save-comment-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+          const response = await api.updateComment(commentId, newContent);
+
+          if (response.success) {
+            commentText.textContent = newContent;
+            editForm.remove();
+            commentText.style.display = '';
+          } else {
+            throw new Error(response.message || 'Failed to update comment');
+          }
+        } catch (error) {
+          console.error('Error updating comment:', error);
+          alert(error.message || 'Failed to update comment. Please try again.');
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save';
+        }
+      });
+
+      // Handle Cancel
+      editForm.querySelector('.cancel-comment-btn').addEventListener('click', () => {
+        editForm.remove();
+        commentText.style.display = '';
+      });
+
+      // Handle Enter key
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          editForm.querySelector('.save-comment-btn').click();
+        }
+      });
+
+      return;
+    }
+
+    // Handle Delete Comment button
+    const deleteBtn = e.target.closest("[data-delete-comment]");
+    if (deleteBtn) {
+      const commentId = deleteBtn.getAttribute("data-delete-comment");
+
+      // Create custom confirmation modal
+      const modal = document.createElement('div');
+      modal.className = 'delete-confirm-modal';
+      modal.innerHTML = `
+        <div class="delete-confirm-backdrop"></div>
+        <div class="delete-confirm-content glass">
+          <div class="delete-confirm-icon">💬</div>
+          <h3 class="delete-confirm-title">Remove This Comment?</h3>
+          <p class="delete-confirm-message">
+            Once deleted, your comment will be gone forever.<br>
+            <span style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 8px; display: inline-block;">
+              This action cannot be undone.
+            </span>
+          </p>
+          <div class="delete-confirm-buttons">
+            <button class="btn btn--danger delete-confirm-yes">
+              <span style="margin-right: 6px;">🗑️</span> Yes, Remove It
+            </button>
+            <button class="btn btn--ghost delete-confirm-no">Keep My Comment</button>
+          </div>
+        </div>
+      `;
+
+      // Add modal styles (same as answer delete modal)
+      const style = document.createElement('style');
+      style.textContent = `
+        .delete-confirm-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .delete-confirm-backdrop {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(4px);
+        }
+        .delete-confirm-content {
+          position: relative;
+          padding: 32px;
+          border-radius: 16px;
+          text-align: center;
+          max-width: 400px;
+          animation: slideUp 0.3s ease;
+          border: 1px solid rgba(255, 100, 100, 0.3);
+        }
+        .delete-confirm-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+        .delete-confirm-title {
+          font-size: 1.5rem;
+          margin: 0 0 12px 0;
+          color: #ff6b6b;
+        }
+        .delete-confirm-message {
+          color: rgba(255, 255, 255, 0.7);
+          margin: 0 0 24px 0;
+          line-height: 1.5;
+        }
+        .delete-confirm-buttons {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+        }
+        .btn--danger {
+          background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .btn--danger:hover {
+          background: linear-gradient(135deg, #ff5252, #e04848);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+        .delete-confirm-no {
+          padding: 12px 24px;
+        }
+      `;
+      document.head.appendChild(style);
+      document.body.appendChild(modal);
+
+      // Handle Yes (Delete)
+      modal.querySelector('.delete-confirm-yes').addEventListener('click', async () => {
+        const yesBtn = modal.querySelector('.delete-confirm-yes');
+        yesBtn.disabled = true;
+        yesBtn.textContent = 'Deleting...';
+
+        try {
+          const response = await api.deleteComment(commentId);
+
+          if (response.success) {
+            modal.remove();
+            style.remove();
+            // Remove the comment element
+            const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+            if (commentEl) commentEl.remove();
+          } else {
+            throw new Error(response.message || 'Failed to delete comment');
+          }
+        } catch (error) {
+          console.error('Error deleting comment:', error);
+          alert(error.message || 'Failed to delete comment. Please try again.');
+          modal.remove();
+          style.remove();
+        }
+      });
+
+      // Handle No (Cancel)
+      modal.querySelector('.delete-confirm-no').addEventListener('click', () => {
+        modal.remove();
+        style.remove();
+      });
+
+      // Also close on backdrop click
+      modal.querySelector('.delete-confirm-backdrop').addEventListener('click', () => {
+        modal.remove();
+        style.remove();
+      });
+    }
+  });
+}
+
+/**
  * Load question data from backend
  */
 async function loadQuestionData(questionId) {
@@ -1498,15 +1734,21 @@ function renderAnswerComments(comments, answerId) {
 
   const visibleCount = comments.length > 2 ? 2 : comments.length;
   const visibleComments = comments.slice(0, visibleCount);
+  const currentUserId = api.getUser()?.user_id;
 
   return visibleComments.map(comment => {
+    const isOwner = currentUserId && comment.user_id === currentUserId;
     return `
-      <div class="comment">
+      <div class="comment" data-comment-id="${comment.id}">
         <div class="comment-author">
           <span class="comment-author-name">${escapeHtml(comment.author)}</span>
           <span class="comment-time">${escapeHtml(comment.time)}</span>
+          ${isOwner ? `
+            <button class="comment-action-btn" data-edit-comment="${comment.id}" title="Edit">✏️</button>
+            <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete">🗑️</button>
+          ` : ''}
         </div>
-        <p class="comment-text">${escapeHtml(comment.text)}</p>
+        <p class="comment-text" data-comment-text="${comment.id}">${escapeHtml(comment.text)}</p>
       </div>
     `;
   }).join("");
@@ -1518,12 +1760,21 @@ function renderAnswerComments(comments, answerId) {
 function createCommentElement(comment) {
   const div = document.createElement("div");
   div.className = "comment";
+  div.setAttribute('data-comment-id', comment.id);
+
+  const currentUserId = api.getUser()?.user_id;
+  const isOwner = currentUserId && comment.user_id === currentUserId;
+
   div.innerHTML = `
     <div class="comment-author">
       <span class="comment-author-name">${escapeHtml(comment.author)}</span>
       <span class="comment-time">${escapeHtml(comment.time)}</span>
+      ${isOwner ? `
+        <button class="comment-action-btn" data-edit-comment="${comment.id}" title="Edit">✏️</button>
+        <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete">🗑️</button>
+      ` : ''}
     </div>
-    <p class="comment-text">${escapeHtml(comment.text)}</p>
+    <p class="comment-text" data-comment-text="${comment.id}">${escapeHtml(comment.text)}</p>
   `;
   return div;
 }
