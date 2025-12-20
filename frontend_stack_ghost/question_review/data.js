@@ -103,34 +103,39 @@ export const fallbackUserData = {
 };
 
 export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
+  try {
+    // Check if user is authenticated
+    if (!api.isAuthenticated()) {
+      window.location.href = '../signin,login/index.html';
+      return fallbackUserData;
+    }
 
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
+    // Fetch current user data
+    const userResponse = await api.getCurrentUser();
+    const user = userResponse.data;
+
+    return {
+      username: user.username || fallbackUserData.username,
+      profileImage: user.profile_image || fallbackUserData.profileImage,
+      reputation: user.reputation || fallbackUserData.reputation,
+      asked: user._count?.AuthoredQuestions || fallbackUserData.asked,
+      answered: user._count?.Answers || fallbackUserData.answered,
+      about: user.about || fallbackUserData.about,
+      notifications: fallbackUserData.notifications,
+      badges: fallbackUserData.badges,
+      questions: fallbackUserData.questions,
+      answers: fallbackUserData.answers,
+      tags: fallbackUserData.tags,
+    };
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    // If token expired, redirect to login
+    if (error.message?.includes('Session expired') || error.message?.includes('Unauthorized')) {
+      api.clearTokens();
+      window.location.href = '../signin,login/index.html';
+    }
+    return fallbackUserData;
   }
-
-  const payload = await response.json();
-
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    about: payload?.about ?? fallbackUserData.about,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-  };
 }
 
 export const fallbackQuestionData = {
@@ -281,7 +286,7 @@ export async function fetchQuestionData(questionId) {
     const q = questionResponse.data;
     const author = q.Author || {};
     const tags = (q.Question_Tags || []).map(qt => qt.Tags?.tag_name).filter(Boolean);
-    
+
     // Debug: Log the question data to see what we're getting
     console.log('Question data from API:', {
       question_id: q.question_id,
@@ -357,8 +362,8 @@ export async function fetchQuestionData(questionId) {
     try {
       const voteStatusResponse = await api.checkVoteStatus(questionId, null);
       if (voteStatusResponse.success && voteStatusResponse.data) {
-        questionVoteStatus = voteStatusResponse.data.vote_type === 1 ? 'up' : 
-                            voteStatusResponse.data.vote_type === -1 ? 'down' : null;
+        questionVoteStatus = voteStatusResponse.data.vote_type === 1 ? 'up' :
+          voteStatusResponse.data.vote_type === -1 ? 'down' : null;
       }
     } catch (error) {
       console.warn('Could not fetch vote status:', error);
@@ -366,7 +371,7 @@ export async function fetchQuestionData(questionId) {
 
     // Calculate vote count - prioritize vote_count from backend, fallback to Votes array
     let voteCount = 0;
-    
+
     // First try to use vote_count from backend response (this is calculated by the controller)
     if (q.vote_count !== undefined && q.vote_count !== null) {
       voteCount = Number(q.vote_count);
@@ -374,7 +379,7 @@ export async function fetchQuestionData(questionId) {
         console.warn('vote_count is not a valid number:', q.vote_count);
         voteCount = 0;
       }
-    } 
+    }
     // If not available, calculate from Votes array
     else if (q.Votes && Array.isArray(q.Votes)) {
       if (q.Votes.length > 0) {
@@ -385,7 +390,7 @@ export async function fetchQuestionData(questionId) {
       }
       // If Votes array is empty, voteCount stays 0
     }
-    
+
     console.log('Final calculated vote count:', voteCount, {
       'from vote_count': q.vote_count,
       'from Votes array': q.Votes,
@@ -395,9 +400,9 @@ export async function fetchQuestionData(questionId) {
     // Ensure voteCount is always a number
     const finalVoteCount = Number(voteCount);
     const safeVoteCount = isNaN(finalVoteCount) ? 0 : finalVoteCount;
-    
+
     console.log('Returning question data with vote count:', safeVoteCount);
-    
+
     return {
       id: q.question_id,
       title: q.title,

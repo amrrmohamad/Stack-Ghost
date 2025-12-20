@@ -49,7 +49,7 @@ export async function fetchUserData() {
     } catch (error) {
       console.warn('Could not fetch tags:', error);
     }
-    
+
     // If no followed tags, get popular tags
     if (followedTags.length === 0) {
       try {
@@ -75,7 +75,7 @@ export async function fetchUserData() {
         const authorObj = q.author || q.Author || {};
         const authorUsername = authorObj.username || 'Unknown';
         const authorId = authorObj.user_id || null;
-        
+
         return {
           question_id: q.question_id,
           title: q.title,
@@ -89,7 +89,7 @@ export async function fetchUserData() {
           author_username: authorUsername,
           is_closed: q.is_closed,
           created_at: q.created_at,
-          url: `../questions/index.html?id=${q.question_id}`,
+          url: `../question_review/question.html?id=${q.question_id}`,
           createdAt: new Date(q.created_at).getTime()
         };
       }),

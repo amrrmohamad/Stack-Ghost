@@ -58,7 +58,7 @@ async function loadQuestions() {
           author_username: authorUsername,
           is_closed: q.is_closed,
           created_at: q.created_at,
-          url: `../questions/index.html?id=${q.question_id}`
+          url: `../question_review/question.html?id=${q.question_id}`
         };
       });
 
@@ -472,7 +472,7 @@ function setupSearch() {
               author_username: authorUsername,
               is_closed: q.is_closed,
               created_at: q.created_at,
-              url: `../questions/index.html?id=${q.question_id}`
+              url: `../question_review/question.html?id=${q.question_id}`
             };
           });
           renderQuestionsGrid(searchResults);

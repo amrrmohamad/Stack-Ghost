@@ -47,7 +47,7 @@ export async function fetchUserData() {
           const authorObj = q.author || q.Author || {};
           const authorName = authorObj.username || 'Unknown';
           const authorId = authorObj.user_id || null;
-          
+
           return {
             question_id: q.question_id,
             title: q.title,
@@ -61,7 +61,7 @@ export async function fetchUserData() {
             createdAt: q.created_at ? new Date(q.created_at).getTime() : Date.now(),
             author: authorName,
             author_id: authorId,
-            url: `question-detail.html?id=${q.question_id}`
+            url: `../question_review/question.html?id=${q.question_id}`
           };
         });
       }

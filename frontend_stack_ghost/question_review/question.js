@@ -17,38 +17,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     cachedUser = await loadUser();
     applyUserData(cachedUser);
     setupNotificationDropdown();
-    
+
     console.log("Loading question data...", currentQuestionId);
     questionData = await loadQuestionData(currentQuestionId);
     console.log("Question data loaded:", questionData);
     console.log("Vote count in questionData:", questionData?.votes);
-    
+
     if (!questionData) {
       console.error("No question data received!");
       return;
     }
-    
+
     // Ensure vote count is set before rendering
     if (questionData.votes === undefined || questionData.votes === null) {
       console.warn('Vote count is missing, setting to 0');
       questionData.votes = 0;
     }
-    
+
     renderQuestionData(questionData);
-    
+
     // Initialize vote states from question data
     if (questionData && questionData.voteStatus) {
       voteStates.question = questionData.voteStatus;
     }
-    
+
     // Parse question and answer content (must be after rendering)
     parseAllContent();
-    
+
     // Setup interactive features (must be after rendering dynamic content)
     setupVoting();
     setupComments();
     setupAddAnswer();
-    
+
     console.log("Page initialized successfully");
   } catch (error) {
     console.error("Error initializing page:", error);
@@ -154,18 +154,18 @@ function setupNotificationDropdown() {
  */
 function parseContent(text) {
   if (!text) return "";
-  
+
   // Parse [CODE]... [!CODE] blocks first (multiline)
   text = text.replace(/\[CODE\]([\s\S]*?)\[!CODE\]/g, (match, code) => {
     return `<code>${escapeHtml(code.trim())}</code>`;
   });
-  
+
   // Parse [BB]... [!BB] (bold)
   text = text.replace(/\[BB\](.*?)\[!BB\]/g, '<strong>$1</strong>');
-  
+
   // Parse [UL]... [!UL] (underline)
   text = text.replace(/\[UL\](.*?)\[!UL\]/g, '<u>$1</u>');
-  
+
   return text;
 }
 
@@ -183,7 +183,7 @@ function parseAllContent() {
     const parsed = parseContent(originalText);
     questionBody.innerHTML = `<div data-parsed>${parsed}</div>`;
   }
-  
+
   // Parse all answer bodies
   document.querySelectorAll("[data-answer-body]").forEach((el) => {
     const originalText = el.textContent || el.innerHTML;
@@ -199,7 +199,6 @@ const voteStates = {
 };
 
 /**
-/**
  * Setup voting functionality for questions and answers
  * Only allows one vote (upvote OR downvote) and highlights the selected button
  */
@@ -208,43 +207,43 @@ function setupVoting() {
   const questionUpvote = document.querySelector("[data-question-upvote]");
   const questionDownvote = document.querySelector("[data-question-downvote]");
   const questionVotes = document.querySelector("[data-question-votes]");
-  
+
   // Prevent multiple rapid clicks
   let isVotingInProgress = false;
-  
+
   if (questionUpvote && questionDownvote && questionVotes) {
     questionUpvote.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if already upvoted
       if (voteStates.question === 'up') {
         alert('You already voted up on this question');
         return;
       }
-      
+
       // Prevent multiple rapid clicks
       if (isVotingInProgress || questionUpvote.disabled) {
         return;
       }
-      
+
       // Disable both buttons immediately
       isVotingInProgress = true;
       questionUpvote.disabled = true;
       questionDownvote.disabled = true;
-      
+
       const previousState = voteStates.question;
-      
+
       // Backend: Send upvote request
       try {
         await api.vote(currentQuestionId, null, 1);
-        
+
         // Fetch updated vote count from backend after voting
         const questionResponse = await api.getQuestionById(currentQuestionId);
         if (questionResponse.success && questionResponse.data) {
           const newVoteCount = questionResponse.data.vote_count || 0;
           questionVotes.textContent = newVoteCount;
-          
+
           // Update vote state - now upvoted
           voteStates.question = 'up';
           questionUpvote.classList.add("vote-btn--active");
@@ -253,7 +252,7 @@ function setupVoting() {
       } catch (error) {
         console.error('Error voting:', error);
         alert('Failed to vote. Please try again.');
-        
+
         // Restore previous state on error
         voteStates.question = previousState;
         if (previousState === 'up') {
@@ -266,7 +265,7 @@ function setupVoting() {
           questionUpvote.classList.remove("vote-btn--active");
           questionDownvote.classList.remove("vote-btn--active");
         }
-        
+
         // Reload vote count from backend on error
         try {
           const questionResponse = await api.getQuestionById(currentQuestionId);
@@ -282,39 +281,39 @@ function setupVoting() {
         questionDownvote.disabled = false;
       }
     });
-    
+
     questionDownvote.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if already downvoted
       if (voteStates.question === 'down') {
         alert('You already voted down on this question');
         return;
       }
-      
+
       // Prevent multiple rapid clicks
       if (isVotingInProgress || questionDownvote.disabled) {
         return;
       }
-      
+
       // Disable both buttons immediately
       isVotingInProgress = true;
       questionUpvote.disabled = true;
       questionDownvote.disabled = true;
-      
+
       const previousState = voteStates.question;
-      
+
       // Backend: Send downvote request
       try {
         await api.vote(currentQuestionId, null, -1);
-        
+
         // Fetch updated vote count from backend after voting
         const questionResponse = await api.getQuestionById(currentQuestionId);
         if (questionResponse.success && questionResponse.data) {
           const newVoteCount = questionResponse.data.vote_count || 0;
           questionVotes.textContent = newVoteCount;
-          
+
           // Update vote state - now downvoted
           voteStates.question = 'down';
           questionDownvote.classList.add("vote-btn--active");
@@ -323,7 +322,7 @@ function setupVoting() {
       } catch (error) {
         console.error('Error voting:', error);
         alert('Failed to vote. Please try again.');
-        
+
         // Restore previous state on error
         voteStates.question = previousState;
         if (previousState === 'up') {
@@ -336,7 +335,7 @@ function setupVoting() {
           questionUpvote.classList.remove("vote-btn--active");
           questionDownvote.classList.remove("vote-btn--active");
         }
-        
+
         // Reload vote count from backend on error
         try {
           const questionResponse = await api.getQuestionById(currentQuestionId);
@@ -353,51 +352,51 @@ function setupVoting() {
       }
     });
   }
-  
+
   // Answer voting - use event delegation on answers container for dynamic elements
   const answersContainer = document.querySelector("[data-answers-list]");
   if (answersContainer) {
     // Track voting in progress per answer to prevent multiple rapid clicks
     const answerVotingInProgress = {};
-    
+
     // Use event delegation for answer voting (works with dynamically created elements)
     answersContainer.addEventListener("click", async (e) => {
       const upvoteBtn = e.target.closest("[data-answer-upvote]");
       const downvoteBtn = e.target.closest("[data-answer-downvote]");
-      
+
       if (upvoteBtn) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const answerId = upvoteBtn.getAttribute("data-answer-upvote");
         const downvoteBtnForAnswer = document.querySelector(`[data-answer-downvote="${answerId}"]`);
-        
+
         // Prevent multiple rapid clicks
         if (answerVotingInProgress[answerId] || upvoteBtn.disabled) {
           return;
         }
-        
+
         // Disable buttons immediately
         answerVotingInProgress[answerId] = true;
         upvoteBtn.disabled = true;
         if (downvoteBtnForAnswer) {
           downvoteBtnForAnswer.disabled = true;
         }
-        
+
         const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
-        
+
         if (votesEl) {
           const current = parseInt(votesEl.textContent) || 0;
           const previousState = voteStates.answers[answerId];
           let newCount = current;
           let newState = null;
-          
+
           // If already upvoted, unvote (remove the vote)
           if (voteStates.answers[answerId] === 'up') {
             newCount = current - 1;
             newState = null;
             upvoteBtn.classList.remove("vote-btn--active");
-          } 
+          }
           // If downvoted, flip to upvote (+2 total: remove -1, add +1)
           else if (voteStates.answers[answerId] === 'down') {
             newCount = current + 2;
@@ -406,7 +405,7 @@ function setupVoting() {
               downvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
             upvoteBtn.classList.add("vote-btn--active");
-          } 
+          }
           // New upvote
           else {
             newCount = current + 1;
@@ -416,11 +415,11 @@ function setupVoting() {
               downvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
           }
-          
+
           // Optimistic UI update
           votesEl.textContent = newCount;
           voteStates.answers[answerId] = newState;
-          
+
           // Backend: Send upvote request (backend handles unvote if same vote type)
           try {
             await api.vote(null, answerId, 1);
@@ -454,18 +453,18 @@ function setupVoting() {
           }
         }
       }
-      
+
       if (downvoteBtn) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const answerId = downvoteBtn.getAttribute("data-answer-downvote");
-        
+
         // Prevent multiple rapid clicks
         if (answerVotingInProgress[answerId] || downvoteBtn.disabled) {
           return;
         }
-        
+
         // Disable buttons immediately
         answerVotingInProgress[answerId] = true;
         downvoteBtn.disabled = true;
@@ -473,21 +472,21 @@ function setupVoting() {
         if (upvoteBtnForAnswer) {
           upvoteBtnForAnswer.disabled = true;
         }
-        
+
         const votesEl = document.querySelector(`[data-answer-votes="${answerId}"]`);
-        
+
         if (votesEl) {
           const current = parseInt(votesEl.textContent) || 0;
           const previousState = voteStates.answers[answerId];
           let newCount = current;
           let newState = null;
-          
+
           // If already downvoted, unvote (remove the vote)
           if (voteStates.answers[answerId] === 'down') {
             newCount = Math.max(0, current + 1); // Remove downvote = +1
             newState = null;
             downvoteBtn.classList.remove("vote-btn--active");
-          } 
+          }
           // If upvoted, flip to downvote (-2 total: remove +1, add -1)
           else if (voteStates.answers[answerId] === 'up') {
             newCount = Math.max(0, current - 2);
@@ -496,7 +495,7 @@ function setupVoting() {
               upvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
             downvoteBtn.classList.add("vote-btn--active");
-          } 
+          }
           // New downvote
           else {
             newCount = Math.max(0, current - 1);
@@ -506,11 +505,11 @@ function setupVoting() {
               upvoteBtnForAnswer.classList.remove("vote-btn--active");
             }
           }
-          
+
           // Optimistic UI update
           votesEl.textContent = newCount;
           voteStates.answers[answerId] = newState;
-          
+
           // Backend: Send downvote request (backend handles unvote if same vote type)
           try {
             await api.vote(null, answerId, -1);
@@ -555,12 +554,12 @@ function setupComments() {
   // Question comments
   const showAllBtn = document.querySelector("[data-show-all-comments]");
   const questionComments = document.querySelector("[data-question-comments]");
-  
+
   if (showAllBtn && questionComments && questionData) {
     let allCommentsShown = false;
     const originalComments = Array.from(questionComments.children);
     const allComments = questionData.comments || [];
-    
+
     showAllBtn.addEventListener("click", () => {
       if (!allCommentsShown) {
         // Show all remaining comments
@@ -582,23 +581,23 @@ function setupComments() {
       }
     });
   }
-  
+
   // Answer comments - use event delegation
   const answersContainer = document.querySelector("[data-answers-list]");
   if (answersContainer) {
     answersContainer.addEventListener("click", (e) => {
       const showAllBtn = e.target.closest("[data-show-all-answer-comments]");
       if (!showAllBtn) return;
-      
+
       const answerId = showAllBtn.getAttribute("data-show-all-answer-comments");
       const answerComments = document.querySelector(`[data-answer-comments="${answerId}"]`);
-      
+
       if (answerComments && questionData) {
         const answer = questionData.answers.find(a => a.id === answerId);
         if (!answer) return;
-        
+
         const isExpanded = showAllBtn.dataset.expanded === "true";
-        
+
         if (!isExpanded) {
           // Show all comments
           const allAnswerComments = answer.comments || [];
@@ -622,7 +621,7 @@ function setupComments() {
       }
     });
   }
-  
+
   // Setup comment submission
   setupCommentSubmission();
 }
@@ -634,14 +633,13 @@ function setupCommentSubmission() {
   // Question comment submission
   const questionCommentInput = document.querySelector("[data-question-comment-input]");
   const questionCommentSubmit = document.querySelector("[data-submit-question-comment]");
-  
+
   if (questionCommentInput && questionCommentSubmit) {
-    const submitQuestionComment = () => {
+    const submitQuestionComment = async () => {
       const commentText = questionCommentInput.value.trim();
       if (!commentText) return;
-      
+
       // Backend: Submit comment
-      // Example: fetch(`/api/questions/${currentQuestionId}/comments`, {
       try {
         const response = await api.createComment(commentText, currentQuestionId, null);
         if (!response.success) {
@@ -655,7 +653,7 @@ function setupCommentSubmission() {
       // Add comment to UI
       const questionComments = document.querySelector("[data-question-comments]");
       const questionCommentsCount = document.querySelector("[data-question-comments-count]");
-      
+
       const commentEl = document.createElement("div");
       commentEl.className = "comment";
       const now = new Date();
@@ -667,16 +665,16 @@ function setupCommentSubmission() {
         <p class="comment-text">${escapeHtml(commentText)}</p>
       `;
       questionComments.insertBefore(commentEl, questionComments.firstChild);
-      
+
       // Update count
       if (questionCommentsCount) {
         const currentCount = parseInt(questionCommentsCount.textContent.match(/\d+/)?.[0] || "0");
         questionCommentsCount.textContent = `${currentCount + 1} Comments`;
       }
-      
+
       questionCommentInput.value = "";
     };
-    
+
     questionCommentSubmit.addEventListener("click", submitQuestionComment);
     questionCommentInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
@@ -684,26 +682,25 @@ function setupCommentSubmission() {
       }
     });
   }
-  
+
   // Answer comment submission - use event delegation
   const answersContainer = document.querySelector("[data-answers-list]");
   if (answersContainer) {
     // Handle submit button clicks
-    answersContainer.addEventListener("click", (e) => {
+    answersContainer.addEventListener("click", async (e) => {
       const submitBtn = e.target.closest("[data-submit-answer-comment]");
       if (!submitBtn) return;
-      
+
       const answerId = submitBtn.getAttribute("data-submit-answer-comment");
       const commentInput = document.querySelector(`[data-answer-comment-input="${answerId}"]`);
       const answerComments = document.querySelector(`[data-answer-comments="${answerId}"]`);
       const answerCommentsCount = document.querySelector(`[data-answer-comments-count="${answerId}"]`);
-      
+
       if (commentInput && answerComments) {
         const commentText = commentInput.value.trim();
         if (!commentText) return;
-        
+
         // Backend: Submit comment
-        // Example: fetch(`/api/answers/${answerId}/comments`, {
         try {
           const response = await api.createComment(commentText, null, answerId);
           if (!response.success) {
@@ -725,17 +722,17 @@ function setupCommentSubmission() {
           <p class="comment-text">${escapeHtml(commentText)}</p>
         `;
         answerComments.insertBefore(commentEl, answerComments.firstChild);
-        
+
         // Update count
         if (answerCommentsCount) {
           const currentCount = parseInt(answerCommentsCount.textContent.match(/\d+/)?.[0] || "0");
           answerCommentsCount.textContent = `${currentCount + 1} Comments`;
         }
-        
+
         commentInput.value = "";
       }
     });
-    
+
     // Handle Enter key for answer comment inputs
     answersContainer.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && e.target.matches("[data-answer-comment-input]")) {
@@ -773,7 +770,7 @@ function setupReporting() {
     answersContainer.addEventListener("click", (e) => {
       const reportBtn = e.target.closest("[data-report-answer]");
       if (!reportBtn) return;
-      
+
       const answerId = reportBtn.getAttribute("data-report-answer");
       showReportModal(null, answerId);
     });
@@ -833,9 +830,9 @@ function setupAddAnswer() {
   const submitBtn = document.querySelector("[data-submit-answer]");
   const cancelBtn = document.querySelector("[data-cancel-answer]");
   const formatBtns = document.querySelectorAll("[data-format]");
-  
+
   if (!toggleBtn || !form || !answerInput) return;
-  
+
   // Toggle form visibility
   toggleBtn.addEventListener("click", () => {
     form.classList.toggle("add-answer-form--open");
@@ -843,7 +840,7 @@ function setupAddAnswer() {
       answerInput.focus();
     }
   });
-  
+
   // Formatting tools
   formatBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -853,10 +850,10 @@ function setupAddAnswer() {
       const selectedText = answerInput.value.substring(start, end);
       const before = answerInput.value.substring(0, start);
       const after = answerInput.value.substring(end);
-      
+
       let replacement = "";
       let newCursorPos = start;
-      
+
       switch (format) {
         case "bold":
           replacement = `[BB]${selectedText}[!BB]`;
@@ -871,38 +868,38 @@ function setupAddAnswer() {
           newCursorPos = start + (selectedText ? replacement.length : 7);
           break;
       }
-      
+
       answerInput.value = before + replacement + after;
       answerInput.focus();
       answerInput.setSelectionRange(newCursorPos, newCursorPos);
     });
   });
-  
+
   // Submit answer
   if (submitBtn) {
-    submitBtn.addEventListener("click", () => {
+    submitBtn.addEventListener("click", async () => {
       const answerText = answerInput.value.trim();
       if (!answerText) {
         alert("Please write an answer before submitting.");
         return;
       }
-      
+
       // Backend: Submit answer
-      // Example: 
       try {
         const response = await api.createAnswer(currentQuestionId, answerText);
         if (!response.success) {
           throw new Error(response.message || 'Failed to submit answer');
         }
-        
+
         // Reload page to show new answer
         window.location.reload();
       } catch (error) {
         console.error('Error submitting answer:', error);
         alert('Failed to submit answer. Please try again.');
       }
+    });
   }
-  
+
   // Cancel
   if (cancelBtn) {
     cancelBtn.addEventListener("click", () => {
@@ -927,7 +924,7 @@ function renderQuestionData(data) {
     console.error("No data provided to renderQuestionData");
     return;
   }
-  
+
   // Question title
   console.log('Rendering question data:', {
     id: data.id,
@@ -935,19 +932,19 @@ function renderQuestionData(data) {
     votes: data.votes,
     voteStatus: data.voteStatus
   });
-  
+
   // Question title
   const titleEl = document.querySelector("[data-question-title]");
   if (titleEl && data.title) {
     titleEl.textContent = data.title;
   }
-  
+
   // Question body
   const bodyEl = document.querySelector("[data-question-body]");
   if (bodyEl && data.body) {
     bodyEl.textContent = data.body;
   }
-  
+
   // Question votes - ensure it's always displayed
   const votesEl = document.querySelector("[data-question-votes]");
   if (votesEl) {
@@ -1019,14 +1016,14 @@ function renderQuestionData(data) {
   const authorImageEl = document.querySelector("[data-question-author-image]");
   if (authorImageEl && data.author.image) {
     authorImageEl.src = data.author.image;
-    authorImageEl.onerror = function() {
+    authorImageEl.onerror = function () {
       this.src = '../signin,login/ghost.png';
     };
   }
-  
+
   const authorNameEl = document.querySelector("[data-question-author-name]");
   if (authorNameEl) authorNameEl.textContent = data.author.name || 'Unknown';
-  
+
   const authorReputationEl = document.querySelector("[data-question-author-reputation]");
   if (authorReputationEl) authorReputationEl.textContent = formatNumber(data.author.reputation || 0);
   const authorRoleEl = document.querySelector("[data-question-author-role]");
@@ -1038,16 +1035,16 @@ function renderQuestionData(data) {
       authorRoleEl.style.display = "none";
     }
   }
-  
+
   // Question comments
   renderQuestionComments(data.comments);
-  
+
   // Answers
   renderAnswers(data.answers);
-  
+
   // Popular questions
   renderPopularQuestions(data.popularQuestions);
-  
+
   // Sidebar tags (same as question tags)
   const sidebarTagsContainer = document.querySelector("[data-question-sidebar-tags]");
   if (sidebarTagsContainer) {
@@ -1069,11 +1066,11 @@ function renderQuestionComments(comments) {
   const commentsContainer = document.querySelector("[data-question-comments]");
   const commentsCountEl = document.querySelector("[data-question-comments-count]");
   const showAllBtn = document.querySelector("[data-show-all-comments]");
-  
+
   if (!commentsContainer) return;
-  
+
   commentsContainer.innerHTML = "";
-  
+
   if (comments && comments.length > 0) {
     // Show first 2 comments
     const visibleComments = comments.slice(0, 2);
@@ -1081,12 +1078,12 @@ function renderQuestionComments(comments) {
       const commentEl = createCommentElement(comment);
       commentsContainer.appendChild(commentEl);
     });
-    
+
     // Update count
     if (commentsCountEl) {
       commentsCountEl.textContent = `${comments.length} Comment${comments.length !== 1 ? 's' : ''}`;
     }
-    
+
     // Show "Show all" button if there are more than 2 comments
     if (showAllBtn && comments.length > 2) {
       showAllBtn.style.display = "inline-block";
@@ -1105,17 +1102,17 @@ function renderQuestionComments(comments) {
 function renderAnswers(answers) {
   const answersContainer = document.querySelector("[data-answers-list]");
   const answersCountEl = document.querySelector("[data-answers-count]");
-  
+
   if (!answersContainer) return;
-  
+
   answersContainer.innerHTML = "";
-  
+
   if (answers && answers.length > 0) {
     // Update count
     if (answersCountEl) {
       answersCountEl.textContent = `${answers.length} Answer${answers.length !== 1 ? 's' : ''}`;
     }
-    
+
     // Render first 3 answers
     const visibleAnswers = answers.slice(0, 3);
     visibleAnswers.forEach((answer) => {
@@ -1133,7 +1130,7 @@ function renderAnswers(answers) {
 function createAnswerElement(answer) {
   const article = document.createElement("article");
   article.className = `answer-card glass${answer.accepted ? ' answer-card--accepted' : ''}`;
-  
+
   const votesHtml = `
     <div class="answer-votes">
       <button class="vote-btn vote-btn--up" aria-label="Upvote" data-answer-upvote="${answer.id}">
@@ -1150,9 +1147,9 @@ function createAnswerElement(answer) {
       ${answer.accepted ? '<div class="accepted-badge">✓ Accepted</div>' : ''}
     </div>
   `;
-  
+
   const commentsHtml = renderAnswerComments(answer.comments, answer.id);
-  
+
   const contentHtml = `
     <div class="answer-content">
       <div class="answer-body" data-answer-body="${answer.id}">${escapeHtml(answer.body)}</div>
@@ -1193,7 +1190,7 @@ function createAnswerElement(answer) {
         <button class="btn btn--ghost btn--sm" data-report-answer="${answer.id}">Report</button>
       </div>
   `;
-  
+
   article.innerHTML = votesHtml + contentHtml;
   return article;
 }
@@ -1203,10 +1200,10 @@ function createAnswerElement(answer) {
  */
 function renderAnswerComments(comments, answerId) {
   if (!comments || comments.length === 0) return "";
-  
+
   const visibleCount = comments.length > 2 ? 2 : comments.length;
   const visibleComments = comments.slice(0, visibleCount);
-  
+
   return visibleComments.map(comment => {
     return `
       <div class="comment">
@@ -1242,9 +1239,9 @@ function createCommentElement(comment) {
 function renderPopularQuestions(questions) {
   const container = document.querySelector("[data-popular-questions]");
   if (!container) return;
-  
+
   container.innerHTML = "";
-  
+
   if (questions && questions.length > 0) {
     questions.forEach(q => {
       const card = document.createElement("a");
