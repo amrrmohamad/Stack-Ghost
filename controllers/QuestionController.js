@@ -290,33 +290,14 @@ class QuestionController {
                 return res.status(400).json({ success: false, message: "Invalid ID" });
             }
 
-            const totalHistory = await prisma.edit_History.count({
-                where: {
-                    question_id: questionId
-                }
-            });
-
-            const history = await prisma.edit_History.findMany({
-                where: {
-                    question_id: questionId
-                },
-                skip: skip,
-                take: limit,
-                include: {
-                    Users: {
-                        select: { username: true, profile_image: true }
-                    }
-                },
-                orderBy: {
-                    created_at: 'desc'
-                }
-            });
+            const { history, totalHistory, totalPages } =
+                await questionService.getQuestionHistory(questionId, page, limit);
 
             res.status(200).json({
                 success: true,
                 count: history.length,
                 total: totalHistory,
-                totalPages: Math.ceil(totalHistory / limit),
+                totalPages,
                 currentPage: page,
                 data: history
             });

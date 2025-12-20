@@ -1,115 +1,60 @@
-import prisma from '../lib/prisma.js';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+/**
+ * @file AuthController.js
+ * @description Controller responsible for handling Authentication operations.
+ * @author M-Ahmd <ma0950082@gmail.com>
+ * @version 1.1.0
+ * @date 2025-12-20
+ */
+
+import * as authService from '../utils/authService.js';
 import { ERRORS } from '../lib/errors.js';
 
 class AuthController {
 
     /**
-     * sing up
-     * create a new user account
+     * Sign up - create a new user account
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res 
      */
     async register(req, res) {
         try {
             const { username, email, password } = req.body;
 
-            if (!username || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'username, email and password are required'
-                });
-            }
-
-            if (password.length < 10) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Password must be at least 10 characters'
-                });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            const newUser = await prisma.users.create({
-                data: {
-                    username,
-                    email,
-                    password_hash: hashedPassword,
-                    is_active: true,
-                    role_id: 3,
-                },
-                select: {
-                    user_id: true,
-                    username: true,
-                    email: true,
-                    role_id: true
-                }
-            });
+            const newUser = await authService.registerUser(username, email, password);
 
             res.status(201).json({
                 success: true,
-                message: 'user signed successfully',
+                message: 'User signed up successfully',
                 data: newUser
             });
 
         } catch (err) {
             console.error(err);
-            if (err.code === 'P2002') {
-                return res.status(409).json({ success: false, message: 'username or email already exists' });
+
+            if (err.message.includes('required')) {
+                return res.status(400).json({ success: false, message: err.message });
             }
+            if (err.message.includes('at least')) {
+                return res.status(400).json({ success: false, message: err.message });
+            }
+            if (err.message.includes('already exists')) {
+                return res.status(409).json({ success: false, message: err.message });
+            }
+
             res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
     /**
-     * log in
-     * Authenticate user and return token
+     * Log in - Authenticate user and return tokens
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res 
      */
     async login(req, res) {
         try {
             const { email, password } = req.body;
 
-            if (!email || !password) {
-                return res.status(400).json({ success: false, message: 'email and password required' });
-            }
-
-            const user = await prisma.users.findUnique({
-                where: { email }
-            });
-
-            if (!user) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
-            }
-
-            if (!user.is_active) {
-                return res.status(403).json({ success: false, message: 'User is deactivated connect with admin :(' });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password_hash);
-            if (!isMatch) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
-            }
-
-            //funciton to create token
-            const accessToken = jwt.sign(
-                { user_id: user.user_id },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-
-            const refreshToken = jwt.sign(
-                { user_id: user.user_id },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: '7d' }
-            );
-
-            // Store refresh token in database
-            await prisma.users.update({
-                where: { user_id: user.user_id },
-                data: { 
-                    refresh_token: refreshToken,
-                    last_login: new Date()
-                }
-            });
+            const { accessToken, refreshToken } = await authService.loginUser(email, password);
 
             res.json({
                 success: true,
@@ -122,87 +67,80 @@ class AuthController {
 
         } catch (err) {
             console.error(err);
+
+            if (err.message.includes('required')) {
+                return res.status(400).json({ success: false, message: err.message });
+            }
+            if (err.message.includes('Invalid credentials')) {
+                return res.status(401).json({ success: false, message: err.message });
+            }
+            if (err.message.includes('deactivated')) {
+                return res.status(403).json({ success: false, message: 'User is deactivated, contact admin :(' });
+            }
+
             res.status(500).json({ success: false, message: 'Server error' });
         }
     }
 
     /**
-     * refresh token
-     *  new access token using refresh token
+     * Refresh token - Generate new access token using refresh token
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res 
      */
     async refreshToken(req, res) {
         try {
             const { refreshToken } = req.body;
-            if (!refreshToken) return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
 
-            // Verify token first
-            const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-            
-            // Check if token exists in database
-            const user = await prisma.users.findFirst({ 
-                where: { 
-                    refresh_token: refreshToken,
-                    user_id: decoded.user_id
-                } 
-            });
-            
-            if (!user) return res.status(403).json({ success: false, message: 'Invalid refresh token' });
-            if (!user.is_active) return res.status(403).json({ success: false, message: ERRORS.USER_DEACTIVATED });
+            if (!refreshToken) {
+                return res.status(401).json({ success: false, message: ERRORS.UNAUTHORIZED });
+            }
 
-            // Generate new access token
-            const newAccessToken = jwt.sign(
-                { user_id: decoded.user_id },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            
-            // Generate new refresh token (token rotation for security)
-            const newRefreshToken = jwt.sign(
-                { user_id: decoded.user_id },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: '7d' }
-            );
-            
-            // Update refresh token in database
-            await prisma.users.update({
-                where: { user_id: user.user_id },
-                data: { refresh_token: newRefreshToken }
-            });
+            const tokens = await authService.refreshUserToken(refreshToken);
 
-            res.json({ 
-                success: true, 
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken
+            res.json({
+                success: true,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken
             });
 
         } catch (err) {
             console.error(err);
+
+            if (err.message.includes('Invalid refresh token')) {
+                return res.status(403).json({ success: false, message: err.message });
+            }
+            if (err.message.includes('deactivated')) {
+                return res.status(403).json({ success: false, message: ERRORS.USER_DEACTIVATED });
+            }
+
             res.status(403).json({ success: false, message: ERRORS.TOKEN_EXPIRED });
         }
     }
 
     /**
-     * log out
-     * invalidate refresh token
+     * Log out - Invalidate refresh token
+     * @param {import('express').Request} req 
+     * @param {import('express').Response} res 
      */
     async logout(req, res) {
         try {
             const { refreshToken } = req.body;
-            if (!refreshToken) return res.status(400).json({ success: false, message: 'Refresh token required' });
 
-            const user = await prisma.users.findFirst({ where: { refresh_token: refreshToken } });
-            if (!user) return res.status(403).json({ success: false, message: 'Invalid token' });
+            if (!refreshToken) {
+                return res.status(400).json({ success: false, message: 'Refresh token required' });
+            }
 
-            // Remove refresh token
-            await prisma.users.update({
-                where: { user_id: user.user_id },
-                data: { refresh_token: null }
-            });
+            await authService.logoutUser(refreshToken);
 
             res.json({ success: true, message: 'Logged out successfully' });
 
         } catch (err) {
             console.error(err);
+
+            if (err.message.includes('Invalid token')) {
+                return res.status(403).json({ success: false, message: err.message });
+            }
+
             res.status(500).json({ success: false, message: 'Server error' });
         }
     }
