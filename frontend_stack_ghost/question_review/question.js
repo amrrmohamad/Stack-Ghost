@@ -219,12 +219,6 @@ function setupVoting() {
       e.preventDefault();
       e.stopPropagation();
 
-      // Check if already upvoted
-      if (voteStates.question === 'up') {
-        alert('You already voted up on this question');
-        return;
-      }
-
       // Prevent multiple rapid clicks
       if (isVotingInProgress || questionUpvote.disabled) {
         return;
@@ -236,21 +230,29 @@ function setupVoting() {
       questionDownvote.disabled = true;
 
       const previousState = voteStates.question;
+      const isUnvoting = previousState === 'up'; // If already upvoted, this will undo the vote
 
-      // Backend: Send upvote request
+      // Backend: Send upvote request (backend handles unvote if same vote type)
       try {
         await api.vote(currentQuestionId, null, 1);
 
         // Fetch updated vote count from backend after voting
         const questionResponse = await api.getQuestionById(currentQuestionId);
         if (questionResponse.success && questionResponse.data) {
-          const newVoteCount = questionResponse.data.vote_count || 0;
+          const newVoteCount = questionResponse.data.vote_count ?? 0;
           questionVotes.textContent = newVoteCount;
 
-          // Update vote state - now upvoted
-          voteStates.question = 'up';
-          questionUpvote.classList.add("vote-btn--active");
-          questionDownvote.classList.remove("vote-btn--active");
+          if (isUnvoting) {
+            // Was upvoted, now unvoted
+            voteStates.question = null;
+            questionUpvote.classList.remove("vote-btn--active");
+            questionDownvote.classList.remove("vote-btn--active");
+          } else {
+            // New upvote or flip from downvote
+            voteStates.question = 'up';
+            questionUpvote.classList.add("vote-btn--active");
+            questionDownvote.classList.remove("vote-btn--active");
+          }
         }
       } catch (error) {
         console.error('Error voting:', error);
@@ -273,7 +275,7 @@ function setupVoting() {
         try {
           const questionResponse = await api.getQuestionById(currentQuestionId);
           if (questionResponse.success && questionResponse.data) {
-            questionVotes.textContent = questionResponse.data.vote_count || 0;
+            questionVotes.textContent = questionResponse.data.vote_count ?? 0;
           }
         } catch (reloadError) {
           console.error('Error reloading vote count:', reloadError);
@@ -289,12 +291,6 @@ function setupVoting() {
       e.preventDefault();
       e.stopPropagation();
 
-      // Check if already downvoted
-      if (voteStates.question === 'down') {
-        alert('You already voted down on this question');
-        return;
-      }
-
       // Prevent multiple rapid clicks
       if (isVotingInProgress || questionDownvote.disabled) {
         return;
@@ -306,21 +302,29 @@ function setupVoting() {
       questionDownvote.disabled = true;
 
       const previousState = voteStates.question;
+      const isUnvoting = previousState === 'down'; // If already downvoted, this will undo the vote
 
-      // Backend: Send downvote request
+      // Backend: Send downvote request (backend handles unvote if same vote type)
       try {
         await api.vote(currentQuestionId, null, -1);
 
         // Fetch updated vote count from backend after voting
         const questionResponse = await api.getQuestionById(currentQuestionId);
         if (questionResponse.success && questionResponse.data) {
-          const newVoteCount = questionResponse.data.vote_count || 0;
+          const newVoteCount = questionResponse.data.vote_count ?? 0;
           questionVotes.textContent = newVoteCount;
 
-          // Update vote state - now downvoted
-          voteStates.question = 'down';
-          questionDownvote.classList.add("vote-btn--active");
-          questionUpvote.classList.remove("vote-btn--active");
+          if (isUnvoting) {
+            // Was downvoted, now unvoted
+            voteStates.question = null;
+            questionUpvote.classList.remove("vote-btn--active");
+            questionDownvote.classList.remove("vote-btn--active");
+          } else {
+            // New downvote or flip from upvote
+            voteStates.question = 'down';
+            questionDownvote.classList.add("vote-btn--active");
+            questionUpvote.classList.remove("vote-btn--active");
+          }
         }
       } catch (error) {
         console.error('Error voting:', error);
@@ -343,7 +347,7 @@ function setupVoting() {
         try {
           const questionResponse = await api.getQuestionById(currentQuestionId);
           if (questionResponse.success && questionResponse.data) {
-            questionVotes.textContent = questionResponse.data.vote_count || 0;
+            questionVotes.textContent = questionResponse.data.vote_count ?? 0;
           }
         } catch (reloadError) {
           console.error('Error reloading vote count:', reloadError);
@@ -486,13 +490,13 @@ function setupVoting() {
 
           // If already downvoted, unvote (remove the vote)
           if (voteStates.answers[answerId] === 'down') {
-            newCount = Math.max(0, current + 1); // Remove downvote = +1
+            newCount = current + 1; // Remove downvote = +1
             newState = null;
             downvoteBtn.classList.remove("vote-btn--active");
           }
           // If upvoted, flip to downvote (-2 total: remove +1, add -1)
           else if (voteStates.answers[answerId] === 'up') {
-            newCount = Math.max(0, current - 2);
+            newCount = current - 2;
             newState = 'down';
             if (upvoteBtnForAnswer) {
               upvoteBtnForAnswer.classList.remove("vote-btn--active");
@@ -501,7 +505,7 @@ function setupVoting() {
           }
           // New downvote
           else {
-            newCount = Math.max(0, current - 1);
+            newCount = current - 1;
             newState = 'down';
             downvoteBtn.classList.add("vote-btn--active");
             if (upvoteBtnForAnswer) {
