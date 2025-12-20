@@ -1,127 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="globals.css" />
-    <link rel="stylesheet" href="styleguide.css" />
-    <link rel="stylesheet" href="style.css" />
-    <script type="module" src="app.js" defer></script>
-    <script type="module" src="../js/dashboard-visibility.js" defer></script>
-  </head>
-  <body>
-    <div class="page">
-      <div class="background-glow"></div>
-      <header class="topbar">
-        <div class="brand">
-          <!-- logo ghost icon goes here -->
-          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost logo" />
-          <span class="brand__name">Stack Ghost</span>
-        </div>
-        <div class="search">
-          <span class="search__icon">
-            <!-- search icon goes here -->
-            <img src="img/vector-4.svg" alt="" />
-          </span>
-          <input
-            type="search"
-            placeholder="Search for questions, users, tags"
-            aria-label="Search for questions, users, tags"
-          />
-        </div>
-        <div class="topbar__actions">
-          <div class="notifications">
-            <button
-              class="icon-button notifications__toggle"
-              aria-label="Notifications"
-              aria-expanded="false"
-              aria-haspopup="true"
-              data-notifications-toggle
-            >
-              <!-- bell icon goes here -->
-              <img src="img/vector-13.svg" alt="" />
-            </button>
-            <div class="notifications__dropdown glass" data-notifications-panel>
-              <div class="notifications__header">
-                <span>Notifications</span>
-              </div>
-              <ul class="list notifications__list" data-notifications-dropdown>
-                <!-- filled by data -->
-              </ul>
-            </div>
-          </div>
-          <div class="avatar avatar--sm">
-            <!-- profile image goes here -->
-            <img id="profile-image" src="img/rafiki.png" alt="Profile" />
-          </div>
-        </div>
-      </header>
 
-      <div class="layout layout--tags">
-        <aside class="sidebar sidebar--left">
-          <nav class="nav">
-            <div class="nav__section">
-              <a class="nav__link" href="../home/index.html">
-                <span>🏠</span>
-                <span>Home</span>
-              </a>
-            </div>
-            <hr class="sidebar-divider" />
-            <div class="nav__section nav__section--cluster">
-              <a class="nav__link" href="../questions/index.html">
-                <span>❓</span>
-                <span>Questions</span>
-              </a>
-              <a class="nav__link" href="../users/index.html">
-                <span>👥</span>
-                <span>Users</span>
-              </a>
-              <a class="nav__link" href="../tages/index.html">
-                <span>🏷️</span>
-                <span>Tags</span>
-              </a>
-              <a class="nav__link nav__link--active" href="index.html">
-                <span>🏆</span>
-                <span>Badges</span>
-              </a>
-            </div>
-            <hr class="sidebar-divider" />
-            <div class="nav__section">
-              <a class="nav__link" href="../profile/index.html">
-                <span>👤</span>
-                <span>My Profile</span>
-              </a>
-            </div>
-            <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
-            <div class="nav__section" id="dashboard-section" style="display: none;">
-              <a class="nav__link" href="../dashboard/dashboard.html">
-                <span>⚙️</span>
-                <span>Dashboard</span>
-              </a>
-            </div>
-          </nav>
-          <div class="sidebar__ghost">
-            <!-- sidebar ghost illustration goes here -->
-            <img src="img/ghost.png" alt="" />
-          </div>
-        </aside>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="globals.css" />
+  <link rel="stylesheet" href="styleguide.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="app.js" defer></script>
+  <script type="module" src="../js/dashboard-visibility.js" defer></script>
+</head>
 
-        <main class="content content--tags">
-          <div class="breadcrumb">Badges &gt;</div>
-          <section class="tags-panel glass">
-            <div class="tags-panel__bottom">
-              <div class="tag-grid" data-badge-grid></div>
-            </div>
-          </section>
-        </main>
+<body>
+  <div class="page">
+    <div class="background-glow"></div>
+    <header class="topbar">
+      <div class="brand">
+        <!-- logo ghost icon goes here -->
+        <span style="font-size: 24px; margin-right: 8px;">👻</span>
+        <span class="brand__name">Stack Ghost</span>
       </div>
-    </div>
-  </body>
-</html>
+      <div class="search">
+        <span class="search__icon">
+          <!-- search icon goes here -->
+          <span style="opacity: 0.6;">🔍</span>
+        </span>
+        <input type="search" placeholder="Search for questions, users, tags"
+          aria-label="Search for questions, users, tags" />
+      </div>
+      <div class="topbar__actions">
+        <div class="notifications">
+          <button class="icon-button notifications__toggle" aria-label="Notifications" aria-expanded="false"
+            aria-haspopup="true" data-notifications-toggle>
+            <!-- bell icon goes here -->
+            <span style="font-size: 20px;">🔔</span>
+          </button>
+          <div class="notifications__dropdown glass" data-notifications-panel>
+            <div class="notifications__header">
+              <span>Notifications</span>
+            </div>
+            <ul class="list notifications__list" data-notifications-dropdown>
+              <!-- filled by data -->
+            </ul>
+          </div>
+        </div>
+        <div class="avatar avatar--sm">
+          <!-- profile image goes here -->
+          <img id="profile-image" src="../signin,login/ghost.png" alt="Profile" onerror="this.style.display='none'" />
+        </div>
+      </div>
+    </header>
 
+    <div class="layout layout--tags">
+      <aside class="sidebar sidebar--left">
+        <nav class="nav">
+          <div class="nav__section">
+            <a class="nav__link" href="../home/index.html">
+              <span>🏠</span>
+              <span>Home</span>
+            </a>
+          </div>
+          <hr class="sidebar-divider" />
+          <div class="nav__section nav__section--cluster">
+            <a class="nav__link" href="../questions/index.html">
+              <span>❓</span>
+              <span>Questions</span>
+            </a>
+            <a class="nav__link" href="../users/index.html">
+              <span>👥</span>
+              <span>Users</span>
+            </a>
+            <a class="nav__link" href="../tages/index.html">
+              <span>🏷️</span>
+              <span>Tags</span>
+            </a>
+            <a class="nav__link nav__link--active" href="index.html">
+              <span>🏆</span>
+              <span>Badges</span>
+            </a>
+          </div>
+          <hr class="sidebar-divider" />
+          <div class="nav__section">
+            <a class="nav__link" href="../profile/index.html">
+              <span>👤</span>
+              <span>My Profile</span>
+            </a>
+          </div>
+          <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
+          <div class="nav__section" id="dashboard-section" style="display: none;">
+            <a class="nav__link" href="../dashboard/dashboard.html">
+              <span>⚙️</span>
+              <span>Dashboard</span>
+            </a>
+          </div>
+        </nav>
+        <div class="sidebar__ghost">
+          <!-- sidebar ghost illustration goes here -->
+          <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
+        </div>
+      </aside>
+
+      <main class="content content--tags">
+        <div class="breadcrumb">Badges &gt;</div>
+        <section class="tags-panel glass">
+          <div class="tags-panel__bottom">
+            <div class="tag-grid" data-badge-grid></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+
+</html>

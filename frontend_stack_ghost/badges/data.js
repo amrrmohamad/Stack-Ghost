@@ -1,11 +1,12 @@
 // All user-facing values pulled from the backend live here.
-const USER_ENDPOINT = "/api/user/profile";
+import api from '../js/api.js';
+
 const TAG_ENDPOINT = "/api/tags";
 const FOLLOW_ENDPOINT = (id) => `/api/tags/${encodeURIComponent(id)}/follow`;
 
 export const fallbackUserData = {
   username: "Amr",
-  profileImage: "img/rafiki.png",
+  profileImage: "../signin,login/ghost.png",
   reputation: 5000,
   asked: 100,
   answered: 50,
@@ -105,35 +106,42 @@ export const fallbackUserData = {
 };
 
 export async function fetchUserData() {
-  const response = await fetch(USER_ENDPOINT, { credentials: "include" });
+  try {
+    if (!api.isAuthenticated()) {
+      window.location.href = '../signin,login/index.html';
+      return fallbackUserData;
+    }
 
-  if (!response.ok) {
-    throw new Error(`Failed to load user data: ${response.status}`);
+    // Get current user data
+    const currentUser = await api.getCurrentUser();
+    if (currentUser.success && currentUser.data) {
+      const user = currentUser.data;
+      return {
+        username: user.username || fallbackUserData.username,
+        profileImage: user.profile_image || fallbackUserData.profileImage,
+        reputation: user.reputation || fallbackUserData.reputation,
+        asked: user._count?.AuthoredQuestions || fallbackUserData.asked,
+        answered: user._count?.Answers || fallbackUserData.answered,
+        about: user.bio || fallbackUserData.about,
+        notifications: fallbackUserData.notifications,
+        badges: fallbackUserData.badges,
+        questions: fallbackUserData.questions,
+        answers: fallbackUserData.answers,
+        tags: fallbackUserData.tags,
+      };
+    }
+
+    return fallbackUserData;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    if (error.message?.includes('Session expired') || error.message?.includes('Unauthorized')) {
+      api.clearTokens();
+      window.location.href = '../signin,login/index.html';
+    }
+    return fallbackUserData;
   }
-
-  const payload = await response.json();
-
-  return {
-    username: payload?.username ?? fallbackUserData.username,
-    profileImage: payload?.profileImage ?? fallbackUserData.profileImage,
-    reputation: payload?.reputation ?? fallbackUserData.reputation,
-    asked: payload?.asked ?? fallbackUserData.asked,
-    answered: payload?.answered ?? fallbackUserData.answered,
-    about: payload?.about ?? fallbackUserData.about,
-    notifications:
-      Array.isArray(payload?.notifications) && payload.notifications.length
-        ? payload.notifications
-        : fallbackUserData.notifications,
-    badges: Array.isArray(payload?.badges) && payload.badges.length ? payload.badges : fallbackUserData.badges,
-    questions:
-      Array.isArray(payload?.questions) && payload.questions.length
-        ? payload.questions
-        : fallbackUserData.questions,
-    answers:
-      Array.isArray(payload?.answers) && payload.answers.length ? payload.answers : fallbackUserData.answers,
-    tags: Array.isArray(payload?.tags) && payload.tags.length ? payload.tags : fallbackUserData.tags,
-  };
 }
+
 
 // Tag data --------------------------------------------------------------
 export const fallbackTags = [
