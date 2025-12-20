@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="question-detail.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../js/imageHandler.js"></script>
     <script type="module" src="question-detail.js"></script>
 </head>
@@ -21,12 +22,12 @@
         <div class="background-glow"></div>
         <header class="topbar">
             <a href="../home/index.html" class="brand">
-                <span style="font-size: 24px; margin-right: 8px;">👻</span>
+                <i data-lucide="ghost" style="width: 24px; height: 24px; margin-right: 8px;"></i>
                 <span class="brand__name">Stack Ghost</span>
             </a>
             <div class="search">
                 <span class="search__icon">
-                    <span style="opacity: 0.6;">🔍</span>
+                    <i data-lucide="search" style="width: 20px; height: 20px; opacity: 0.6;"></i>
                 </span>
                 <input type="search" placeholder="Search for questions, users, tags"
                     aria-label="Search for questions, users, tags" />
@@ -35,12 +36,11 @@
             <div class="topbar__actions">
                 <div class="notifications">
                     <button class="icon-button notifications__toggle" aria-label="Notifications">
-                        <span style="font-size: 20px;">🔔</span>
+                        <i data-lucide="bell" style="width: 20px; height: 20px; color: white;"></i>
                     </button>
                 </div>
                 <div class="avatar avatar--sm">
-                    <img id="profile-image" src="../signin,login/ghost.png" alt="Profile"
-                        onerror="this.style.display='none'" />
+                    <i data-lucide="circle-user" id="profile-icon" style="width: 36px; height: 36px; color: rgba(255, 255, 255, 0.9); stroke-width: 1.5;"></i>
                 </div>
                 <button id="logout-btn" class="btn btn--ghost"
                     style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
@@ -52,29 +52,29 @@
                 <nav class="nav">
                     <div class="nav__section">
                         <a class="nav__link" href="../home/index.html">
-                            <span>🏠</span>
+                            <i data-lucide="home" style="width: 20px; height: 20px;"></i>
                             <span>Home</span>
                         </a>
                     </div>
                     <hr class="sidebar-divider" />
                     <div class="nav__section nav__section--cluster">
                         <a class="nav__link nav__link--active" href="index.html">
-                            <span>❓</span>
+                            <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
                             <span>Questions</span>
                         </a>
                         <a class="nav__link" href="../users/index.html">
-                            <span>👥</span>
+                            <i data-lucide="users" style="width: 20px; height: 20px;"></i>
                             <span>Users</span>
                         </a>
                         <a class="nav__link" href="../tages/index.html">
-                            <span>🏷️</span>
+                            <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
                             <span>Tags</span>
                         </a>
                     </div>
                     <hr class="sidebar-divider" />
                     <div class="nav__section">
                         <a class="nav__link" href="../profile/index.html">
-                            <span>👤</span>
+                            <i data-lucide="user" style="width: 20px; height: 20px;"></i>
                             <span>My Profile</span>
                         </a>
                     </div>
@@ -232,7 +232,7 @@
                             <button type="button" class="toolbar-btn" data-format="italic"
                                 title="Italic"><i>I</i></button>
                             <button type="button" class="toolbar-btn" data-format="code" title="Code">&lt;/&gt;</button>
-                            <button type="button" class="toolbar-btn" data-format="link" title="Link">🔗</button>
+                            <button type="button" class="toolbar-btn" data-format="link" title="Link"><i data-lucide="link" style="width: 16px; height: 16px;"></i></button>
                         </div>
                         <div class="post-answer-actions">
                             <button id="submit-answer-btn" class="btn btn--primary">Post Your Answer</button>
@@ -252,6 +252,18 @@
                 </div>
             </aside>
         </div>
+
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="../home/index.html">Home</a>
+                <a href="../questions/index.html">Questions</a>
+                <a href="../users/index.html">Users</a>
+                <a href="../tages/index.html">Tags</a>
+                <a href="../badges/index.html">Badges</a>
+                <a href="../profile/index.html">Profile</a>
+            </div>
+            <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
+        </footer>
     </div>
 
     <!-- Toast Notification -->
@@ -259,6 +271,11 @@
         <span id="toast-message"></span>
         <button class="toast-close" onclick="hideToast()">×</button>
     </div>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 
 </html>

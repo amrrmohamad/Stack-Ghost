@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="globals.css" />
     <link rel="stylesheet" href="styleguide.css" />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../js/imageHandler.js"></script>
     <script type="module" src="app.js"></script>
   </head>
@@ -25,7 +26,7 @@
       <!-- Header -->
       <header class="page-header">
         <div class="brand">
-          <img class="brand__logo" src="img/vector-14.svg" alt="Stack Ghost" />
+          <i data-lucide="ghost" style="width: 32px; height: 32px; margin-right: 8px;"></i>
           <span class="brand__name">Stack Ghost</span>
         </div>
         <nav class="header-nav">
@@ -49,7 +50,7 @@
             <div class="feature-list">
               <div class="feature-item">
                 <div class="feature-icon">
-                  <img src="img/icon-lock.png" alt="Secure" />
+                  <i data-lucide="lock" style="width: 48px; height: 48px; color: #8567ba;"></i>
                 </div>
                 <div class="feature-text">
                   <h3>Secure & Reliable</h3>
@@ -58,7 +59,7 @@
               </div>
               <div class="feature-item">
                 <div class="feature-icon">
-                  <img src="img/icon-lightning.png" alt="Fast" />
+                  <i data-lucide="zap" style="width: 48px; height: 48px; color: #8567ba;"></i>
                 </div>
                 <div class="feature-text">
                   <h3>Instant Access</h3>
@@ -67,7 +68,7 @@
               </div>
               <div class="feature-item">
                 <div class="feature-icon">
-                  <img src="img/icon-target.png" alt="Developer" />
+                  <i data-lucide="target" style="width: 48px; height: 48px; color: #8567ba;"></i>
                 </div>
                 <div class="feature-text">
                   <h3>Developer Friendly</h3>
@@ -213,5 +214,10 @@
         </div>
       </div>
     </div>
+    <script>
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    </script>
   </body>
 </html>

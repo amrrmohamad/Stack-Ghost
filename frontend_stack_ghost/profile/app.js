@@ -296,13 +296,18 @@ function renderFollowersList(users) {
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <span style="color: #ffd43b; font-size: 14px;">⭐</span>
+        <i data-lucide="star" style="width: 14px; height: 14px; fill: #ffd43b; color: #ffd43b;"></i>
         <span style="color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500;">${reputation.toLocaleString()} reputation</span>
       </div>
     `;
     
     listContainer.appendChild(card);
   });
+  
+  // Initialize Lucide icons after rendering
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
 }
 
 function closeFollowersModal() {
@@ -373,7 +378,7 @@ function renderFollowingList(users) {
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <span style="color: #ffd43b; font-size: 14px;">⭐</span>
+        <i data-lucide="star" style="width: 14px; height: 14px; fill: #ffd43b; color: #ffd43b;"></i>
         <span style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500;">
           ${formatNumber(reputation)} reputation
         </span>
@@ -391,6 +396,11 @@ function renderFollowingList(users) {
   });
   
   listContainer.appendChild(grid);
+  
+  // Initialize Lucide icons after rendering
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
 }
 
 function closeFollowingModal() {

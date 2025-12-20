@@ -96,7 +96,6 @@ function applyUserData(user) {
   });
 
   setImage("profile-image", user.profileImage);
-  setImage("profile-image-side", user.profileImage);
 
   renderList("[data-notifications]", user.notifications, buildNotificationItem);
   renderList("[data-notifications-dropdown]", user.notifications, buildNotificationItem);
@@ -297,9 +296,9 @@ function buildTagCard(tag) {
   followBtn.style.cssText = `
     padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid ${tag.isFollowed ? '#51cf66' : 'rgba(255,255,255,0.2)'};
-    background: ${tag.isFollowed ? 'rgba(81, 207, 102, 0.2)' : 'rgba(255,255,255,0.05)'};
-    color: ${tag.isFollowed ? '#51cf66' : 'white'};
+    border: 1px solid ${tag.isFollowed ? '#b38cf5' : 'rgba(255,255,255,0.2)'};
+    background: ${tag.isFollowed ? 'rgba(179, 140, 245, 0.2)' : 'rgba(255,255,255,0.05)'};
+    color: ${tag.isFollowed ? '#b38cf5' : 'white'};
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -333,9 +332,9 @@ function buildTagCard(tag) {
     
     followBtn.addEventListener('mouseleave', () => {
       if (!followBtn.disabled) {
-        followBtn.style.background = 'rgba(81, 207, 102, 0.2)';
-        followBtn.style.borderColor = '#51cf66';
-        followBtn.style.color = '#51cf66';
+        followBtn.style.background = 'rgba(179, 140, 245, 0.2)';
+        followBtn.style.borderColor = '#b38cf5';
+        followBtn.style.color = '#b38cf5';
         followBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
       }
     });
@@ -392,9 +391,9 @@ async function toggleFollow(tagId) {
       updatedBtn.disabled = true;
       if (targetState) {
         updatedBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
-        updatedBtn.style.background = 'rgba(81, 207, 102, 0.2)';
-        updatedBtn.style.borderColor = '#51cf66';
-        updatedBtn.style.color = '#51cf66';
+        updatedBtn.style.background = 'rgba(179, 140, 245, 0.2)';
+        updatedBtn.style.borderColor = '#b38cf5';
+        updatedBtn.style.color = '#b38cf5';
       } else {
         updatedBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
         updatedBtn.style.background = 'rgba(255,255,255,0.05)';
@@ -415,9 +414,9 @@ async function toggleFollow(tagId) {
       
       updatedBtn.addEventListener('mouseleave', function hoverLeave() {
         if (currentFollowState && !updatedBtn.disabled) {
-          updatedBtn.style.background = 'rgba(81, 207, 102, 0.2)';
-          updatedBtn.style.borderColor = '#51cf66';
-          updatedBtn.style.color = '#51cf66';
+          updatedBtn.style.background = 'rgba(179, 140, 245, 0.2)';
+          updatedBtn.style.borderColor = '#b38cf5';
+          updatedBtn.style.color = '#b38cf5';
           updatedBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
         }
       });
@@ -446,9 +445,9 @@ async function toggleFollow(tagId) {
           finalBtn.disabled = false;
           if (actualState) {
             finalBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
-            finalBtn.style.background = 'rgba(81, 207, 102, 0.2)';
-            finalBtn.style.borderColor = '#51cf66';
-            finalBtn.style.color = '#51cf66';
+            finalBtn.style.background = 'rgba(179, 140, 245, 0.2)';
+            finalBtn.style.borderColor = '#b38cf5';
+            finalBtn.style.color = '#b38cf5';
           } else {
             finalBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
             finalBtn.style.background = 'rgba(255,255,255,0.05)';
@@ -477,9 +476,9 @@ async function toggleFollow(tagId) {
         const revertedState = !targetState;
         if (revertedState) {
           errorBtn.innerHTML = '<span style="font-size: 16px;">✓</span> Following';
-          errorBtn.style.background = 'rgba(81, 207, 102, 0.2)';
-          errorBtn.style.borderColor = '#51cf66';
-          errorBtn.style.color = '#51cf66';
+          errorBtn.style.background = 'rgba(179, 140, 245, 0.2)';
+          errorBtn.style.borderColor = '#b38cf5';
+          errorBtn.style.color = '#b38cf5';
         } else {
           errorBtn.innerHTML = '<span style="font-size: 16px;">+</span> Follow';
           errorBtn.style.background = 'rgba(255,255,255,0.05)';

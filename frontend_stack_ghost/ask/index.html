@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../js/imageHandler.js"></script>
     <script type="module" src="app.js"></script>
 </head>
@@ -19,12 +20,12 @@
         <div class="background-glow"></div>
         <header class="topbar">
             <a href="../home/index.html" class="brand">
-                <span style="font-size: 24px; margin-right: 8px;">👻</span>
+                <i data-lucide="ghost" style="width: 24px; height: 24px; margin-right: 8px;"></i>
                 <span class="brand__name">Stack Ghost</span>
             </a>
             <div class="search">
                 <span class="search__icon">
-                    <span style="opacity: 0.6;">🔍</span>
+                    <i data-lucide="search" style="width: 20px; height: 20px; opacity: 0.6;"></i>
                 </span>
                 <input type="search" placeholder="Search for questions, users, tags"
                     aria-label="Search for questions, users, tags" />
@@ -34,12 +35,11 @@
                 <div class="notifications">
                     <button class="icon-button notifications__toggle" aria-label="Notifications" aria-expanded="false"
                         aria-haspopup="true" data-notifications-toggle>
-                        <span style="font-size: 20px;">🔔</span>
+                        <i data-lucide="bell" style="width: 20px; height: 20px; color: white;"></i>
                     </button>
                 </div>
                 <div class="avatar avatar--sm">
-                    <img id="profile-image" src="../signin,login/ghost.png" alt="Profile"
-                        onerror="this.style.display='none'" />
+                    <i data-lucide="circle-user" id="profile-icon" style="width: 36px; height: 36px; color: rgba(255, 255, 255, 0.9); stroke-width: 1.5;"></i>
                 </div>
                 <button id="logout-btn" class="btn btn--ghost"
                     style="margin-left: 10px; padding: 8px 16px; font-size: 14px;">Logout</button>
@@ -51,39 +51,39 @@
                 <nav class="nav">
                     <div class="nav__section">
                         <a class="nav__link" href="../home/index.html">
-                            <span>🏠</span>
+                            <i data-lucide="home" style="width: 20px; height: 20px;"></i>
                             <span>Home</span>
                         </a>
                     </div>
                     <hr class="sidebar-divider" />
                     <div class="nav__section nav__section--cluster">
                         <a class="nav__link" href="../questions/index.html">
-                            <span>❓</span>
+                            <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
                             <span>Questions</span>
                         </a>
                         <a class="nav__link" href="../users/index.html">
-                            <span>👥</span>
+                            <i data-lucide="users" style="width: 20px; height: 20px;"></i>
                             <span>Users</span>
                         </a>
                         <a class="nav__link" href="../tages/index.html">
-                            <span>🏷️</span>
+                            <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
                             <span>Tags</span>
                         </a>
                         <a class="nav__link" href="../badges/index.html">
-                            <span>🏆</span>
+                            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
                             <span>Badges</span>
                         </a>
                     </div>
                     <hr class="sidebar-divider" />
                     <div class="nav__section">
                         <a class="nav__link" href="../profile/index.html">
-                            <span>👤</span>
+                            <i data-lucide="user" style="width: 20px; height: 20px;"></i>
                             <span>My Profile</span>
                         </a>
                     </div>
                 </nav>
                 <div class="sidebar__ghost">
-                    <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
+                    <!-- sidebar ghost illustration removed -->
                 </div>
             </aside>
 
@@ -104,7 +104,7 @@
                         </p>
                     </div>
                     <div class="ask-header__icon">
-                        <span style="font-size: 64px;">💬</span>
+                        <i data-lucide="message-circle" style="width: 64px; height: 64px;"></i>
                     </div>
                 </section>
 
@@ -113,7 +113,7 @@
                     <div class="form-section">
                         <div class="form-section__header">
                             <label for="question-title" class="form-label">
-                                <span class="form-label__icon">📝</span>
+                                <i data-lucide="file-text" class="form-label__icon" style="width: 18px; height: 18px;"></i>
                                 Title
                             </label>
                             <span class="form-hint">Be specific and imagine you're asking a question to another
@@ -130,7 +130,7 @@
                     <div class="form-section">
                         <div class="form-section__header">
                             <label for="question-body" class="form-label">
-                                <span class="form-label__icon">📖</span>
+                                <i data-lucide="book-open" class="form-label__icon" style="width: 18px; height: 18px;"></i>
                                 Body
                             </label>
                             <span class="form-hint">Include all the details someone would need to answer your
@@ -150,10 +150,10 @@
                                 <span>{ }</span>
                             </button>
                             <button type="button" class="toolbar-btn" data-format="link" title="Insert Link">
-                                🔗
+                                <i data-lucide="link" style="width: 16px; height: 16px;"></i>
                             </button>
                             <button type="button" class="toolbar-btn" data-format="list" title="Bulleted List">
-                                📋
+                                <i data-lucide="list" style="width: 16px; height: 16px;"></i>
                             </button>
                         </div>
                         <textarea id="question-body" name="body" class="form-textarea"
@@ -168,7 +168,7 @@
                     <div class="form-section">
                         <div class="form-section__header">
                             <label class="form-label">
-                                <span class="form-label__icon">🏷️</span>
+                                <i data-lucide="tag" class="form-label__icon" style="width: 18px; height: 18px;"></i>
                                 Tags
                             </label>
                             <span class="form-hint">Select up to 5 tags from the list below</span>
@@ -197,7 +197,7 @@
                     <div class="form-section">
                         <div class="form-section__header">
                             <label class="form-label">
-                                <span class="form-label__icon">👁️</span>
+                                <i data-lucide="eye" class="form-label__icon" style="width: 18px; height: 18px;"></i>
                                 Preview
                             </label>
                             <span class="form-hint">See how your question will look</span>
@@ -215,7 +215,7 @@
                             Cancel
                         </button>
                         <button type="submit" class="btn btn--primary btn--lg" id="submit-btn" disabled>
-                            <span class="btn__icon">🚀</span>
+                            <i data-lucide="rocket" class="btn__icon" style="width: 18px; height: 18px; margin-right: 4px;"></i>
                             Post Your Question
                         </button>
                     </div>
@@ -225,7 +225,7 @@
                 <div class="modal" id="success-modal">
                     <div class="modal__backdrop"></div>
                     <div class="modal__content glass">
-                        <div class="modal__icon">🎉</div>
+                        <i data-lucide="check-circle" class="modal__icon" style="width: 64px; height: 64px; color: #51cf66;"></i>
                         <h2 class="modal__title">Question Posted!</h2>
                         <p class="modal__text">Your question has been successfully posted. You'll be redirected to view
                             it shortly.</p>
@@ -236,7 +236,7 @@
 
                 <!-- Error Toast -->
                 <div class="toast toast--error" id="error-toast">
-                    <span class="toast__icon">⚠️</span>
+                    <i data-lucide="alert-triangle" class="toast__icon" style="width: 20px; height: 20px;"></i>
                     <span class="toast__message" id="error-message">An error occurred</span>
                     <button class="toast__close" onclick="hideToast()">&times;</button>
                 </div>
@@ -245,27 +245,27 @@
             <aside class="sidebar sidebar--right">
                 <div class="card glass tips-card">
                     <header class="section-header">
-                        <h3>💡 Writing Tips</h3>
+                        <h3><i data-lucide="lightbulb" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i> Writing Tips</h3>
                     </header>
                     <ul class="tips-list">
                         <li class="tips-list__item">
-                            <span class="tips-list__icon">✓</span>
+                            <i data-lucide="check" class="tips-list__icon" style="width: 16px; height: 16px;"></i>
                             <span>Summarize your problem in a one-line title</span>
                         </li>
                         <li class="tips-list__item">
-                            <span class="tips-list__icon">✓</span>
+                            <i data-lucide="check" class="tips-list__icon" style="width: 16px; height: 16px;"></i>
                             <span>Describe what you've tried and expected results</span>
                         </li>
                         <li class="tips-list__item">
-                            <span class="tips-list__icon">✓</span>
+                            <i data-lucide="check" class="tips-list__icon" style="width: 16px; height: 16px;"></i>
                             <span>Show some code if applicable</span>
                         </li>
                         <li class="tips-list__item">
-                            <span class="tips-list__icon">✓</span>
+                            <i data-lucide="check" class="tips-list__icon" style="width: 16px; height: 16px;"></i>
                             <span>Add relevant tags to reach the right experts</span>
                         </li>
                         <li class="tips-list__item">
-                            <span class="tips-list__icon">✓</span>
+                            <i data-lucide="check" class="tips-list__icon" style="width: 16px; height: 16px;"></i>
                             <span>Proofread before posting</span>
                         </li>
                     </ul>
@@ -273,7 +273,7 @@
 
                 <div class="card glass">
                     <header class="section-header">
-                        <h3>🏷️ How to Tag</h3>
+                        <h3><i data-lucide="tag" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i> How to Tag</h3>
                     </header>
                     <p class="card__text">
                         Tags help the right people find and answer your question. Select from the available tags that
@@ -298,7 +298,24 @@
                 </div>
             </aside>
         </div>
+
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="../home/index.html">Home</a>
+                <a href="../questions/index.html">Questions</a>
+                <a href="../users/index.html">Users</a>
+                <a href="../tages/index.html">Tags</a>
+                <a href="../badges/index.html">Badges</a>
+                <a href="../profile/index.html">Profile</a>
+            </div>
+            <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
+        </footer>
     </div>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 
 </html>
