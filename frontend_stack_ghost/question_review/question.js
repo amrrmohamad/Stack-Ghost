@@ -150,14 +150,14 @@ function setupNotificationDropdown() {
 
 /**
  * Parse custom format tags: [BB]... [!BB], [UL]... [!UL], [CODE]... [!CODE]
- * Converts them to HTML: <strong>, <u>, <code>
+ * Converts them to HTML: <strong>, <u>, <pre><code>
  */
 function parseContent(text) {
   if (!text) return "";
 
-  // Parse [CODE]... [!CODE] blocks first (multiline)
+  // Parse [CODE]... [!CODE] blocks first (multiline) - use pre+code for proper formatting
   text = text.replace(/\[CODE\]([\s\S]*?)\[!CODE\]/g, (match, code) => {
-    return `<code>${escapeHtml(code.trim())}</code>`;
+    return `<pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>`;
   });
 
   // Parse [BB]... [!BB] (bold)
@@ -942,7 +942,7 @@ function renderQuestionData(data) {
   // Question body
   const bodyEl = document.querySelector("[data-question-body]");
   if (bodyEl && data.body) {
-    bodyEl.textContent = data.body;
+    bodyEl.innerHTML = data.body;
   }
 
   // Question votes - ensure it's always displayed
@@ -1152,7 +1152,7 @@ function createAnswerElement(answer) {
 
   const contentHtml = `
     <div class="answer-content">
-      <div class="answer-body" data-answer-body="${answer.id}">${escapeHtml(answer.body)}</div>
+      <div class="answer-body" data-answer-body="${answer.id}">${answer.body}</div>
       <div class="answer-author">
         <div class="author-info">
           <div class="avatar avatar--sm">

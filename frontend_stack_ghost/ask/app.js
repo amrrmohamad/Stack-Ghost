@@ -215,16 +215,18 @@ function handleToolbarAction(format) {
 
     switch (format) {
         case 'bold':
-            newText = `**${selectedText}**`;
+            newText = `[BB]${selectedText}[!BB]`;
             break;
         case 'italic':
-            newText = `*${selectedText}*`;
+            // Use underline instead since we don't have italic tag
+            newText = `[UL]${selectedText}[!UL]`;
             break;
         case 'code':
-            newText = `\`${selectedText}\``;
+            // Inline code - use same as codeblock for consistency
+            newText = `[CODE]${selectedText}[!CODE]`;
             break;
         case 'codeblock':
-            newText = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+            newText = `\n[CODE]\n${selectedText}\n[!CODE]\n`;
             break;
         case 'link':
             newText = `[${selectedText || 'link text'}](url)`;
@@ -258,12 +260,11 @@ function updatePreview() {
         return;
     }
 
-    // Simple markdown-like rendering
+    // Parse custom tags: [BB], [UL], [CODE]
     let formattedBody = escapeHtml(body)
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/\[CODE\]([\s\S]*?)\[!CODE\]/g, '<pre class="code-block"><code>$1</code></pre>')
+        .replace(/\[BB\](.*?)\[!BB\]/g, '<strong>$1</strong>')
+        .replace(/\[UL\](.*?)\[!UL\]/g, '<u>$1</u>')
         .replace(/\n/g, '<br>');
 
     previewContent.innerHTML = `
