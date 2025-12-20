@@ -49,6 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupComments();
     setupAddAnswer();
     setupAcceptAnswer();
+    setupEditDeleteAnswer();
 
     console.log("Page initialized successfully");
   } catch (error) {
@@ -949,6 +950,235 @@ function setupAcceptAnswer() {
 }
 
 /**
+ * Setup edit and delete answer functionality - only answer owner can edit/delete
+ */
+function setupEditDeleteAnswer() {
+  const answersContainer = document.querySelector("[data-answers-list]");
+  if (!answersContainer) return;
+
+  // Handle Edit button
+  answersContainer.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest("[data-edit-answer]");
+    if (!editBtn) return;
+
+    const answerId = editBtn.getAttribute("data-edit-answer");
+    const answerCard = document.querySelector(`[data-answer-id="${answerId}"]`);
+    const answerBody = answerCard?.querySelector(`[data-answer-body="${answerId}"]`);
+
+    if (!answerBody) return;
+
+    // Check if already in edit mode
+    if (answerCard.querySelector('.edit-answer-form')) return;
+
+    const currentContent = answerBody.textContent || answerBody.innerText;
+
+    // Hide the original body
+    answerBody.style.display = 'none';
+
+    // Create edit form
+    const editForm = document.createElement('div');
+    editForm.className = 'edit-answer-form';
+    editForm.innerHTML = `
+      <textarea class="edit-answer-textarea" rows="6" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: inherit; font-family: inherit; font-size: inherit; resize: vertical;">${escapeHtml(currentContent)}</textarea>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="btn btn--primary btn--sm save-edit-btn">Save Changes</button>
+        <button class="btn btn--ghost btn--sm cancel-edit-btn">Cancel</button>
+      </div>
+    `;
+
+    // Insert form after answer body
+    answerBody.insertAdjacentElement('afterend', editForm);
+
+    // Focus the textarea
+    const textarea = editForm.querySelector('.edit-answer-textarea');
+    textarea.focus();
+
+    // Handle Save
+    editForm.querySelector('.save-edit-btn').addEventListener('click', async () => {
+      const newContent = textarea.value.trim();
+
+      // If content hasn't changed, just cancel
+      if (newContent === currentContent.trim()) {
+        editForm.remove();
+        answerBody.style.display = '';
+        return;
+      }
+
+      // Save changes
+      const saveBtn = editForm.querySelector('.save-edit-btn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      try {
+        const response = await api.updateAnswer(answerId, newContent);
+
+        if (response.success) {
+          // Update the body and remove form
+          answerBody.innerHTML = parseContent(newContent);
+          editForm.remove();
+          answerBody.style.display = '';
+        } else {
+          throw new Error(response.message || 'Failed to update answer');
+        }
+      } catch (error) {
+        console.error('Error updating answer:', error);
+        alert(error.message || 'Failed to update answer. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+      }
+    });
+
+    // Handle Cancel
+    editForm.querySelector('.cancel-edit-btn').addEventListener('click', () => {
+      editForm.remove();
+      answerBody.style.display = '';
+    });
+  });
+
+  // Handle Delete button
+  answersContainer.addEventListener("click", async (e) => {
+    const deleteBtn = e.target.closest("[data-delete-answer]");
+    if (!deleteBtn) return;
+
+    const answerId = deleteBtn.getAttribute("data-delete-answer");
+
+    // Create custom confirmation modal
+    const modal = document.createElement('div');
+    modal.className = 'delete-confirm-modal';
+    modal.innerHTML = `
+      <div class="delete-confirm-backdrop"></div>
+      <div class="delete-confirm-content glass">
+        <div class="delete-confirm-icon">⚠️</div>
+        <h3 class="delete-confirm-title">Delete Answer?</h3>
+        <p class="delete-confirm-message">Are you sure you want to delete this answer? This action cannot be undone.</p>
+        <div class="delete-confirm-buttons">
+          <button class="btn btn--danger delete-confirm-yes">Yes, Delete</button>
+          <button class="btn btn--ghost delete-confirm-no">No, Cancel</button>
+        </div>
+      </div>
+    `;
+
+    // Add modal styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .delete-confirm-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .delete-confirm-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+      }
+      .delete-confirm-content {
+        position: relative;
+        padding: 32px;
+        border-radius: 16px;
+        text-align: center;
+        max-width: 400px;
+        animation: slideUp 0.3s ease;
+        border: 1px solid rgba(255, 100, 100, 0.3);
+      }
+      .delete-confirm-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      .delete-confirm-title {
+        font-size: 1.5rem;
+        margin: 0 0 12px 0;
+        color: #ff6b6b;
+      }
+      .delete-confirm-message {
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0 0 24px 0;
+        line-height: 1.5;
+      }
+      .delete-confirm-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+      .btn--danger {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn--danger:hover {
+        background: linear-gradient(135deg, #ff5252, #e04848);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+      }
+      .delete-confirm-no {
+        padding: 12px 24px;
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+
+    // Handle Yes (Delete)
+    modal.querySelector('.delete-confirm-yes').addEventListener('click', async () => {
+      const yesBtn = modal.querySelector('.delete-confirm-yes');
+      yesBtn.disabled = true;
+      yesBtn.textContent = 'Deleting...';
+
+      try {
+        const response = await api.deleteAnswer(answerId);
+
+        if (response.success) {
+          modal.remove();
+          style.remove();
+          window.location.reload();
+        } else {
+          throw new Error(response.message || 'Failed to delete answer');
+        }
+      } catch (error) {
+        console.error('Error deleting answer:', error);
+        alert(error.message || 'Failed to delete answer. Please try again.');
+        modal.remove();
+        style.remove();
+      }
+    });
+
+    // Handle No (Cancel)
+    modal.querySelector('.delete-confirm-no').addEventListener('click', () => {
+      modal.remove();
+      style.remove();
+    });
+
+    // Also close on backdrop click
+    modal.querySelector('.delete-confirm-backdrop').addEventListener('click', () => {
+      modal.remove();
+      style.remove();
+    });
+  });
+}
+
+/**
  * Load question data from backend
  */
 async function loadQuestionData(questionId) {
@@ -1246,8 +1476,12 @@ function createAnswerElement(answer) {
         </div>
       </div>
     </div>
-      <div style="margin-top: 12px;">
+      <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
         ${acceptButtonHtml}
+        ${currentUserId === answer.author_id ? `
+          <button class="btn btn--ghost btn--sm" data-edit-answer="${answer.id}">✏️ Edit</button>
+          <button class="btn btn--ghost btn--sm" data-delete-answer="${answer.id}" style="color: #ff6b6b;">🗑️ Delete</button>
+        ` : ''}
         <button class="btn btn--ghost btn--sm" data-report-answer="${answer.id}">Report</button>
       </div>
   `;
