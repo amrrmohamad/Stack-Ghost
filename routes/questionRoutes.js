@@ -19,6 +19,9 @@ router.get('/search', QuestionController.searchQuestions);
 // Public: get all questions
 router.get('/', QuestionController.getAllQuestions);
 
+// Public: get questions by tag
+router.get('/tag/:tagId', QuestionController.getQuestionsByTag);
+
 // Public: get question history
 router.get('/history/:id', QuestionController.getQuestionHistory);
 

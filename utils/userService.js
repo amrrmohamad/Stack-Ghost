@@ -17,15 +17,15 @@ import { checkGhostBadges } from './badgeService.js';
  */
 const getAllUsers = async (page = 1, limit = 100, isAdmin = false, excludeUserId = null, currentUserId = null) => {
     const skip = (page - 1) * limit;
-    
+
     // Only show active users to non-admins, and exclude current user
-    const where = isAdmin 
+    const where = isAdmin
         ? (excludeUserId ? { user_id: { not: excludeUserId } } : {})
-        : { 
+        : {
             is_active: true,
             ...(excludeUserId ? { user_id: { not: excludeUserId } } : {})
         };
-    
+
     const totalUsers = await prisma.users.count({ where });
     const users = await prisma.users.findMany({
         where,
@@ -53,7 +53,7 @@ const getAllUsers = async (page = 1, limit = 100, isAdmin = false, excludeUserId
             }
         }
     });
-    
+
     // Get follow status for each user if currentUserId is provided
     let followedUserIds = [];
     if (currentUserId) {
@@ -63,13 +63,13 @@ const getAllUsers = async (page = 1, limit = 100, isAdmin = false, excludeUserId
         });
         followedUserIds = followedUsers.map(fu => fu.followed_user_id);
     }
-    
+
     // Add follow status to each user
     const usersWithFollowStatus = users.map(user => ({
         ...user,
         isFollowed: currentUserId ? followedUserIds.includes(user.user_id) : false
     }));
-    
+
     return {
         users: usersWithFollowStatus,
         totalUsers,
@@ -194,12 +194,58 @@ const getUserById = async (userId) => {
             }
         }
     });
-    
+
     if (!user) {
         throw new Error('User not found');
     }
-    
+
     return user;
+};
+
+/**
+ * Search users by username (for global search)
+ */
+const searchUsers = async (query, page = 1, limit = 10, currentUserId = null) => {
+    const skip = (page - 1) * limit;
+    const where = {
+        is_active: true,
+        username: {
+            contains: query,
+            mode: 'insensitive'
+        },
+        ...(currentUserId ? { user_id: { not: currentUserId } } : {})
+    };
+
+    const totalUsers = await prisma.users.count({ where });
+    const users = await prisma.users.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { reputation: 'desc' },
+        select: {
+            user_id: true,
+            username: true,
+            profile_image: true,
+            reputation: true,
+            _count: {
+                select: {
+                    AuthoredQuestions: true,
+                    Answers: true
+                }
+            },
+            Roles: {
+                select: {
+                    role_name: true
+                }
+            }
+        }
+    });
+
+    return {
+        users,
+        total: totalUsers,
+        totalPages: Math.ceil(totalUsers / limit)
+    };
 };
 
 export {
@@ -207,5 +253,6 @@ export {
     updateUserState,
     getCurrentUser,
     updateProfile,
-    getUserById
+    getUserById,
+    searchUsers
 };

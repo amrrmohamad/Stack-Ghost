@@ -5,12 +5,26 @@ const QUESTIONS_PER_PAGE = 7;
 const questionViewState = {
   sort: "newest",
   tag: null,
+  tagId: null,
   page: 1,
+  questionsFromTag: null, // Store questions fetched by tag from API
 };
 
 let cachedUser = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Parse URL parameters for tag filtering
+  const urlParams = new URLSearchParams(window.location.search);
+  const tagName = urlParams.get('tag');
+  const tagId = urlParams.get('tagId');
+
+  if (tagName && tagId) {
+    questionViewState.tag = tagName;
+    questionViewState.tagId = tagId;
+    // Fetch questions by tag from API
+    await loadQuestionsByTag(tagId);
+  }
+
   cachedUser = await loadUser();
   applyUserData(cachedUser);
   setupPanelSwitching();
@@ -21,6 +35,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupLogout();
   renderAnswers(cachedUser.answers, "newest");
 });
+
+async function loadQuestionsByTag(tagId) {
+  try {
+    const response = await api.getQuestionsByTag(tagId, 1, 50);
+    if (response.success && response.data) {
+      questionViewState.questionsFromTag = response.data.map(q => {
+        const authorObj = q.author || q.Author || {};
+        return {
+          question_id: q.question_id,
+          title: q.title,
+          summary: q.summary,
+          votes: q.score || 0,
+          answers: q.answers_count || 0,
+          views: q.views || 0,
+          tags: q.tags || [],
+          author: authorObj.username || 'Unknown',
+          author_id: authorObj.user_id || null,
+          author_username: authorObj.username || 'Unknown',
+          is_closed: q.is_closed,
+          created_at: q.created_at,
+          url: `../question_review/question.html?id=${q.question_id}`
+        };
+      });
+    }
+  } catch (error) {
+    console.error('Error loading questions by tag:', error);
+    questionViewState.questionsFromTag = [];
+  }
+}
 
 function setupLogout() {
   const logoutBtn = document.getElementById('logout-btn');
@@ -227,13 +270,23 @@ function setupPagination() {
 function renderQuestionsList() {
   const container = document.querySelector("[data-questions-list]");
   const pagination = document.querySelector("[data-pagination]");
-  if (!container || !cachedUser) return;
+  if (!container) return;
 
-  const items = cachedUser.questions || [];
-  const filtered = questionViewState.tag
-    ? items.filter((q) => Array.isArray(q.tags) && q.tags.includes(questionViewState.tag))
-    : items;
-  const sorted = sortItems(filtered, questionViewState.sort);
+  // Use questions from tag API if available, otherwise use user's questions
+  let items;
+  if (questionViewState.questionsFromTag && questionViewState.tagId) {
+    items = questionViewState.questionsFromTag;
+  } else if (cachedUser) {
+    items = cachedUser.questions || [];
+    // Filter by tag name if filtering user's own questions
+    if (questionViewState.tag) {
+      items = items.filter((q) => Array.isArray(q.tags) && q.tags.includes(questionViewState.tag));
+    }
+  } else {
+    items = [];
+  }
+
+  const sorted = sortItems(items, questionViewState.sort);
   const totalPages = Math.max(1, Math.ceil(sorted.length / QUESTIONS_PER_PAGE));
   questionViewState.page = Math.min(questionViewState.page, totalPages);
   const start = (questionViewState.page - 1) * QUESTIONS_PER_PAGE;
@@ -468,7 +521,7 @@ function buildQuestionCard(question) {
       // Don't navigate if clicking on author link or tag
       const isTag = event.target.closest(".tag");
       const isAuthorLink = event.target.closest("a[href*='profile']");
-      
+
       if (isTag) {
         event.stopPropagation();
         const tagName = isTag.dataset.tag;
@@ -477,12 +530,12 @@ function buildQuestionCard(question) {
         renderQuestionsList();
         return;
       }
-      
+
       if (isAuthorLink) {
         // Let the link handle navigation naturally
         return;
       }
-      
+
       window.location.href = question.url;
     });
   }

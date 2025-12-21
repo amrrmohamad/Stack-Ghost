@@ -307,18 +307,25 @@ export const searchQuestions = async (keyword, page = 1, limit = 10) => {
     const questions = await prisma.questions.findMany({
         where: {
             OR: [
-                { title: { contains: keyword } },
-                { body: { contains: keyword } }
+                { title: { contains: keyword, mode: 'insensitive' } },
+                { body: { contains: keyword, mode: 'insensitive' } }
             ]
         },
         skip,
         take: limit,
+        orderBy: { created_at: 'desc' },
         include: {
             Author: {
                 select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }
+            },
+            Votes: {
+                select: { vote_type: true }
+            },
+            _count: {
+                select: { Answers: true }
             }
         }
     });
@@ -326,8 +333,8 @@ export const searchQuestions = async (keyword, page = 1, limit = 10) => {
     const total = await prisma.questions.count({
         where: {
             OR: [
-                { title: { contains: keyword } },
-                { body: { contains: keyword } }
+                { title: { contains: keyword, mode: 'insensitive' } },
+                { body: { contains: keyword, mode: 'insensitive' } }
             ]
         }
     });
@@ -349,12 +356,19 @@ export const getQuestionsByTag = async (tagId, page = 1, limit = 10) => {
         },
         skip,
         take: limit,
+        orderBy: { created_at: 'desc' },
         include: {
             Author: {
                 select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }
+            },
+            Votes: {
+                select: { vote_type: true }
+            },
+            _count: {
+                select: { Answers: true }
             }
         }
     });

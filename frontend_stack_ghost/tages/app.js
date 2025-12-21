@@ -8,7 +8,7 @@ let searchTerm = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
   showLoadingState();
-  
+
   try {
     cachedUser = await loadUser();
     applyUserData(cachedUser);
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     allTags = await loadTags();
     initializeTagExperience();
-    
+
     hideLoadingState();
   } catch (error) {
     console.error('Error loading tags page:', error);
@@ -99,7 +99,7 @@ function applyUserData(user) {
 
   renderList("[data-notifications]", user.notifications, buildNotificationItem);
   renderList("[data-notifications-dropdown]", user.notifications, buildNotificationItem);
-  
+
   // Render followed tags in the right sidebar
   renderFollowedTags();
 }
@@ -184,15 +184,15 @@ function setupTagGridInteractions() {
       console.log('Click was not on follow button, target:', event.target);
       return;
     }
-    
+
     event.preventDefault();
     event.stopPropagation();
-    
+
     const tagId = button.dataset.followBtn;
     console.log('Follow button clicked for tag (from grid listener):', tagId);
     await toggleFollow(tagId);
   });
-  
+
   console.log('Tag grid interactions set up');
 }
 
@@ -267,6 +267,7 @@ function renderTagGrid(tags) {
 function buildTagCard(tag) {
   const card = document.createElement("article");
   card.className = "tag-card glass";
+  card.style.cursor = "pointer";
 
   const header = document.createElement("div");
   header.className = "tag-card__header";
@@ -310,7 +311,7 @@ function buildTagCard(tag) {
     gap: 6px;
   `;
   followBtn.innerHTML = tag.isFollowed ? '<span style="font-size: 16px;">✓</span> Following' : '<span style="font-size: 16px;">+</span> Follow';
-  
+
   // Add direct click handler as backup
   followBtn.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -318,7 +319,7 @@ function buildTagCard(tag) {
     console.log('Direct click handler triggered for tag:', tag.id || tag.tag_id);
     await toggleFollow(tag.id || tag.tag_id);
   });
-  
+
   // Add hover handlers
   if (tag.isFollowed) {
     followBtn.addEventListener('mouseenter', () => {
@@ -329,7 +330,7 @@ function buildTagCard(tag) {
         followBtn.innerHTML = '<span style="font-size: 16px;">✕</span> Unfollow';
       }
     });
-    
+
     followBtn.addEventListener('mouseleave', () => {
       if (!followBtn.disabled) {
         followBtn.style.background = 'rgba(179, 140, 245, 0.2)';
@@ -343,6 +344,17 @@ function buildTagCard(tag) {
   follow.appendChild(followBtn);
 
   card.append(header, description, follow);
+
+  // Add click handler to view questions for this tag
+  card.addEventListener('click', (e) => {
+    // Don't navigate if clicking on follow button
+    if (e.target.closest('[data-follow-btn]')) {
+      return;
+    }
+    // Navigate to questions page filtered by this tag
+    window.location.href = `../questions/index.html?tag=${encodeURIComponent(tag.name)}&tagId=${tag.id || tag.tag_id}`;
+  });
+
   return card;
 }
 
@@ -351,15 +363,15 @@ async function toggleFollow(tagId) {
     console.error('toggleFollow: No tagId provided');
     return;
   }
-  
+
   const tagIdStr = String(tagId);
   console.log('toggleFollow called with tagId:', tagIdStr);
-  
-  const current = allTags.find((tag) => 
-    String(tag.id) === tagIdStr || 
+
+  const current = allTags.find((tag) =>
+    String(tag.id) === tagIdStr ||
     String(tag.tag_id) === tagIdStr
   );
-  
+
   if (!current) {
     console.error('Tag not found in allTags:', tagIdStr);
     return;
@@ -367,23 +379,23 @@ async function toggleFollow(tagId) {
 
   const targetState = !current.isFollowed;
   console.log('Current follow state:', current.isFollowed, 'Target state:', targetState);
-  
+
   // Optimistically update local state immediately
   updateLocalTag(tagIdStr, { isFollowed: targetState });
-  
+
   // Update button immediately (before API call)
   const followBtn = document.querySelector(`[data-follow-btn="${tagIdStr}"]`);
   if (followBtn) {
     followBtn.disabled = true;
     followBtn.innerHTML = '<span style="opacity: 0.6;">...</span>';
   }
-  
+
   // Re-render the view with updated state
   applyTagView();
-  
+
   // Update followed tags in sidebar immediately
   renderFollowedTags();
-  
+
   // Find the button again after re-render and update it immediately
   requestAnimationFrame(() => {
     const updatedBtn = document.querySelector(`[data-follow-btn="${tagIdStr}"]`);
@@ -400,7 +412,7 @@ async function toggleFollow(tagId) {
         updatedBtn.style.borderColor = 'rgba(255,255,255,0.2)';
         updatedBtn.style.color = 'white';
       }
-      
+
       // Re-attach hover handlers
       const currentFollowState = targetState;
       updatedBtn.addEventListener('mouseenter', function hoverEnter() {
@@ -411,7 +423,7 @@ async function toggleFollow(tagId) {
           updatedBtn.innerHTML = '<span style="font-size: 16px;">✕</span> Unfollow';
         }
       });
-      
+
       updatedBtn.addEventListener('mouseleave', function hoverLeave() {
         if (currentFollowState && !updatedBtn.disabled) {
           updatedBtn.style.background = 'rgba(179, 140, 245, 0.2)';
@@ -427,7 +439,7 @@ async function toggleFollow(tagId) {
     console.log('Calling API to toggle follow for tag:', tagIdStr);
     const updated = await updateFollowStatus(tagIdStr, targetState);
     console.log('Update follow status result:', updated);
-    
+
     if (updated && updated.isFollowed !== undefined) {
       // Update with actual response state
       const actualState = updated.isFollowed;
@@ -437,7 +449,7 @@ async function toggleFollow(tagId) {
       }
       updateLocalTag(tagIdStr, patch);
       applyTagView();
-      
+
       // Update button after API response
       requestAnimationFrame(() => {
         const finalBtn = document.querySelector(`[data-follow-btn="${tagIdStr}"]`);
@@ -456,7 +468,7 @@ async function toggleFollow(tagId) {
           }
         }
       });
-      
+
       // Update sidebar
       renderFollowedTags();
     } else {
@@ -467,7 +479,7 @@ async function toggleFollow(tagId) {
     // Revert optimistic update
     updateLocalTag(tagIdStr, { isFollowed: !targetState });
     applyTagView();
-    
+
     // Revert button on error
     requestAnimationFrame(() => {
       const errorBtn = document.querySelector(`[data-follow-btn="${tagIdStr}"]`);
@@ -487,7 +499,7 @@ async function toggleFollow(tagId) {
         }
       }
     });
-    
+
     // Revert sidebar update on error
     renderFollowedTags();
   }
@@ -497,10 +509,10 @@ function updateLocalTag(tagId, patch) {
   const tagIdStr = String(tagId);
   allTags = allTags.map((tag) => {
     // Check all possible ID fields to find the correct tag
-    const tagMatches = 
-      String(tag.id) === tagIdStr || 
+    const tagMatches =
+      String(tag.id) === tagIdStr ||
       String(tag.tag_id) === tagIdStr;
-    
+
     if (!tagMatches) return tag;
     return { ...tag, ...patch };
   });
@@ -509,24 +521,24 @@ function updateLocalTag(tagId, patch) {
 function renderFollowedTags() {
   const container = document.querySelector("[data-followed-tags]");
   if (!container) return;
-  
+
   // Get all tags that are being followed
   const followedTags = allTags.filter(tag => tag.isFollowed === true);
-  
+
   container.innerHTML = "";
-  
+
   if (!followedTags || followedTags.length === 0) {
     container.innerHTML = '<span style="opacity: 0.6; padding: 10px; display: block;">No followed tags yet</span>';
     return;
   }
-  
+
   followedTags.forEach(tag => {
     const pill = document.createElement("span");
     pill.className = "tag";
     pill.style.cursor = 'pointer';
     pill.textContent = tag.name;
     pill.title = tag.description || tag.name;
-    
+
     // Click to scroll to tag in main grid (optional)
     pill.addEventListener('click', () => {
       // You could add functionality to scroll to the tag or filter by it
@@ -541,7 +553,7 @@ function renderFollowedTags() {
         }, 2000);
       }
     });
-    
+
     container.appendChild(pill);
   });
 }

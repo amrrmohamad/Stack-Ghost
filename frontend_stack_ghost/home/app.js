@@ -492,53 +492,272 @@ function setupTagRemoval() {
   });
 }
 
-// Add search functionality
+// Add search functionality with prefix-based search
+// - question:keyword - searches questions by title
+// - tag:keyword - searches tags
+// - just keyword (no prefix) - searches users
 function setupSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
 
+  // Update placeholder to show syntax
+  searchInput.placeholder = 'Search users, or question:title, tag:name';
+
+  // Create search results dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'search-dropdown glass';
+  dropdown.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(30, 25, 45, 0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    z-index: 1000;
+    display: none;
+    margin-top: 8px;
+  `;
+
+  // Position the search container relatively
+  const searchContainer = searchInput.closest('.search');
+  if (searchContainer) {
+    searchContainer.style.position = 'relative';
+    searchContainer.appendChild(dropdown);
+  }
+
   let searchTimeout;
+
+  // Parse the search query for prefixes
+  function parseSearchQuery(input) {
+    const trimmed = input.trim();
+
+    // Check for question: prefix
+    if (trimmed.toLowerCase().startsWith('question:')) {
+      return { type: 'question', query: trimmed.slice(9).trim() };
+    }
+
+    // Check for tag: prefix
+    if (trimmed.toLowerCase().startsWith('tag:')) {
+      return { type: 'tag', query: trimmed.slice(4).trim() };
+    }
+
+    // Default: search users
+    return { type: 'user', query: trimmed };
+  }
+
   searchInput.addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
-    const query = e.target.value.trim();
+    const rawQuery = e.target.value.trim();
 
-    if (query.length < 2) {
+    if (rawQuery.length < 2) {
+      dropdown.style.display = 'none';
       renderQuestionsGrid(allQuestions);
+      return;
+    }
+
+    const { type, query } = parseSearchQuery(rawQuery);
+
+    if (query.length < 1) {
+      dropdown.style.display = 'none';
       return;
     }
 
     searchTimeout = setTimeout(async () => {
       try {
-        const response = await api.searchQuestions(query, 1, 20);
-        if (response.success && response.data) {
-          const searchResults = response.data.map(q => {
-            // Handle author object from API
-            const authorObj = q.author || q.Author || {};
-            const authorUsername = authorObj.username || 'Unknown';
-            const authorId = authorObj.user_id || null;
+        let html = '';
 
-            return {
-              question_id: q.question_id,
-              title: q.title,
-              summary: q.summary,
-              votes: q.score || 0,
-              answers: q.answers_count || 0,
-              views: q.views || 0,
-              tags: q.tags || [],
-              author: authorUsername,
-              author_id: authorId,
-              author_username: authorUsername,
-              is_closed: q.is_closed,
-              created_at: q.created_at,
-              url: `../question_review/question.html?id=${q.question_id}`
-            };
+        if (type === 'question') {
+          // Search questions only
+          const questionsRes = await api.searchQuestions(query, 1, 10).catch(err => {
+            console.error('Questions search error:', err);
+            return { success: false, data: [] };
           });
-          renderQuestionsGrid(searchResults);
+
+          const questions = questionsRes.success && questionsRes.data ? questionsRes.data : [];
+
+          if (questions.length > 0) {
+            html += `<div class="search-section">
+              <div class="search-section-header" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #8567BA; font-weight: 600; font-size: 12px; text-transform: uppercase;">
+                <span>📝 Questions matching "${query}"</span>
+              </div>`;
+            questions.forEach(q => {
+              html += `<div class="search-item" data-type="question" data-id="${q.question_id}" style="padding: 12px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-weight: 500; color: white;">${q.title}</div>
+                <div style="font-size: 12px; opacity: 0.6; margin-top: 4px;">
+                  ${q.score || 0} votes · ${q.answers_count || 0} answers
+                </div>
+              </div>`;
+            });
+            html += `<div class="search-item search-view-all" data-type="questions-all" style="padding: 12px 16px; cursor: pointer; text-align: center; color: #8567BA; font-weight: 500;">
+              View all questions →
+            </div></div>`;
+
+            // Also update main content
+            const searchResults = questions.map(q => {
+              const authorObj = q.author || q.Author || {};
+              return {
+                question_id: q.question_id,
+                title: q.title,
+                summary: q.summary,
+                votes: q.score || 0,
+                answers: q.answers_count || 0,
+                views: q.views || 0,
+                tags: q.tags || [],
+                author: authorObj.username || 'Unknown',
+                author_id: authorObj.user_id || null,
+                author_username: authorObj.username || 'Unknown',
+                is_closed: q.is_closed,
+                created_at: q.created_at,
+                url: `../question_review/question.html?id=${q.question_id}`
+              };
+            });
+            renderQuestionsGrid(searchResults);
+          } else {
+            html = `<div style="padding: 24px; text-align: center; opacity: 0.6;">
+              No questions found for "${query}"
+            </div>`;
+          }
+
+        } else if (type === 'tag') {
+          // Search tags only
+          const tagsRes = await api.getTags(1, 10, query).catch(err => {
+            console.error('Tags search error:', err);
+            return { success: false, tags: [] };
+          });
+
+          // API returns tags in 'tags' field, not 'data'
+          const tags = tagsRes.success && tagsRes.tags ? tagsRes.tags : [];
+
+          if (tags.length > 0) {
+            html += `<div class="search-section">
+              <div class="search-section-header" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #ffd43b; font-weight: 600; font-size: 12px; text-transform: uppercase;">
+                <span>🏷️ Tags matching "${query}"</span>
+              </div>`;
+            tags.forEach(t => {
+              const count = t._count?.Question_Tags || t.question_count || 0;
+              html += `<div class="search-item" data-type="tag" data-id="${t.tag_id}" data-name="${t.tag_name}" style="padding: 12px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-weight: 500; color: white;">#${t.tag_name}</div>
+                <div style="font-size: 12px; opacity: 0.6; margin-top: 4px;">
+                  ${count} questions · ${t.description || 'No description'}
+                </div>
+              </div>`;
+            });
+            html += `<div class="search-item search-view-all" data-type="tags-all" style="padding: 12px 16px; cursor: pointer; text-align: center; color: #ffd43b; font-weight: 500;">
+              View all tags →
+            </div></div>`;
+          } else {
+            html = `<div style="padding: 24px; text-align: center; opacity: 0.6;">
+              No tags found for "${query}"
+            </div>`;
+          }
+
+        } else {
+          // Default: search users
+          const usersRes = await api.searchUsers(query, 1, 10).catch(err => {
+            console.error('Users search error:', err);
+            return { success: false, data: [] };
+          });
+
+          const users = usersRes.success && usersRes.data ? usersRes.data : [];
+
+          if (users.length > 0) {
+            html += `<div class="search-section">
+              <div class="search-section-header" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #51cf66; font-weight: 600; font-size: 12px; text-transform: uppercase;">
+                <span>👤 Users matching "${query}"</span>
+              </div>`;
+            users.forEach(u => {
+              const reputation = u.reputation || 0;
+              const role = u.Roles?.role_name || 'user';
+              html += `<div class="search-item" data-type="user" data-id="${u.user_id}" style="padding: 12px 16px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+                <img src="${u.profile_image || '../signin,login/ghost.png'}" alt="${u.username}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" onerror="this.src='../signin,login/ghost.png'">
+                <div>
+                  <div style="font-weight: 500; color: white;">${u.username}</div>
+                  <div style="font-size: 12px; opacity: 0.6;">⭐ ${reputation} · ${role}</div>
+                </div>
+              </div>`;
+            });
+            html += `<div class="search-item search-view-all" data-type="users-all" style="padding: 12px 16px; cursor: pointer; text-align: center; color: #51cf66; font-weight: 500;">
+              View all users →
+            </div></div>`;
+          } else {
+            html = `<div style="padding: 24px; text-align: center; opacity: 0.6;">
+              No users found for "${query}"
+              <div style="margin-top: 8px; font-size: 12px;">
+                Try <span style="color: #8567BA;">question:${query}</span> or <span style="color: #ffd43b;">tag:${query}</span>
+              </div>
+            </div>`;
+          }
         }
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+
+        // Add hover effects
+        dropdown.querySelectorAll('.search-item').forEach(item => {
+          item.addEventListener('mouseenter', () => {
+            item.style.background = 'rgba(133, 103, 186, 0.2)';
+          });
+          item.addEventListener('mouseleave', () => {
+            item.style.background = 'transparent';
+          });
+        });
+
       } catch (error) {
         console.error('Search error:', error);
       }
     }, 300); // Debounce 300ms
+  });
+
+  // Handle search item clicks
+  dropdown.addEventListener('click', (e) => {
+    const item = e.target.closest('.search-item');
+    if (!item) return;
+
+    const type = item.dataset.type;
+    const id = item.dataset.id;
+    const { query } = parseSearchQuery(searchInput.value);
+
+    switch (type) {
+      case 'question':
+        window.location.href = `../question_review/question.html?id=${id}`;
+        break;
+      case 'user':
+        window.location.href = `../profile/index.html?id=${id}`;
+        break;
+      case 'tag':
+        window.location.href = `../tages/index.html?tag=${item.dataset.name}`;
+        break;
+      case 'questions-all':
+        window.location.href = `../questions/index.html?q=${encodeURIComponent(query)}`;
+        break;
+      case 'users-all':
+        window.location.href = `../users/index.html?q=${encodeURIComponent(query)}`;
+        break;
+      case 'tags-all':
+        window.location.href = `../tages/index.html?q=${encodeURIComponent(query)}`;
+        break;
+    }
+
+    dropdown.style.display = 'none';
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // Close dropdown on escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+      searchInput.blur();
+    }
   });
 }
 

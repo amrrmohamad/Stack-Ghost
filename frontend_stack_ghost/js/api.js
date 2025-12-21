@@ -289,6 +289,14 @@ class APIClient {
         });
     }
 
+    async searchUsers(query, page = 1, limit = 10) {
+        return this.request(`/users/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+    }
+
+    async getUsers(page = 1, limit = 100) {
+        return this.request(`/users?page=${page}&limit=${limit}`);
+    }
+
     // Question endpoints
     async getQuestions(page = 1, limit = 10) {
         return this.request(`/questions?page=${page}&limit=${limit}`);
@@ -300,6 +308,10 @@ class APIClient {
 
     async searchQuestions(query, page = 1, limit = 10) {
         return this.request(`/questions/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+    }
+
+    async getQuestionsByTag(tagId, page = 1, limit = 10) {
+        return this.request(`/questions/tag/${tagId}?page=${page}&limit=${limit}`);
     }
 
     async createQuestion(title, body, tagIds = []) {

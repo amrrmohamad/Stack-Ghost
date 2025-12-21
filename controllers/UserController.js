@@ -241,5 +241,36 @@ class UserController {
             return res.status(500).json({ success: false, message: 'Server error' });
         }
     }
+
+    /**
+     * Search users by username
+     */
+    async searchUsers(req, res) {
+        try {
+            const q = req.query.q || '';
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const currentUserId = req.user?.user_id || null;
+
+            if (!q || q.length < 2) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Search query must be at least 2 characters'
+                });
+            }
+
+            const result = await userService.searchUsers(q, page, limit, currentUserId);
+            res.json({
+                success: true,
+                data: result.users,
+                total: result.total,
+                totalPages: result.totalPages,
+                currentPage: page
+            });
+        } catch (err) {
+            console.error('Search users error:', err);
+            res.status(500).json({ success: false, message: 'Server error' });
+        }
+    }
 }
 export default new UserController();

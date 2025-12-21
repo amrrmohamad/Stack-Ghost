@@ -32,6 +32,9 @@ router.put('/me', auth, UserController.updateProfile);
 // Admin gets full access, regular users get public data
 router.get('/', auth, UserController.getAllUsers);
 
+// Search users by username
+router.get('/search', auth, UserController.searchUsers);
+
 // Update user state (activate/deactivate)
 router.patch('/:id/state', auth, checkPermission('manage_users'), UserController.updateUserState);
 

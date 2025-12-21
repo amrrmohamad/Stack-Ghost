@@ -307,6 +307,57 @@ class QuestionController {
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }
+
+    /**
+     * Get questions by tag ID
+     */
+    async getQuestionsByTag(req, res) {
+        try {
+            const { tagId } = req.params;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+
+            if (!tagId || isNaN(parseInt(tagId))) {
+                return res.status(400).json({ success: false, message: "Invalid tag ID" });
+            }
+
+            const { questions, total, totalPages } = await questionService.getQuestionsByTag(tagId, page, limit);
+
+            // Format questions to include vote scores and tags
+            const formattedQuestions = questions.map(q => {
+                const score = (q.Votes || []).reduce((acc, curr) => acc + (curr.vote_type || 0), 0);
+                const bodySnippet = q.body.length > 150 ? q.body.substring(0, 150) + '...' : q.body;
+                const tags = (q.Question_Tags || []).map(qt => qt.Tags.tag_name);
+
+                return {
+                    question_id: q.question_id,
+                    title: q.title,
+                    summary: bodySnippet,
+                    views: q.views_count,
+                    score: score,
+                    answers_count: q._count?.Answers || 0,
+                    is_closed: q.is_closed,
+                    closed_by: q.closed_by,
+                    created_at: q.created_at,
+                    author: q.Author,
+                    tags: tags
+                };
+            });
+
+            res.status(200).json({
+                success: true,
+                count: formattedQuestions.length,
+                total: total,
+                totalPages: totalPages,
+                currentPage: page,
+                data: formattedQuestions
+            });
+
+        } catch (error) {
+            console.error('getQuestionsByTag error:', error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
 }
 
 export default new QuestionController();
