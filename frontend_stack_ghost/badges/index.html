@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="globals.css" />
   <link rel="stylesheet" href="styleguide.css" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module" src="app.js" defer></script>
   <script type="module" src="../js/dashboard-visibility.js" defer></script>
 </head>
@@ -20,13 +21,13 @@
     <header class="topbar">
       <div class="brand">
         <!-- logo ghost icon goes here -->
-        <span style="font-size: 24px; margin-right: 8px;">👻</span>
+        <i data-lucide="ghost" style="width: 24px; height: 24px; margin-right: 8px;"></i>
         <span class="brand__name">Stack Ghost</span>
       </div>
       <div class="search">
         <span class="search__icon">
           <!-- search icon goes here -->
-          <span style="opacity: 0.6;">🔍</span>
+          <i data-lucide="search" style="width: 20px; height: 20px; opacity: 0.6;"></i>
         </span>
         <input type="search" placeholder="Search for questions, users, tags"
           aria-label="Search for questions, users, tags" />
@@ -36,7 +37,7 @@
           <button class="icon-button notifications__toggle" aria-label="Notifications" aria-expanded="false"
             aria-haspopup="true" data-notifications-toggle>
             <!-- bell icon goes here -->
-            <span style="font-size: 20px;">🔔</span>
+            <i data-lucide="bell" style="width: 20px; height: 20px; color: white;"></i>
           </button>
           <div class="notifications__dropdown glass" data-notifications-panel>
             <div class="notifications__header">
@@ -48,8 +49,8 @@
           </div>
         </div>
         <div class="avatar avatar--sm">
-          <!-- profile image goes here -->
-          <img id="profile-image" src="../signin,login/ghost.png" alt="Profile" onerror="this.style.display='none'" />
+          <!-- profile icon -->
+          <i data-lucide="circle-user" id="profile-icon" style="width: 36px; height: 36px; color: rgba(255, 255, 255, 0.9); stroke-width: 1.5;"></i>
         </div>
       </div>
     </header>
@@ -59,47 +60,46 @@
         <nav class="nav">
           <div class="nav__section">
             <a class="nav__link" href="../home/index.html">
-              <span>🏠</span>
+              <i data-lucide="home" style="width: 20px; height: 20px;"></i>
               <span>Home</span>
             </a>
           </div>
           <hr class="sidebar-divider" />
           <div class="nav__section nav__section--cluster">
             <a class="nav__link" href="../questions/index.html">
-              <span>❓</span>
+              <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
               <span>Questions</span>
             </a>
             <a class="nav__link" href="../users/index.html">
-              <span>👥</span>
+              <i data-lucide="users" style="width: 20px; height: 20px;"></i>
               <span>Users</span>
             </a>
             <a class="nav__link" href="../tages/index.html">
-              <span>🏷️</span>
+              <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
               <span>Tags</span>
             </a>
             <a class="nav__link nav__link--active" href="index.html">
-              <span>🏆</span>
+              <i data-lucide="award" style="width: 20px; height: 20px;"></i>
               <span>Badges</span>
             </a>
           </div>
           <hr class="sidebar-divider" />
           <div class="nav__section">
             <a class="nav__link" href="../profile/index.html">
-              <span>👤</span>
+              <i data-lucide="user" style="width: 20px; height: 20px;"></i>
               <span>My Profile</span>
             </a>
           </div>
           <hr class="sidebar-divider" id="dashboard-divider" style="display: none;" />
           <div class="nav__section" id="dashboard-section" style="display: none;">
             <a class="nav__link" href="../dashboard/dashboard.html">
-              <span>⚙️</span>
+              <i data-lucide="settings" style="width: 20px; height: 20px;"></i>
               <span>Dashboard</span>
             </a>
           </div>
         </nav>
         <div class="sidebar__ghost">
-          <!-- sidebar ghost illustration goes here -->
-          <img src="../signin,login/ghost.png" alt="" onerror="this.style.display='none'" />
+          <!-- sidebar ghost illustration removed -->
         </div>
       </aside>
 
@@ -112,7 +112,24 @@
         </section>
       </main>
     </div>
+
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="../home/index.html">Home</a>
+        <a href="../questions/index.html">Questions</a>
+        <a href="../users/index.html">Users</a>
+        <a href="../tages/index.html">Tags</a>
+        <a href="../badges/index.html">Badges</a>
+        <a href="../profile/index.html">Profile</a>
+      </div>
+      <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
+    </footer>
   </div>
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
 </body>
 
 </html>

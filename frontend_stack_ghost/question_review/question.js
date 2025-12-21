@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupAcceptAnswer();
     setupEditDeleteAnswer();
     setupEditDeleteComment();
+    setupReportModal();
 
     console.log("Page initialized successfully");
   } catch (error) {
@@ -1144,6 +1145,11 @@ function setupEditDeleteAnswer() {
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
+    
+    // Initialize Lucide icons after modal is added
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
 
     // Handle Yes (Delete)
     modal.querySelector('.delete-confirm-yes').addEventListener('click', async () => {
@@ -1278,7 +1284,7 @@ function setupEditDeleteComment() {
       modal.innerHTML = `
         <div class="delete-confirm-backdrop"></div>
         <div class="delete-confirm-content glass">
-          <div class="delete-confirm-icon">💬</div>
+          <div class="delete-confirm-icon"><i data-lucide="message-circle" style="width: 48px; height: 48px;"></i></div>
           <h3 class="delete-confirm-title">Remove This Comment?</h3>
           <p class="delete-confirm-message">
             Once deleted, your comment will be gone forever.<br>
@@ -1288,7 +1294,7 @@ function setupEditDeleteComment() {
           </p>
           <div class="delete-confirm-buttons">
             <button class="btn btn--danger delete-confirm-yes">
-              <span style="margin-right: 6px;">🗑️</span> Yes, Remove It
+              <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i> Yes, Remove It
             </button>
             <button class="btn btn--ghost delete-confirm-no">Keep My Comment</button>
           </div>
@@ -1376,6 +1382,11 @@ function setupEditDeleteComment() {
       `;
       document.head.appendChild(style);
       document.body.appendChild(modal);
+    
+    // Initialize Lucide icons after modal is added
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
 
       // Handle Yes (Delete)
       modal.querySelector('.delete-confirm-yes').addEventListener('click', async () => {
@@ -1800,6 +1811,119 @@ function renderPopularQuestions(questions) {
       card.innerHTML = `<h4>${escapeHtml(q.title)}</h4>`;
       container.appendChild(card);
     });
+  }
+}
+
+/**
+ * Setup report modal functionality
+ */
+function setupReportModal() {
+  const reportButton = document.querySelector("[data-report-question]");
+  const modalOverlay = document.querySelector("[data-report-modal-overlay]");
+  const closeButton = document.querySelector("[data-report-modal-close]");
+  const cancelButton = document.querySelector("[data-report-cancel]");
+  const submitButton = document.querySelector("[data-report-submit]");
+  const reasonTextarea = document.querySelector("[data-report-reason]");
+
+  if (!reportButton || !modalOverlay) {
+    console.warn("Report modal elements not found");
+    return;
+  }
+
+  // Open modal when report button is clicked
+  reportButton.addEventListener("click", () => {
+    openReportModal();
+  });
+
+  // Close modal when close button is clicked
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      closeReportModal();
+    });
+  }
+
+  // Close modal when cancel button is clicked
+  if (cancelButton) {
+    cancelButton.addEventListener("click", () => {
+      closeReportModal();
+    });
+  }
+
+  // Close modal when clicking outside the modal
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) {
+      closeReportModal();
+    }
+  });
+
+  // Close modal on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modalOverlay.classList.contains("report-modal-overlay--open")) {
+      closeReportModal();
+    }
+  });
+
+  // Handle submit button
+  if (submitButton) {
+    submitButton.addEventListener("click", () => {
+      handleReportSubmit();
+    });
+  }
+
+  function openReportModal() {
+    modalOverlay.classList.add("report-modal-overlay--open");
+    // Reset textarea
+    if (reasonTextarea) {
+      reasonTextarea.value = "";
+    }
+    // Focus on textarea
+    if (reasonTextarea) {
+      setTimeout(() => reasonTextarea.focus(), 100);
+    }
+    // Re-initialize lucide icons for the close button
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+
+  function closeReportModal() {
+    modalOverlay.classList.remove("report-modal-overlay--open");
+    // Clear textarea
+    if (reasonTextarea) {
+      reasonTextarea.value = "";
+    }
+  }
+
+  function handleReportSubmit() {
+    const reason = reasonTextarea ? reasonTextarea.value.trim() : "";
+    
+    if (!reason) {
+      alert("Please provide a reason for reporting this question.");
+      return;
+    }
+
+    // TODO: On submit, send reason and question ID to backend
+    // Example backend integration:
+    // try {
+    //   const response = await fetch(`/api/questions/${currentQuestionId}/report`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ reason: reason })
+    //   });
+    //   if (response.ok) {
+    //     alert("Thank you for your report. We will review it shortly.");
+    //     closeReportModal();
+    //   } else {
+    //     alert("Failed to submit report. Please try again.");
+    //   }
+    // } catch (error) {
+    //   console.error("Error submitting report:", error);
+    //   alert("An error occurred. Please try again later.");
+    // }
+
+    // Front-end only: Show success message and close modal
+    alert("Thank you for your report. We will review it shortly.");
+    closeReportModal();
   }
 }
 

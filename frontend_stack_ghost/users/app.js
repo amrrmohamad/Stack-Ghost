@@ -333,6 +333,11 @@ function renderUserGrid(users, isEmpty) {
   users.forEach((user) => {
     grid.appendChild(buildUserCard(user));
   });
+  
+  // Initialize Lucide icons after rendering
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
 }
 
 function buildUserCard(user) {
@@ -363,7 +368,7 @@ function buildUserCard(user) {
     <div class="user-card__info">
       <span class="user-card__name">${user.username}${statusDot}</span>
       <div class="user-card__row">
-        <span class="user-card__reputation" style="color: #ffd43b;">⭐ ${formatNumber(user.reputation)}</span>
+        <span class="user-card__reputation" style="color: #ffd43b; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="star" style="width: 14px; height: 14px; fill: #ffd43b; color: #ffd43b;"></i> ${formatNumber(user.reputation)}</span>
         <span class="user-card__role" style="background: ${roleColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: capitalize;">
           ${user.role ?? "User"}
         </span>
