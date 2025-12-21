@@ -19,13 +19,14 @@ import {
 } from '../utils/notificationService.js';
 import { ERRORS } from '../lib/errors.js';
 
+/**
+ * Helper to check if user can access notifications
+ */
+function canAccessNotifications(requestUserId, targetUserId, userRole) {
+    return requestUserId === targetUserId || userRole === 'admin' || userRole === 'moderator';
+}
+
 class NotificationController {
-    /**
-     * Helper to check if user can access notifications
-     */
-    _canAccessNotifications(requestUserId, targetUserId, userRole) {
-        return requestUserId === targetUserId || userRole === 'admin' || userRole === 'moderator';
-    }
 
     /**
      * Get all notifications for the authenticated user
@@ -42,7 +43,7 @@ class NotificationController {
             const isRead = req.query.is_read !== undefined ? req.query.is_read === 'true' : null;
 
             // Authorization check
-            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+            if (!canAccessNotifications(requestUserId, userId, userRole)) {
                 return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 
@@ -85,7 +86,7 @@ class NotificationController {
             const userRole = req.user?.Roles?.role_name;
 
             // Authorization check
-            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+            if (!canAccessNotifications(requestUserId, userId, userRole)) {
                 return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 
@@ -184,7 +185,7 @@ class NotificationController {
             }
 
             // Authorization check
-            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+            if (!canAccessNotifications(requestUserId, userId, userRole)) {
                 return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 
@@ -253,7 +254,7 @@ class NotificationController {
             }
 
             // Authorization check
-            if (!this._canAccessNotifications(requestUserId, userId, userRole)) {
+            if (!canAccessNotifications(requestUserId, userId, userRole)) {
                 return res.status(403).json({ success: false, message: ERRORS.FORBIDDEN });
             }
 

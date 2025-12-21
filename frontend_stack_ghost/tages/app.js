@@ -272,12 +272,12 @@ function buildTagCard(tag) {
   header.className = "tag-card__header";
   header.innerHTML = `
     <div class="tag-card__title">
-      <span class="tag-card__name">🏷️ ${tag.name}</span>
+      <span class="tag-card__name">${tag.name}</span>
       ${tag.isFollowed ? '<span class="tag-card__check" aria-hidden="true">✓</span>' : ""}
     </div>
     <div class="tag-card__meta">
-      <span class="pill pill--muted">❓ ${formatNumber(tag.questionCount)} questions</span>
-      <span class="pill pill--muted">👥 ${formatNumber(tag.followers)} followers</span>
+      <span class="pill pill--muted">${formatNumber(tag.questionCount)} questions</span>
+      <span class="pill pill--muted">${formatNumber(tag.followers)} followers</span>
     </div>
   `;
 
