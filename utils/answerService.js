@@ -9,6 +9,7 @@
 import prisma from '../lib/prisma.js';
 import { awardBadge, checkGhostBadges } from './badgeService.js';
 import { ERRORS } from '../lib/errors.js';
+import { createNotification } from './notificationService.js';
 
 /**
  * Create a new answer
@@ -21,7 +22,7 @@ export const createAnswer = async (body, questionId, userId) => {
     try {
         const question = await prisma.questions.findUnique({
             where: { question_id: parseInt(questionId) },
-            select: { is_closed: true }
+            select: { is_closed: true, user_id: true }
         });
 
         if (!question) {
@@ -39,6 +40,28 @@ export const createAnswer = async (body, questionId, userId) => {
                 user_id: parseInt(userId)
             }
         });
+
+        // Send notification to question owner
+        try {
+            if (question.user_id !== parseInt(userId)) {
+                // Get answerer's username
+                const answerer = await prisma.users.findUnique({
+                    where: { user_id: parseInt(userId) },
+                    select: { username: true }
+                });
+
+                const notificationContent = JSON.stringify({
+                    type: 'new_answer',
+                    message: `@${answerer?.username || 'Someone'} answered your question`,
+                    question_id: parseInt(questionId),
+                    answerer_username: answerer?.username || 'Unknown'
+                });
+                await createNotification(question.user_id, notificationContent);
+            }
+        } catch (notificationError) {
+            console.error('Error creating answer notification:', notificationError);
+            // Don't fail the answer creation if notification fails
+        }
 
         try {
             const answerCount = await prisma.answers.count({
@@ -239,7 +262,7 @@ export const acceptAnswer = async (answerId, userId) => {
                 where: { answer_id: oldAcceptedAnswer.answer_id },
                 data: { is_accepted: false }
             });
-            
+
             // Deduct reputation from old answerer
             await tx.users.update({
                 where: { user_id: oldAcceptedAnswer.user_id },
@@ -252,20 +275,20 @@ export const acceptAnswer = async (answerId, userId) => {
             where: { answer_id: answerId },
             data: { is_accepted: true }
         });
-        
+
         // Give reputation to answer author (+15)
         await tx.users.update({
             where: { user_id: answerToAccept.user_id },
             data: { reputation: { increment: 15 } }
         });
-        
+
         // Give reputation to question owner for accepting (+2)
         await tx.users.update({
             where: { user_id: questionOwnerId },
             data: { reputation: { increment: 2 } }
         });
 
-        return { 
+        return {
             success: true,
             answerAuthorId: answerToAccept.user_id,
             questionOwnerId: questionOwnerId,

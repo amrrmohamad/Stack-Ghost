@@ -51,18 +51,18 @@ class APIClient {
     isAuthenticated() {
         return !!this.getAccessToken();
     }
-    
+
     // Validate if token is still valid by checking expiration
     isTokenValid() {
         const token = this.getAccessToken();
         if (!token) return false;
-        
+
         try {
             // Decode JWT without verification (just to check expiration)
             const payload = JSON.parse(atob(token.split('.')[1]));
             const exp = payload.exp * 1000; // Convert to milliseconds
             const now = Date.now();
-            
+
             // Check if token is expired (with 5 minute buffer)
             return exp > (now + 5 * 60 * 1000);
         } catch (error) {
@@ -70,7 +70,7 @@ class APIClient {
             return false;
         }
     }
-    
+
     // Clear expired tokens proactively
     clearExpiredTokens() {
         const token = this.getAccessToken();
@@ -96,7 +96,7 @@ class APIClient {
     async request(endpoint, options = {}) {
         // Clear expired tokens before making request
         this.clearExpiredTokens();
-        
+
         const url = `${this.baseURL}${endpoint}`;
         const token = this.getAccessToken();
 
@@ -158,7 +158,7 @@ class APIClient {
         // Handle empty responses
         const contentType = response.headers.get('content-type');
         let data;
-        
+
         if (contentType && contentType.includes('application/json')) {
             data = await response.json();
         } else {
@@ -174,11 +174,11 @@ class APIClient {
         if (!response.ok) {
             // Check for specific error messages
             const errorMessage = data.message || 'API request failed';
-            
+
             // If it's an authentication error, clear tokens
             if (response.status === 401 || response.status === 403) {
-                if (errorMessage.includes('Invalid credentials') || 
-                    errorMessage.includes('expired') || 
+                if (errorMessage.includes('Invalid credentials') ||
+                    errorMessage.includes('expired') ||
                     errorMessage.includes('Unauthorized')) {
                     // Clear tokens but don't redirect here (let request() handle it)
                     if (response.status === 401 && !this.getRefreshToken()) {
@@ -186,7 +186,7 @@ class APIClient {
                     }
                 }
             }
-            
+
             // Include error details if available
             const error = new Error(errorMessage);
             if (data && data.error) {
@@ -413,6 +413,18 @@ class APIClient {
     async markAllNotificationsAsRead(userId) {
         return this.request(`/notifications/user/${userId}/mark-all-read`, {
             method: 'PUT',
+        });
+    }
+
+    async clickNotification(notificationId) {
+        return this.request(`/notifications/${notificationId}/click`, {
+            method: 'DELETE',
+        });
+    }
+
+    async deleteNotification(notificationId) {
+        return this.request(`/notifications/${notificationId}`, {
+            method: 'DELETE',
         });
     }
 

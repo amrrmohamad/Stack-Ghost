@@ -8,6 +8,7 @@
 
 import prisma from '../lib/prisma.js';
 import { ERRORS } from '../lib/errors.js';
+import { createNotification } from './notificationService.js';
 
 /**
  * Create a new comment
@@ -20,7 +21,7 @@ export const createComment = async (body, userId, questionId = null, answerId = 
     if (!questionId && !answerId) {
         throw new Error('Comment must belong to either a Question OR an Answer');
     }
-    
+
     // Input validation
     if (body.length > 1000) {
         throw new Error('Comment must be less than 1000 characters');
@@ -35,6 +36,52 @@ export const createComment = async (body, userId, questionId = null, answerId = 
                 answer_id: answerId ? parseInt(answerId) : null
             }
         });
+
+        // Send notification to question/answer owner
+        try {
+            // Get commenter's username
+            const commenter = await prisma.users.findUnique({
+                where: { user_id: parseInt(userId) },
+                select: { username: true }
+            });
+
+            if (questionId) {
+                // Comment on a question - notify question owner
+                const question = await prisma.questions.findUnique({
+                    where: { question_id: parseInt(questionId) },
+                    select: { user_id: true }
+                });
+
+                if (question && question.user_id !== parseInt(userId)) {
+                    const notificationContent = JSON.stringify({
+                        type: 'comment_on_question',
+                        message: `@${commenter?.username || 'Someone'} commented on your question`,
+                        question_id: parseInt(questionId),
+                        commenter_username: commenter?.username || 'Unknown'
+                    });
+                    await createNotification(question.user_id, notificationContent);
+                }
+            } else if (answerId) {
+                // Comment on an answer - notify answer owner
+                const answer = await prisma.answers.findUnique({
+                    where: { answer_id: parseInt(answerId) },
+                    select: { user_id: true, question_id: true }
+                });
+
+                if (answer && answer.user_id !== parseInt(userId)) {
+                    const notificationContent = JSON.stringify({
+                        type: 'comment_on_answer',
+                        message: `@${commenter?.username || 'Someone'} commented on your answer`,
+                        question_id: answer.question_id,
+                        commenter_username: commenter?.username || 'Unknown'
+                    });
+                    await createNotification(answer.user_id, notificationContent);
+                }
+            }
+        } catch (notificationError) {
+            console.error('Error creating comment notification:', notificationError);
+            // Don't fail the comment creation if notification fails
+        }
 
         return newComment;
     } catch (error) {

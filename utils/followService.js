@@ -7,6 +7,7 @@
  */
 
 import prisma from '../lib/prisma.js';
+import { createNotification } from './notificationService.js';
 
 /**
  * Toggle follow/unfollow a user
@@ -46,6 +47,22 @@ export const toggleFollowUser = async (targetUserId, currentUserId) => {
                     created_at: new Date()
                 }
             });
+
+            // Get the follower's username for the notification
+            const follower = await prisma.users.findUnique({
+                where: { user_id: parseInt(currentUserId) },
+                select: { username: true }
+            });
+
+            // Create notification for the followed user
+            const notificationContent = JSON.stringify({
+                type: 'follow',
+                follower_id: parseInt(currentUserId),
+                follower_username: follower?.username || 'Someone',
+                message: `${follower?.username || 'Someone'} started following you`
+            });
+
+            await createNotification(parseInt(targetUserId), notificationContent);
 
             return { status: 'followed', message: 'Followed successfully' };
         }
@@ -124,23 +141,23 @@ export const getFollowing = async (userId, page = 1, limit = 10) => {
 export const toggleTagFollow = async (tagId, userId) => {
     try {
         console.log('toggleFollowTag called with:', { tagId, userId });
-        
+
         const tagIdInt = parseInt(tagId);
         const userIdInt = parseInt(userId);
-        
+
         if (isNaN(tagIdInt) || isNaN(userIdInt)) {
             throw new Error(`Invalid tag ID or user ID: tagId=${tagId}, userId=${userId}`);
         }
-        
+
         console.log('Parsed IDs:', { tagIdInt, userIdInt });
-        
+
         // Verify tag exists
-        const tagExists = await prisma.tags.findUnique({ 
-            where: { tag_id: tagIdInt } 
+        const tagExists = await prisma.tags.findUnique({
+            where: { tag_id: tagIdInt }
         });
-        
+
         console.log('Tag exists check:', !!tagExists);
-        
+
         if (!tagExists) {
             throw new Error(`Tag not found: ${tagIdInt}`);
         }
@@ -161,7 +178,7 @@ export const toggleTagFollow = async (tagId, userId) => {
                     tag_id: tagIdInt
                 }
             });
-            
+
             if (deleteResult.count === 0) {
                 throw new Error('Failed to unfollow tag - record not found');
             }
@@ -188,7 +205,7 @@ export const toggleTagFollow = async (tagId, userId) => {
         console.error('Error code:', error.code);
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
-        
+
         if (error.code === 'P2003') {
             throw new Error('Tag or User not found');
         }
@@ -269,7 +286,7 @@ export const isFollowingTag = async (userId, tagId) => {
  */
 export const getFollowStats = async (userId) => {
     const userIdInt = parseInt(userId);
-    
+
     if (!userIdInt || isNaN(userIdInt)) {
         console.error('Invalid userId in getFollowStats:', userId);
         return { followersCount: 0, followingCount: 0, followedTagsCount: 0 };
@@ -284,18 +301,18 @@ export const getFollowStats = async (userId) => {
         where: { user_id: userIdInt },
         select: { followed_user_id: true }
     });
-    
+
     // Count unique followed users (in case there are any issues with data)
     const uniqueFollowedUsers = new Set(followingRecords.map(r => r.followed_user_id));
     const followingCount = uniqueFollowedUsers.size;
-    
+
     // Log to debug - check if there are duplicates or issues
     if (followingRecords.length !== uniqueFollowedUsers.size) {
         console.warn(`⚠️ Duplicate records detected for user ${userIdInt}: total records=${followingRecords.length}, unique users=${uniqueFollowedUsers.size}`);
     }
-    
-    console.log(`Follow stats for user ${userIdInt}:`, { 
-        followersCount, 
+
+    console.log(`Follow stats for user ${userIdInt}:`, {
+        followersCount,
         followingCount,
         totalRecords: followingRecords.length,
         uniqueFollowedUsers: uniqueFollowedUsers.size,

@@ -201,10 +201,63 @@ function renderList(selector, items, builder) {
   items.forEach((item) => container.appendChild(builder(item)));
 }
 
-function buildNotificationItem(note) {
+function buildNotificationItem(notification) {
   const li = document.createElement("li");
-  li.className = "list__item";
-  li.textContent = note;
+  li.className = "list__item notification-item";
+  li.style.cursor = "pointer";
+  li.style.padding = "10px";
+  li.style.borderRadius = "8px";
+  li.style.transition = "background-color 0.2s ease";
+
+  // Handle the notification content - it can be a string or JSON object
+  let displayMessage = '';
+  let notificationData = null;
+  const content = notification.content || notification;
+
+  try {
+    // Try to parse as JSON (for structured notifications like follow)
+    notificationData = typeof content === 'string' ? JSON.parse(content) : content;
+    displayMessage = notificationData.message || content;
+  } catch (e) {
+    // It's a plain string notification
+    displayMessage = content;
+  }
+
+  li.textContent = displayMessage;
+
+  // Add hover effect
+  li.addEventListener('mouseenter', () => {
+    li.style.backgroundColor = 'rgba(133, 103, 186, 0.2)';
+  });
+  li.addEventListener('mouseleave', () => {
+    li.style.backgroundColor = 'transparent';
+  });
+
+  // Add click handler for navigation and deletion
+  li.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const notificationId = notification.notification_id;
+
+    try {
+      // Delete the notification
+      if (notificationId) {
+        await api.clickNotification(notificationId);
+      }
+
+      // Navigate based on notification type
+      if (notificationData && notificationData.type === 'follow' && notificationData.follower_id) {
+        window.location.href = `../profile/index.html?id=${notificationData.follower_id}`;
+      }
+
+      // Remove the notification item from the UI
+      li.remove();
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+    }
+  });
+
   return li;
 }
 

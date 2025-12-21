@@ -9,6 +9,7 @@
 import {
     createNotification,
     getUserNotifications,
+    getNotificationCount,
     getUnreadCount,
     markAsRead,
     markAllAsRead,
@@ -53,15 +54,15 @@ class NotificationController {
                 is_read: isRead
             });
 
-            const total = await getUserNotifications(userId);
+            const total = await getNotificationCount(userId, isRead);
             const unreadCount = await getUnreadCount(userId);
 
             res.status(200).json({
                 success: true,
                 count: notifications.length,
-                total: total.length,
+                total: total,
                 unreadCount,
-                totalPages: Math.ceil(total.length / limit),
+                totalPages: Math.ceil(total / limit),
                 currentPage: page,
                 data: notifications
             });
@@ -296,6 +297,42 @@ class NotificationController {
 
         } catch (error) {
             console.error(error);
+            res.status(500).json({ success: false, message: "Server Error" });
+        }
+    }
+
+    /**
+     * Click a notification - returns data and deletes the notification
+     * Used for notifications that should navigate somewhere when clicked
+     * @param {import('express').Request} req - Express request object
+     * @param {import('express').Response} res - Express response object
+     */
+    async clickNotification(req, res) {
+        try {
+            const notificationId = parseInt(req.params.notificationId);
+            const requestUserId = req.user?.user_id;
+
+            if (!notificationId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Notification ID is required"
+                });
+            }
+
+            // Get the notification data before deleting
+            const notification = await deleteNotification(notificationId, requestUserId);
+
+            res.status(200).json({
+                success: true,
+                message: "Notification clicked and deleted",
+                data: notification
+            });
+
+        } catch (error) {
+            console.error(error);
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
             res.status(500).json({ success: false, message: "Server Error" });
         }
     }

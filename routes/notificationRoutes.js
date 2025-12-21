@@ -37,6 +37,9 @@ router.put('/user/:userId/mark-all-read', NotificationController.markAllAsRead);
 // Delete a notification (owner only)
 router.delete('/:notificationId', NotificationController.deleteNotification);
 
+// Click a notification - deletes and navigates (owner only)
+router.delete('/:notificationId/click', NotificationController.clickNotification);
+
 // Delete all notifications for a user (owner or admin)
 router.delete('/user/:userId', NotificationController.deleteAllNotifications);
 

@@ -25,7 +25,8 @@ export async function fetchUserData() {
     let notifications = [];
     try {
       const notifResponse = await api.getNotifications(user.user_id, 1, 5);
-      notifications = notifResponse.data?.map(n => n.content) || [];
+      // Pass full notification objects so we have access to notification_id for deletion
+      notifications = notifResponse.data || [];
     } catch (error) {
       console.warn('Could not fetch notifications:', error);
     }
@@ -68,7 +69,7 @@ export async function fetchUserData() {
       answered: user._count?.Answers || 0,
       profileImage: user.profile_image || 'ghost.png',
       email: user.email || '',
-      notifications: notifications.length > 0 ? notifications : ['No new notifications'],
+      notifications: notifications.length > 0 ? notifications : [{ content: 'No new notifications' }],
       tags: followedTags.length > 0 ? followedTags : ['javascript', 'python', 'react'],
       questions: questions.map(q => {
         // Handle author object from API
@@ -112,7 +113,7 @@ export const fallbackUserData = {
   asked: 0,
   answered: 0,
   profileImage: "../signin,login/img/rafiki.png",
-  notifications: ["Welcome to Stack Ghost!"],
+  notifications: [{ content: "Welcome to Stack Ghost!" }],
   tags: ["javascript", "python", "react"],
   questions: [],
   answers: []
