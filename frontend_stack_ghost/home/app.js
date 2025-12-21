@@ -249,6 +249,11 @@ function buildNotificationItem(notification) {
       // Navigate based on notification type
       if (notificationData && notificationData.type === 'follow' && notificationData.follower_id) {
         window.location.href = `../profile/index.html?id=${notificationData.follower_id}`;
+      } else if (notificationData && notificationData.question_id &&
+        (notificationData.type === 'comment_on_question' ||
+          notificationData.type === 'comment_on_answer' ||
+          notificationData.type === 'new_answer')) {
+        window.location.href = `../question_review/question.html?id=${notificationData.question_id}`;
       }
 
       // Remove the notification item from the UI
