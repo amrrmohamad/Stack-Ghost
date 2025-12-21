@@ -1730,8 +1730,8 @@ function createAnswerElement(answer) {
       <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
         ${acceptButtonHtml}
         ${currentUserId === answer.author_id ? `
-          <button class="btn btn--ghost btn--sm" data-edit-answer="${answer.id}">✏️ Edit</button>
-          <button class="btn btn--ghost btn--sm" data-delete-answer="${answer.id}" style="color: #ff6b6b;">🗑️ Delete</button>
+          <button class="btn btn--ghost btn--sm" data-edit-answer="${answer.id}">Edit</button>
+          <button class="btn btn--ghost btn--sm" data-delete-answer="${answer.id}" style="color: #ff6b6b;">Delete</button>
         ` : ''}
         <button class="btn btn--ghost btn--sm" data-report-answer="${answer.id}">Report</button>
       </div>
