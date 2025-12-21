@@ -1759,8 +1759,8 @@ function renderAnswerComments(comments, answerId) {
           <span class="comment-author-name">${escapeHtml(comment.author)}</span>
           <span class="comment-time">${escapeHtml(comment.time)}</span>
           ${isOwner ? `
-            <button class="comment-action-btn" data-edit-comment="${comment.id}" title="Edit">✏️</button>
-            <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete">🗑️</button>
+            <button class="comment-action-btn" data-edit-comment="${comment.id}" title="Edit"></button>
+            <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete"></button>
           ` : ''}
         </div>
         <p class="comment-text" data-comment-text="${comment.id}">${escapeHtml(comment.text)}</p>
@@ -1786,7 +1786,7 @@ function createCommentElement(comment) {
       <span class="comment-time">${escapeHtml(comment.time)}</span>
       ${isOwner ? `
         <button class="comment-action-btn" data-edit-comment="${comment.id}" title="Edit">✏️</button>
-        <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete">🗑️</button>
+        <button class="comment-action-btn comment-action-btn--delete" data-delete-comment="${comment.id}" title="Delete"></button>
       ` : ''}
     </div>
     <p class="comment-text" data-comment-text="${comment.id}">${escapeHtml(comment.text)}</p>
