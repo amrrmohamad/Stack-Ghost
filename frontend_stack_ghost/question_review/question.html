@@ -1,145 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="globals.css" />
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="question.css" />
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <script type="module" src="question.js" defer></script>
-  </head>
-  <body>
-    <div class="page">
-      <div class="background-glow"></div>
-      <header class="topbar">
-        <div class="brand">
-          <!-- logo ghost icon goes here -->
-          <i data-lucide="ghost" style="width: 24px; height: 24px; margin-right: 8px;"></i>
-          <span class="brand__name">Stack Ghost</span>
-        </div>
-        <div class="search">
-          <span class="search__icon">
-            <!-- search icon goes here -->
-            <i data-lucide="search" style="width: 20px; height: 20px; opacity: 0.6;"></i>
-          </span>
-          <input
-            type="search"
-            placeholder="Search for questions, users, tags"
-            aria-label="Search for questions, users, tags"
-          />
-        </div>
-        <div class="topbar__actions">
-          <div class="notifications">
-            <button
-              class="icon-button notifications__toggle"
-              aria-label="Notifications"
-              aria-expanded="false"
-              aria-haspopup="true"
-              data-notifications-toggle
-            >
-              <!-- bell icon goes here -->
-              <i data-lucide="bell" style="width: 20px; height: 20px; color: white;"></i>
-            </button>
-            <div class="notifications__dropdown glass" data-notifications-panel>
-              <div class="notifications__header">
-                <span>Notifications</span>
-              </div>
-              <ul class="list notifications__list" data-notifications-dropdown>
-                <!-- filled by data -->
-              </ul>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="globals.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="question.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script type="module" src="question.js" defer></script>
+</head>
+
+<body>
+  <div class="page">
+    <div class="background-glow"></div>
+    <header class="topbar">
+      <div class="brand">
+        <!-- logo ghost icon goes here -->
+        <i data-lucide="ghost" style="width: 24px; height: 24px; margin-right: 8px;"></i>
+        <span class="brand__name">Stack Ghost</span>
+      </div>
+      <div class="search">
+        <span class="search__icon">
+          <!-- search icon goes here -->
+          <i data-lucide="search" style="width: 20px; height: 20px; opacity: 0.6;"></i>
+        </span>
+        <input type="search" placeholder="Search for questions, users, tags"
+          aria-label="Search for questions, users, tags" />
+      </div>
+      <div class="topbar__actions">
+        <div class="notifications">
+          <button class="icon-button notifications__toggle" aria-label="Notifications" aria-expanded="false"
+            aria-haspopup="true" data-notifications-toggle>
+            <!-- bell icon goes here -->
+            <i data-lucide="bell" style="width: 20px; height: 20px; color: white;"></i>
+          </button>
+          <div class="notifications__dropdown glass" data-notifications-panel>
+            <div class="notifications__header">
+              <span>Notifications</span>
             </div>
-          </div>
-          <div class="avatar avatar--sm">
-            <!-- profile icon -->
-            <i data-lucide="circle-user" id="profile-icon" style="width: 36px; height: 36px; color: rgba(255, 255, 255, 0.9); stroke-width: 1.5;"></i>
+            <ul class="list notifications__list" data-notifications-dropdown>
+              <!-- filled by data -->
+            </ul>
           </div>
         </div>
-      </header>
+        <div class="avatar avatar--sm">
+          <!-- profile icon -->
+          <i data-lucide="circle-user" id="profile-icon"
+            style="width: 36px; height: 36px; color: rgba(255, 255, 255, 0.9); stroke-width: 1.5;"></i>
+        </div>
+      </div>
+    </header>
 
-      <div class="layout">
-        <aside class="sidebar sidebar--left">
-          <nav class="nav">
-            <div class="nav__section">
-              <a class="nav__link" href="../home/index.html">
-                <i data-lucide="home" style="width: 20px; height: 20px;"></i>
-                <span>Home</span>
-              </a>
-            </div>
-            <hr class="sidebar-divider" />
-            <div class="nav__section nav__section--cluster">
-              <a class="nav__link nav__link--active" href="../questions/index.html">
-                <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
-                <span>Questions</span>
-              </a>
-              <a class="nav__link" href="../users/index.html">
-                <i data-lucide="users" style="width: 20px; height: 20px;"></i>
-                <span>Users</span>
-              </a>
-              <a class="nav__link" href="../tages/index.html">
-                <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
-                <span>Tags</span>
-              </a>
-              <a class="nav__link" href="../badges/index.html">
-                <i data-lucide="award" style="width: 20px; height: 20px;"></i>
-                <span>Badges</span>
-              </a>
-            </div>
-            <hr class="sidebar-divider" />
-            <div class="nav__section">
-              <a class="nav__link" href="../profile/index.html">
-                <i data-lucide="user" style="width: 20px; height: 20px;"></i>
-                <span>My Profile</span>
-              </a>
-            </div>
-          </nav>
-        </aside>
+    <div class="layout">
+      <aside class="sidebar sidebar--left">
+        <nav class="nav">
+          <div class="nav__section">
+            <a class="nav__link" href="../home/index.html">
+              <i data-lucide="home" style="width: 20px; height: 20px;"></i>
+              <span>Home</span>
+            </a>
+          </div>
+          <hr class="sidebar-divider" />
+          <div class="nav__section nav__section--cluster">
+            <a class="nav__link nav__link--active" href="../questions/index.html">
+              <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
+              <span>Questions</span>
+            </a>
+            <a class="nav__link" href="../users/index.html">
+              <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+              <span>Users</span>
+            </a>
+            <a class="nav__link" href="../tages/index.html">
+              <i data-lucide="tag" style="width: 20px; height: 20px;"></i>
+              <span>Tags</span>
+            </a>
+            <a class="nav__link" href="../badges/index.html">
+              <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+              <span>Badges</span>
+            </a>
+          </div>
+          <hr class="sidebar-divider" />
+          <div class="nav__section">
+            <a class="nav__link" href="../profile/index.html">
+              <i data-lucide="user" style="width: 20px; height: 20px;"></i>
+              <span>My Profile</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
 
-        <main class="content">
-          <div class="breadcrumb">Home &gt; Questions &gt; Review Question</div>
+      <main class="content">
+        <div class="breadcrumb">Home &gt; Questions &gt; Review Question</div>
 
-          <!-- Question Section -->
-          <section class="question-section glass">
-            <article class="question-card-detailed">
-              <div class="question-votes">
-                <button class="vote-btn vote-btn--up" aria-label="Upvote" data-question-upvote>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 5L15 10H12V15H8V10H5L10 5Z" fill="currentColor"/>
-                  </svg>
-                </button>
-                <span class="vote-count" data-question-votes>0</span>
-                <button class="vote-btn vote-btn--down" aria-label="Downvote" data-question-downvote>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 15L5 10H8V5H12V10H15L10 15Z" fill="currentColor"/>
-                  </svg>
+        <!-- Question Section -->
+        <section class="question-section glass">
+          <article class="question-card-detailed">
+            <div class="question-votes">
+              <button class="vote-btn vote-btn--up" aria-label="Upvote" data-question-upvote>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 5L15 10H12V15H8V10H5L10 5Z" fill="currentColor" />
+                </svg>
+              </button>
+              <span class="vote-count" data-question-votes>0</span>
+              <button class="vote-btn vote-btn--down" aria-label="Downvote" data-question-downvote>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 15L5 10H8V5H12V10H15L10 15Z" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
+            <div class="question-content">
+              <h1 class="question-title" data-question-title>
+                <!-- Data loaded from backend -->
+              </h1>
+              <div class="question-body" data-question-body>
+                <!-- Data loaded from backend -->
+              </div>
+              <div class="question-tags" data-question-tags>
+                <!-- Data loaded from backend -->
+              </div>
+              <div class="question-actions">
+                <!-- TODO: Connect this button to backend report API -->
+                <button class="btn btn--report" data-report-question aria-label="Report question">
+                  <i data-lucide="flag" style="width: 16px; height: 16px;"></i>
+                  <span>Report</span>
                 </button>
               </div>
-              <div class="question-content">
-                <h1 class="question-title" data-question-title>
-                  <!-- Data loaded from backend -->
-                </h1>
-                <div class="question-body" data-question-body>
-                  <!-- Data loaded from backend -->
-                </div>
-                <div class="question-tags" data-question-tags>
-                  <!-- Data loaded from backend -->
-                </div>
-                <div class="question-actions">
-                  <!-- TODO: Connect this button to backend report API -->
-                  <button class="btn btn--report" data-report-question aria-label="Report question">
-                    <i data-lucide="flag" style="width: 16px; height: 16px;"></i>
-                    <span>Report</span>
-                  </button>
-                </div>
-                <div class="question-author">
-                  <div class="author-info">
+              <div class="question-author">
+                <div class="author-info">
+                  <a href="#" data-question-author-link class="author-link"
+                    style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
                     <div class="avatar avatar--sm">
                       <img src="" alt="Author" data-question-author-image />
                     </div>
@@ -156,153 +150,140 @@
                         </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div class="question-comments">
-                  <div class="comments-header">
-                    <span class="comments-count" data-question-comments-count>0 Comments</span>
-                    <button class="btn btn--ghost btn--sm" data-show-all-comments style="display: none;">Show all</button>
-                  </div>
-                  <div class="comments-list" data-question-comments>
-                    <!-- Data loaded from backend -->
-                  </div>
-                  <div class="add-comment-form">
-                    <input 
-                      type="text" 
-                      class="comment-input" 
-                      placeholder="Add a comment..." 
-                      data-question-comment-input
-                    />
-                    <button class="btn btn--primary btn--sm" data-submit-question-comment>Add</button>
-                  </div>
+                  </a>
                 </div>
               </div>
-            </article>
-          </section>
-
-          <!-- Answers Section -->
-          <section class="answers-section">
-            <header class="section-header">
-              <h2 data-answers-count>0 Answers</h2>
-            </header>
-            <div class="answers-list" data-answers-list>
-              <!-- Data loaded from backend -->
-            </div>
-          </section>
-
-          <!-- Add Answer Section -->
-          <section class="add-answer-section">
-            <button class="btn btn--primary btn--large" data-add-answer-toggle>
-              Add Answer
-            </button>
-            <div class="add-answer-form glass" data-add-answer-form>
-              <div class="form-toolbar">
-                <button class="toolbar-btn" data-format="bold" aria-label="Bold" title="Bold">
-                  <strong>B</strong>
-                </button>
-                <button class="toolbar-btn" data-format="underline" aria-label="Underline" title="Underline">
-                  <u>U</u>
-                </button>
-                <button class="toolbar-btn" data-format="code" aria-label="Code" title="Code">
-                  &lt;/&gt;
-                </button>
-              </div>
-              <textarea 
-                class="answer-input" 
-                placeholder="Write your answer here..."
-                data-answer-input
-                rows="8"
-              ></textarea>
-              <div class="form-actions">
-                <button class="btn btn--primary" data-submit-answer>Submit Answer</button>
-                <button class="btn btn--ghost" data-cancel-answer>Cancel</button>
+              <div class="question-comments">
+                <div class="comments-header">
+                  <span class="comments-count" data-question-comments-count>0 Comments</span>
+                  <button class="btn btn--ghost btn--sm" data-show-all-comments style="display: none;">Show all</button>
+                </div>
+                <div class="comments-list" data-question-comments>
+                  <!-- Data loaded from backend -->
+                </div>
+                <div class="add-comment-form">
+                  <input type="text" class="comment-input" placeholder="Add a comment..." data-question-comment-input />
+                  <button class="btn btn--primary btn--sm" data-submit-question-comment>Add</button>
+                </div>
               </div>
             </div>
-          </section>
-        </main>
+          </article>
+        </section>
 
-        <aside class="sidebar sidebar--right">
-          <!-- Popular Questions -->
-          <div class="card glass">
-            <header class="section-header">
-              <h3>Popular Questions</h3>
-            </header>
-            <div class="popular-questions" data-popular-questions>
-              <!-- Data loaded from backend -->
-            </div>
+        <!-- Answers Section -->
+        <section class="answers-section">
+          <header class="section-header">
+            <h2 data-answers-count>0 Answers</h2>
+          </header>
+          <div class="answers-list" data-answers-list>
+            <!-- Data loaded from backend -->
           </div>
+        </section>
 
-          <!-- Answering Rules -->
-          <div class="card glass">
-            <header class="section-header">
-              <h3>Answering Rules</h3>
-            </header>
-            <ul class="rules-list">
-              <li class="rule-item">Be respectful and professional.</li>
-              <li class="rule-item">Answer clearly and concisely.</li>
-              <li class="rule-item">Provide examples or references when possible.</li>
-              <li class="rule-item">Avoid plagiarism.</li>
-              <li class="rule-item">Use proper formatting for code and lists.</li>
-            </ul>
-          </div>
-
-          <!-- Tags -->
-          <div class="card glass">
-            <header class="section-header">
-              <h3>Tags</h3>
-            </header>
-            <div class="tags" data-question-sidebar-tags>
-              <!-- Data loaded from backend -->
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <footer class="footer">
-        <div class="footer-links">
-          <a href="../home/index.html">Home</a>
-          <a href="../questions/index.html">Questions</a>
-          <a href="../users/index.html">Users</a>
-          <a href="../tages/index.html">Tags</a>
-          <a href="../badges/index.html">Badges</a>
-          <a href="../profile/index.html">Profile</a>
-        </div>
-        <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
-      </footer>
-    </div>
-
-    <!-- Report Modal -->
-    <div class="report-modal-overlay" data-report-modal-overlay>
-      <div class="report-modal glass">
-        <div class="report-modal-header">
-          <h3>Report Question</h3>
-          <button class="report-modal-close" data-report-modal-close aria-label="Close modal">
-            <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        <!-- Add Answer Section -->
+        <section class="add-answer-section">
+          <button class="btn btn--primary btn--large" data-add-answer-toggle>
+            Add Answer
           </button>
+          <div class="add-answer-form glass" data-add-answer-form>
+            <div class="form-toolbar">
+              <button class="toolbar-btn" data-format="bold" aria-label="Bold" title="Bold">
+                <strong>B</strong>
+              </button>
+              <button class="toolbar-btn" data-format="underline" aria-label="Underline" title="Underline">
+                <u>U</u>
+              </button>
+              <button class="toolbar-btn" data-format="code" aria-label="Code" title="Code">
+                &lt;/&gt;
+              </button>
+            </div>
+            <textarea class="answer-input" placeholder="Write your answer here..." data-answer-input
+              rows="8"></textarea>
+            <div class="form-actions">
+              <button class="btn btn--primary" data-submit-answer>Submit Answer</button>
+              <button class="btn btn--ghost" data-cancel-answer>Cancel</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="sidebar sidebar--right">
+        <!-- Popular Questions -->
+        <div class="card glass">
+          <header class="section-header">
+            <h3>Popular Questions</h3>
+          </header>
+          <div class="popular-questions" data-popular-questions>
+            <!-- Data loaded from backend -->
+          </div>
         </div>
-        <div class="report-modal-body">
-          <label for="report-reason" class="report-label">Please provide a reason for reporting this question:</label>
-          <textarea 
-            id="report-reason" 
-            class="report-textarea" 
-            placeholder="Enter your reason here..."
-            rows="5"
-            data-report-reason
-          ></textarea>
+
+        <!-- Answering Rules -->
+        <div class="card glass">
+          <header class="section-header">
+            <h3>Answering Rules</h3>
+          </header>
+          <ul class="rules-list">
+            <li class="rule-item">Be respectful and professional.</li>
+            <li class="rule-item">Answer clearly and concisely.</li>
+            <li class="rule-item">Provide examples or references when possible.</li>
+            <li class="rule-item">Avoid plagiarism.</li>
+            <li class="rule-item">Use proper formatting for code and lists.</li>
+          </ul>
         </div>
-        <div class="report-modal-actions">
-          <!-- TODO: On submit, send reason and question ID to backend -->
-          <button class="btn btn--primary" data-report-submit>Submit</button>
-          <button class="btn btn--ghost" data-report-cancel>Cancel</button>
+
+        <!-- Tags -->
+        <div class="card glass">
+          <header class="section-header">
+            <h3>Tags</h3>
+          </header>
+          <div class="tags" data-question-sidebar-tags>
+            <!-- Data loaded from backend -->
+          </div>
         </div>
-      </div>
+      </aside>
     </div>
 
-    <script>
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
-    </script>
-  </body>
-</html>
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="../home/index.html">Home</a>
+        <a href="../questions/index.html">Questions</a>
+        <a href="../users/index.html">Users</a>
+        <a href="../tages/index.html">Tags</a>
+        <a href="../badges/index.html">Badges</a>
+        <a href="../profile/index.html">Profile</a>
+      </div>
+      <p class="footer-note">Stack Ghost · Crafted for clarity, speed, and collaboration.</p>
+    </footer>
+  </div>
 
+  <!-- Report Modal -->
+  <div class="report-modal-overlay" data-report-modal-overlay>
+    <div class="report-modal glass">
+      <div class="report-modal-header">
+        <h3>Report Question</h3>
+        <button class="report-modal-close" data-report-modal-close aria-label="Close modal">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      <div class="report-modal-body">
+        <label for="report-reason" class="report-label">Please provide a reason for reporting this question:</label>
+        <textarea id="report-reason" class="report-textarea" placeholder="Enter your reason here..." rows="5"
+          data-report-reason></textarea>
+      </div>
+      <div class="report-modal-actions">
+        <!-- TODO: On submit, send reason and question ID to backend -->
+        <button class="btn btn--primary" data-report-submit>Submit</button>
+        <button class="btn btn--ghost" data-report-cancel>Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+
+</html>

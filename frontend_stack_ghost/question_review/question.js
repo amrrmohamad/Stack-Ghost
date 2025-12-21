@@ -1145,7 +1145,7 @@ function setupEditDeleteAnswer() {
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
-    
+
     // Initialize Lucide icons after modal is added
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
@@ -1382,11 +1382,11 @@ function setupEditDeleteComment() {
       `;
       document.head.appendChild(style);
       document.body.appendChild(modal);
-    
-    // Initialize Lucide icons after modal is added
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
+
+      // Initialize Lucide icons after modal is added
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
 
       // Handle Yes (Delete)
       modal.querySelector('.delete-confirm-yes').addEventListener('click', async () => {
@@ -1539,6 +1539,12 @@ function renderQuestionData(data) {
     authorImageEl.onerror = function () {
       this.src = '../signin,login/ghost.png';
     };
+  }
+
+  // Set author profile link
+  const authorLinkEl = document.querySelector("[data-question-author-link]");
+  if (authorLinkEl && data.author.user_id) {
+    authorLinkEl.href = `../profile/index.html?id=${data.author.user_id}`;
   }
 
   const authorNameEl = document.querySelector("[data-question-author-name]");
@@ -1696,16 +1702,18 @@ function createAnswerElement(answer) {
       <div class="answer-body" data-answer-body="${answer.id}">${answer.body}</div>
       <div class="answer-author">
         <div class="author-info">
-          <div class="avatar avatar--sm">
-            <img src="${answer.author.image}" alt="Author" data-answer-author-image="${answer.id}" />
-          </div>
-          <div class="author-details">
-            <span class="author-name" data-answer-author-name="${answer.id}">${escapeHtml(answer.author.name)}</span>
-            <div class="author-meta">
-              <span class="author-reputation" data-answer-author-reputation="${answer.id}">${formatNumber(answer.author.reputation)}</span>
-              ${answer.author.role ? `<span class="author-role">${escapeHtml(answer.author.role)}</span>` : ''}
+          <a href="../profile/index.html?id=${answer.author.user_id || ''}" class="author-link" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+            <div class="avatar avatar--sm">
+              <img src="${answer.author.image}" alt="Author" data-answer-author-image="${answer.id}" />
             </div>
-          </div>
+            <div class="author-details">
+              <span class="author-name" data-answer-author-name="${answer.id}">${escapeHtml(answer.author.name)}</span>
+              <div class="author-meta">
+                <span class="author-reputation" data-answer-author-reputation="${answer.id}">${formatNumber(answer.author.reputation)}</span>
+                ${answer.author.role ? `<span class="author-role">${escapeHtml(answer.author.role)}</span>` : ''}
+              </div>
+            </div>
+          </a>
         </div>
       </div>
       <div class="answer-comments">
@@ -1896,7 +1904,7 @@ function setupReportModal() {
 
   function handleReportSubmit() {
     const reason = reasonTextarea ? reasonTextarea.value.trim() : "";
-    
+
     if (!reason) {
       alert("Please provide a reason for reporting this question.");
       return;

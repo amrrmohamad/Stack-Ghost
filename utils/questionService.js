@@ -120,7 +120,7 @@ export const getAllQuestions = async (page = 1, limit = 10) => {
             created_at: true,
             updated_at: true,
             Author: {
-                select: { username: true, reputation: true, profile_image: true }
+                select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }
@@ -315,7 +315,7 @@ export const searchQuestions = async (keyword, page = 1, limit = 10) => {
         take: limit,
         include: {
             Author: {
-                select: { username: true, reputation: true }
+                select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }
@@ -351,7 +351,7 @@ export const getQuestionsByTag = async (tagId, page = 1, limit = 10) => {
         take: limit,
         include: {
             Author: {
-                select: { username: true, reputation: true }
+                select: { user_id: true, username: true, reputation: true, profile_image: true }
             },
             Question_Tags: {
                 include: { Tags: { select: { tag_name: true } } }

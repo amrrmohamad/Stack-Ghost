@@ -24,10 +24,10 @@ class UserController {
             const limit = parseInt(req.query.limit) || 100; // Allow fetching more users
             const userRole = req.user?.Roles?.role_name;
             const isAdmin = userRole === 'admin' || userRole === 'moderator';
-            
+
             // Get current user ID to exclude from results and check follow status
             const currentUserId = req.user?.user_id || null;
-            
+
             const { users, totalUsers, totalPages } = await userService.getAllUsers(page, limit, isAdmin, currentUserId, currentUserId);
             res.status(200).json({
                 success: true,
@@ -117,48 +117,97 @@ class UserController {
             const { include } = req.query;
             const includes = include ? include.split(',') : ['badges', 'questions', 'answers', 'tags', 'stats'];
 
-            const profileData = {
-                user: await userService.getUserById(userId)
-            };
+            console.log(`[getCompleteProfile] Fetching profile for user ${userId} with includes: ${includes.join(', ')}`);
+
+            // Get base user data
+            let user;
+            try {
+                user = await userService.getUserById(userId);
+                console.log(`[getCompleteProfile] Got user: ${user?.username || 'unknown'}`);
+            } catch (userErr) {
+                console.error(`[getCompleteProfile] Error getting user ${userId}:`, userErr.message);
+                throw userErr;
+            }
+
+            const profileData = { user };
 
             // Import profile service
             const profileService = await import('../utils/profileService.js');
 
             if (includes.includes('badges')) {
-                profileData.badges = await profileService.getUserBadges(userId);
+                try {
+                    profileData.badges = await profileService.getUserBadges(userId);
+                    console.log(`[getCompleteProfile] Got ${profileData.badges?.length || 0} badges`);
+                } catch (badgeErr) {
+                    console.error(`[getCompleteProfile] Error getting badges for user ${userId}:`, badgeErr.message);
+                    profileData.badges = [];
+                }
             }
 
             if (includes.includes('questions')) {
-                const questionsData = await profileService.getUserQuestions(userId, 1, 50);
-                profileData.questions = questionsData.questions;
-                profileData.totalQuestions = questionsData.total;
+                try {
+                    const questionsData = await profileService.getUserQuestions(userId, 1, 50);
+                    profileData.questions = questionsData.questions;
+                    profileData.totalQuestions = questionsData.total;
+                    console.log(`[getCompleteProfile] Got ${profileData.questions?.length || 0} questions`);
+                } catch (questionsErr) {
+                    console.error(`[getCompleteProfile] Error getting questions for user ${userId}:`, questionsErr.message);
+                    profileData.questions = [];
+                    profileData.totalQuestions = 0;
+                }
             }
 
             if (includes.includes('answers')) {
-                const answersData = await profileService.getUserAnswers(userId, 1, 50);
-                profileData.answers = answersData.answers;
-                profileData.totalAnswers = answersData.total;
+                try {
+                    const answersData = await profileService.getUserAnswers(userId, 1, 50);
+                    profileData.answers = answersData.answers;
+                    profileData.totalAnswers = answersData.total;
+                    console.log(`[getCompleteProfile] Got ${profileData.answers?.length || 0} answers`);
+                } catch (answersErr) {
+                    console.error(`[getCompleteProfile] Error getting answers for user ${userId}:`, answersErr.message);
+                    profileData.answers = [];
+                    profileData.totalAnswers = 0;
+                }
             }
 
             if (includes.includes('tags')) {
-                profileData.followedTags = await profileService.getUserFollowedTags(userId);
+                try {
+                    profileData.followedTags = await profileService.getUserFollowedTags(userId);
+                    console.log(`[getCompleteProfile] Got ${profileData.followedTags?.length || 0} followed tags`);
+                } catch (tagsErr) {
+                    console.error(`[getCompleteProfile] Error getting followed tags for user ${userId}:`, tagsErr.message);
+                    profileData.followedTags = [];
+                }
             }
 
             if (includes.includes('stats')) {
-                const followService = await import('../utils/followService.js');
-                profileData.followStats = await followService.getFollowStats(userId);
+                try {
+                    const followService = await import('../utils/followService.js');
+                    profileData.followStats = await followService.getFollowStats(userId);
+                    console.log(`[getCompleteProfile] Got follow stats:`, profileData.followStats);
+                } catch (statsErr) {
+                    console.error(`[getCompleteProfile] Error getting follow stats for user ${userId}:`, statsErr.message);
+                    profileData.followStats = { followersCount: 0, followingCount: 0 };
+                }
             }
 
             if (includes.includes('titles')) {
-                profileData.questionTitles = await profileService.getUserQuestionTitles(userId, 10);
+                try {
+                    profileData.questionTitles = await profileService.getUserQuestionTitles(userId, 10);
+                    console.log(`[getCompleteProfile] Got ${profileData.questionTitles?.length || 0} question titles`);
+                } catch (titlesErr) {
+                    console.error(`[getCompleteProfile] Error getting question titles for user ${userId}:`, titlesErr.message);
+                    profileData.questionTitles = [];
+                }
             }
 
+            console.log(`[getCompleteProfile] Successfully fetched complete profile for user ${userId}`);
             res.json({ success: true, data: profileData });
         } catch (err) {
             if (err.message === 'User not found') {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
-            console.error(err);
+            console.error(`[getCompleteProfile] Fatal error:`, err);
             res.status(500).json({ success: false, message: 'Server error' });
         }
     }

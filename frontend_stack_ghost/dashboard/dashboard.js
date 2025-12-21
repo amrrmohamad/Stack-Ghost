@@ -15,7 +15,7 @@ const ROUTES = {
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("Loading user data...");
-    
+
     // Check if user has access (Admin or Moderator only)
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.location.href = '../signin,login/index.html';
       return;
     }
-    
+
     // Fetch user and check role
     try {
       const userResponse = await fetch('http://localhost:3000/api/users/me', {
@@ -32,20 +32,20 @@ document.addEventListener("DOMContentLoaded", async () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!userResponse.ok) {
         throw new Error('Failed to fetch user data');
       }
-      
+
       const userData = await userResponse.json();
       const user = userData.data || userData;
-      
+
       // Handle nested Roles object or direct role properties
       const userRole = user.Roles?.role_name || user.role_name || user.role || '';
-      
+
       console.log('Dashboard access check - User:', user);
       console.log('Dashboard access check - Role:', userRole);
-      
+
       // Only allow Admin and Moderator (case-insensitive)
       const roleLower = userRole.toLowerCase();
       if (roleLower !== 'admin' && roleLower !== 'moderator') {
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, 2000);
         return;
       }
-      
+
       console.log('✅ Access granted for role:', userRole);
     } catch (error) {
       console.error('Error checking user role:', error);
@@ -65,26 +65,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       }, 2000);
       return;
     }
-    
+
     console.log('Loading user data...');
     cachedUser = await loadUser();
     console.log('User data loaded:', cachedUser);
-    
+
     console.log('Applying user data to UI...');
     applyUserData(cachedUser);
-    
+
     console.log('Setting up notification dropdown...');
     setupNotificationDropdown();
-    
+
     console.log('Setting up tabs...');
     setupTabs();
-    
+
     console.log('Rendering question queue...');
     await renderQuestionQueue();
-    
+
     console.log('Rendering reports...');
     await renderReports();
-    
+
     console.log("✅ Dashboard initialized successfully");
   } catch (error) {
     console.error("❌ Error initializing dashboard:", error);
@@ -289,7 +289,7 @@ async function renderQuestionQueue(page = 1) {
   const container = document.querySelector("[data-questions-list]");
   const paginationContainer = document.querySelector("[data-questions-pagination]");
   const headerElement = document.querySelector("[data-tab-content='queue'] .section-header h2");
-  
+
   if (!container) return;
 
   // Show loading state
@@ -333,17 +333,17 @@ async function renderQuestionQueue(page = 1) {
 function createQuestionCard(question) {
   const card = document.createElement("div");
   card.className = "question-card glass";
-  
+
   // Add closed status indicator
   const closedBadge = question.is_closed ? '<span style="color: #ff6b6b; font-size: 12px; margin-left: 10px;">[CLOSED]</span>' : '';
-  
+
   card.addEventListener("click", () => {
     window.location.href = `../question_review/question.html?id=${question.id}`;
   });
 
   const bodyText = question.body || 'No description available';
   const bodyPreview = bodyText.length > 200 ? bodyText.substring(0, 200) + '...' : bodyText;
-  
+
   card.innerHTML = `
     <div class="question-card__header">
       <h3 class="question-card__title">${escapeHtml(question.title || 'Untitled')}${closedBadge}</h3>
@@ -359,12 +359,12 @@ function createQuestionCard(question) {
       ${escapeHtml(bodyPreview)}
     </div>
     <div class="question-card__user">
-      <a href="../profile/index.html?userId=${question.userId}" class="question-card__user-avatar question-card__user-link" onclick="event.stopPropagation()">
+      <a href="../profile/index.html?id=${question.userId}" class="question-card__user-avatar question-card__user-link" onclick="event.stopPropagation()">
         <img src="${question.userImage || '../signin,login/ghost.png'}" alt="${escapeHtml(question.username || 'Unknown')}" onerror="this.src='../signin,login/ghost.png'" />
       </a>
       <div class="question-card__user-info">
         <span class="question-card__user-id">User ID: ${question.userId || 'N/A'}</span>
-        <a href="../profile/index.html?userId=${question.userId}" class="question-card__username question-card__user-link" onclick="event.stopPropagation()">${escapeHtml(question.username || 'Unknown')}</a>
+        <a href="../profile/index.html?id=${question.userId}" class="question-card__username question-card__user-link" onclick="event.stopPropagation()">${escapeHtml(question.username || 'Unknown')}</a>
       </div>
     </div>
   `;
@@ -374,7 +374,7 @@ function createQuestionCard(question) {
   if (closeBtn && !question.is_closed) {
     closeBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      
+
       showConfirm(
         `Are you sure you want to close this question: "${question.title}"?`,
         async () => {
@@ -417,7 +417,7 @@ async function renderReports(page = 1) {
   const container = document.querySelector("[data-reports-list]");
   const paginationContainer = document.querySelector("[data-reports-pagination]");
   const headerElement = document.querySelector("[data-tab-content='reports'] .section-header h2");
-  
+
   if (!container) return;
 
   // Show loading state
@@ -461,7 +461,7 @@ async function renderReports(page = 1) {
 function createReportCard(report) {
   const card = document.createElement("div");
   card.className = "report-card glass";
-  
+
   // Determine status badge color
   const statusColors = {
     'pending': '#ffa500',
@@ -471,11 +471,11 @@ function createReportCard(report) {
   };
   const statusColor = statusColors[report.status] || '#ffa500';
   const statusBadge = `<span style="color: ${statusColor}; font-size: 12px; margin-left: 10px;">[${report.status.toUpperCase()}]</span>`;
-  
-  const targetUrl = report.questionId 
+
+  const targetUrl = report.questionId
     ? `../question_review/question.html?id=${report.questionId}`
     : '#';
-  
+
   card.addEventListener("click", () => {
     if (targetUrl !== '#') {
       window.location.href = targetUrl;
@@ -517,7 +517,7 @@ function createReportCard(report) {
   if (reviewBtn && report.status === 'pending') {
     reviewBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      
+
       showConfirm(
         'Mark this report as reviewed?',
         async () => {
